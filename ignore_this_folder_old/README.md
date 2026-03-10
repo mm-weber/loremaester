@@ -23,6 +23,18 @@ source_file, source_type, page_or_timestamp, section_title, ingest_date, doc_ver
 ```
 All ingestion tasks (ING-01 → ING-03) must conform to this schema.
 
+**ING-05 — Obsidian Vault Pre-Processor**
+
+Strip/resolve [[wikilinks]], parse frontmatter YAML as metadata, convert to clean markdown before ingestion. Tools: obsidian-export or a small custom script.
+
+This is non-trivial because Obsidian's graph structure (linked notes) is meaningful — a flat ingest loses the relationship between notes. You may want to preserve link context in chunk metadata.
+
+
+**ING-06 — Scientific PDF Math/Formula Handling**
+
+For papers with heavy LaTeX, consider mathpix API or nougat (Meta's scientific PDF parser) as a pre-processor before R2R ingestion. Otherwise equations become noise in your chunks.
+
+
 ---
 
 ### EPIC 2 — Retrieval Quality
