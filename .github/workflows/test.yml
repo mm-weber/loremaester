@@ -22,4 +22,6 @@ jobs:
           pip install r2r==3.6.6 mcp>=1.26.0 httpx pydantic pytest pytest-asyncio>=1.3.0
 
       - name: Run tests
-        run: pytest test_r2r_mcp_wrapper.py -v
+        run: |
+          pytest test_r2r_mcp_wrapper.py -v
+          pytest mcp-servers/sourcebooks/test_server.py -v
