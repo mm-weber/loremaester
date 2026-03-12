@@ -23,5 +23,5 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest test_r2r_mcp_wrapper.py -v
+          pytest test_r2r_mcp_wrapper.py test_verification_d2.py -v
           pytest mcp-servers/sourcebooks/test_server.py -v
