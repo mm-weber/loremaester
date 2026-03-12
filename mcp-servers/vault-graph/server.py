@@ -168,8 +168,13 @@ async def vault_search_notes(name_pattern: str = None, tag: str = None, note_typ
             continue
         if tag and tag not in data.get("tags", []):
             continue
-        if note_type and data.get("type", "").lower() != note_type.lower():
-            continue
+        raw_type = data.get("type")
+        if note_type:
+            if isinstance(raw_type, list):
+                if not any(t.lower() == note_type.lower() for t in raw_type if isinstance(t, str)):
+                    continue
+            elif not isinstance(raw_type, str) or raw_type.lower() != note_type.lower():
+                continue
         degree = len(data.get("links_to", [])) + len(data.get("linked_from", []))
         results.append((name, data, degree))
 
