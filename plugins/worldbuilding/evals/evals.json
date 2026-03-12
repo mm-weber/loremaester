@@ -1,0 +1,23 @@
+{
+  "skill_name": "worldbuilding",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a note for the Ironhold Council faction — they're the ruling body of Ironhold, made up of five clan elders. They meet in the Hall of Ancestors. I want this saved to my vault.",
+      "expected_output": "A new Faction note at {Campaign}/Factions/Ironhold Council.md with proper frontmatter, wikilinks to Ironhold and related NPCs, and backlink updates to existing notes that reference the council.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "What do the source books say about dwarven politics and governance? I'm trying to flesh out how the council works but want to see what published material is out there first.",
+      "expected_output": "Research-only output using search_lore with relevant filters. Should present source book excerpts about dwarven politics, noting book titles, chapters, and page ranges. Should NOT write to vault.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Flesh out the city of Ironhold with more detail — I want to add districts, notable landmarks, and a bit about daily life there. Check what we already have and what the source books say.",
+      "expected_output": "Should first read the existing Ironhold note from vault, check vault_graph for connections, search source books for city/settlement lore, then propose expanded content that respects existing canon while adding new detail with wikilinks to existing concepts.",
+      "files": []
+    }
+  ]
+}
