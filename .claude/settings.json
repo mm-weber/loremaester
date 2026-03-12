@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(scripts/*)",
+      "Bash(git *)",
+      "Bash(go *)",
+      "Bash(terraform *)",
+      "Bash(npm *)",
+      "Bash(python *)",
+      "Bash(docker *)",
+      "Bash(gh *)",
+      "Bash(make *)",
+      "Read(*)",
+      "Write(repos/**)",
+      "Write(scripts/**)",
+      "Write(vault/**)",
+      "Write(mcp-servers/**)"
+    ],
+    "deny": ["Bash(rm -rf /)", "Bash(sudo rm *)"]
+  },
+  "mcpServers": {
+    "terraform": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "--network", "host", "hashicorp/terraform-mcp-server"],
+      "env": {}
+    },
+    "r2r": {
+      "command": "python",
+      "args": ["/workspace/repos/R2R-ClaudeCode-integration/implement-D6/r2r_mcp_wrapper.py"],
+      "env": {
+        "R2R_API_BASE": "http://host.docker.internal:7272",
+        "R2R_API_KEY": "${R2R_API_KEY}"
+      }
+    },
+    "sourcebooks": {
+      "command": "python",
+      "args": ["/workspace/mcp-servers/sourcebooks/server.py"],
+      "env": {
+        "R2R_API_BASE": "http://host.docker.internal:7272"
+      }
+    },
+    "vault-graph": {
+      "command": "python",
+      "args": ["/workspace/mcp-servers/vault-graph/server.py"],
+      "env": {
+        "VAULT_PATH": "/workspace/vault"
+      }
+    }
+  }
+}
