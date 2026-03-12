@@ -19,9 +19,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install r2r==3.6.6 mcp>=1.26.0 httpx pydantic pytest pytest-asyncio>=1.3.0
+          pip install r2r==3.6.6 mcp>=1.26.0 httpx pydantic pytest pytest-asyncio>=1.3.0 pyyaml
 
       - name: Run tests
         run: |
           pytest test_r2r_mcp_wrapper.py test_verification_d2.py -v
           pytest mcp-servers/sourcebooks/test_server.py mcp-servers/sourcebooks/test_verification_d3.py -v
+          pytest test_verification_d4.py -v
