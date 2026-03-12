@@ -16,7 +16,7 @@ mcp = FastMCP("R2R")
 
 def _get_client() -> R2RClient:
     """Get an R2R client instance."""
-    base_url = os.environ.get("R2R_BASE_URL", "http://localhost:7272")
+    base_url = os.environ.get("R2R_API_BASE", "http://localhost:7272")
     return R2RClient(base_url)
 
 
