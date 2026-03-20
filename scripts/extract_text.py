@@ -13,11 +13,13 @@ import sys
 from pathlib import Path
 
 try:
-    from kreuzberg import extract_file_sync
+    from kreuzberg import ExtractionConfig, OcrConfig, extract_file_sync
 except ImportError:
     # Allow the module to load so tests can mock extract_file_sync.
     # Actual ImportError is raised at call time in _do_extract.
     extract_file_sync = None
+    ExtractionConfig = None
+    OcrConfig = None
 
 
 def _build_parser():
@@ -42,10 +44,10 @@ def _get_r2r_client():
 
 
 def _do_extract(filepath, engine="tesseract", language="eng"):
-    """Extract text from a single file. Returns (content, confidence) or raises."""
-    result = extract_file_sync(filepath, engine=engine, language=language)
-    confidence = getattr(result, "confidence", None)
-    return result.content, confidence
+    """Extract text from a single file. Returns content string or raises."""
+    config = ExtractionConfig(ocr=OcrConfig(backend=engine, language=language))
+    result = extract_file_sync(filepath, config=config)
+    return result.content
 
 
 def main():
@@ -68,7 +70,7 @@ def main():
             continue
 
         try:
-            content, confidence = _do_extract(filepath, args.engine, args.language)
+            content = _do_extract(filepath, args.engine, args.language)
         except ImportError:
             print("Error: kreuzberg is not installed.", file=sys.stderr)
             print("Install it with: pip install kreuzberg", file=sys.stderr)
@@ -78,9 +80,6 @@ def main():
             print(f"Error extracting {filepath}: {e}", file=sys.stderr)
             had_error = True
             continue
-
-        if confidence is not None:
-            print(f"Confidence ({filepath.name}): {confidence}", file=sys.stderr)
 
         results.append((filepath.name, content))
 

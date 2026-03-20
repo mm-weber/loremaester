@@ -1,7 +1,6 @@
 """Tests for extract_text.py — all kreuzberg calls are mocked (no tesseract needed)."""
 
 import sys
-import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -19,9 +18,8 @@ import extract_text
 
 class FakeResult:
     """Mimics kreuzberg ExtractionResult."""
-    def __init__(self, content, confidence=None):
+    def __init__(self, content):
         self.content = content
-        self.confidence = confidence
 
 
 def run_main(args, monkeypatch):
@@ -147,7 +145,7 @@ def test_title_override(monkeypatch, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# FR-7: --engine selection
+# FR-7: --engine passes correct config to kreuzberg
 # ---------------------------------------------------------------------------
 
 def test_engine_selection(monkeypatch, capsys, tmp_path):
@@ -157,13 +155,14 @@ def test_engine_selection(monkeypatch, capsys, tmp_path):
     with patch("extract_text.extract_file_sync", return_value=FakeResult("text")) as mock_extract:
         run_main([str(src), "--engine", "easyocr"], monkeypatch)
 
-    # Verify engine was passed through
+    # Verify config was passed with correct backend
     call_kwargs = mock_extract.call_args
-    assert "easyocr" in str(call_kwargs)
+    config = call_kwargs.kwargs["config"]
+    assert config.ocr.backend == "easyocr"
 
 
 # ---------------------------------------------------------------------------
-# FR-8: --language selection
+# FR-8: --language passes correct config to kreuzberg
 # ---------------------------------------------------------------------------
 
 def test_language_selection(monkeypatch, capsys, tmp_path):
@@ -174,7 +173,8 @@ def test_language_selection(monkeypatch, capsys, tmp_path):
         run_main([str(src), "--language", "deu"], monkeypatch)
 
     call_kwargs = mock_extract.call_args
-    assert "deu" in str(call_kwargs)
+    config = call_kwargs.kwargs["config"]
+    assert config.ocr.language == "deu"
 
 
 # ---------------------------------------------------------------------------
@@ -194,21 +194,6 @@ def test_missing_file(monkeypatch, capsys):
 def test_no_args(monkeypatch, capsys):
     code = run_main([], monkeypatch)
     assert code == 2
-
-
-# ---------------------------------------------------------------------------
-# FR-11: confidence score printed to stderr
-# ---------------------------------------------------------------------------
-
-def test_confidence_to_stderr(monkeypatch, capsys, tmp_path):
-    src = tmp_path / "img.jpeg"
-    src.write_bytes(b"\xff\xd8dummy")
-
-    with patch("extract_text.extract_file_sync", return_value=FakeResult("text", confidence=0.95)):
-        run_main([str(src)], monkeypatch)
-
-    err = capsys.readouterr().err
-    assert "0.95" in err
 
 
 # ---------------------------------------------------------------------------
