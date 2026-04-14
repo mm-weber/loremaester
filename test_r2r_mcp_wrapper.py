@@ -103,7 +103,7 @@ class TestSearch:
         settings = call_kwargs.kwargs.get(
             "search_settings", call_kwargs[1].get("search_settings")
         )
-        assert settings.limit == 5
+        assert settings["limit"] == 5
 
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_custom_limit(self, mock_client_cls):
@@ -118,7 +118,7 @@ class TestSearch:
         settings = call_kwargs.kwargs.get(
             "search_settings", call_kwargs[1].get("search_settings")
         )
-        assert settings.limit == 3
+        assert settings["limit"] == 3
 
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_with_filters(self, mock_client_cls):
@@ -134,7 +134,7 @@ class TestSearch:
         settings = call_kwargs.kwargs.get(
             "search_settings", call_kwargs[1].get("search_settings")
         )
-        assert settings.filters["book_title"] == {"$eq": "Foo"}
+        assert settings["filters"]["book_title"] == {"$eq": "Foo"}
 
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_with_collection_ids(self, mock_client_cls):
@@ -149,7 +149,7 @@ class TestSearch:
         settings = call_kwargs.kwargs.get(
             "search_settings", call_kwargs[1].get("search_settings")
         )
-        assert settings.filters["collection_ids"] == {"$overlap": ["abc-123"]}
+        assert settings["filters"]["collection_ids"] == {"$overlap": ["abc-123"]}
 
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_with_search_mode(self, mock_client_cls):
