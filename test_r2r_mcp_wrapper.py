@@ -6,10 +6,6 @@ Tests cover: search, ingest, list documents, delete document, list collections,
 and MCP server setup.
 """
 
-import sys
-
-sys.path.insert(0, "/workspace/repos/R2R-ClaudeCode-integration/verification-tests-1-4")
-
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
