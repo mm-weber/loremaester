@@ -6,9 +6,6 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-# Ensure scripts/ is importable
-sys.path.insert(0, str(Path(__file__).parent))
-
 import extract_text
 
 

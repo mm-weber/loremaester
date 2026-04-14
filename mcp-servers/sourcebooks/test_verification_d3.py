@@ -14,8 +14,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
 import server  # noqa: E402
 from server import search_lore, list_books, get_chapter, _get_client  # noqa: E402
 

@@ -23,7 +23,6 @@ import yaml
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(REPO_ROOT, "scripts"))
 
 from build_vault_graph import build_graph  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
