@@ -8,8 +8,6 @@ Mock-based smoke/integration tests covering:
 """
 
 import os
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -141,7 +139,7 @@ class TestSmokeFlow:
         # Verify the book filter was set
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
         # Output still formatted correctly
         assert "Dwarf Kingdoms" in output

@@ -1,8 +1,6 @@
 """Tests for the Worldbuilding Source Books MCP server (sourcebooks/server.py)."""
 
 import os
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
