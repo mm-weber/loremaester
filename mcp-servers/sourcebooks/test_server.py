@@ -104,7 +104,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.use_hybrid_search is True
+        assert settings["use_hybrid_search"] is True
 
     @patch("server.R2RClient")
     async def test_filter_by_book(self, mock_client_cls):
@@ -116,7 +116,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
     @patch("server.R2RClient")
     async def test_filter_by_content_type(self, mock_client_cls):
@@ -128,7 +128,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["content_type"] == {"$eq": "lore"}
+        assert settings["filters"]["content_type"] == {"$eq": "lore"}
 
     @patch("server.R2RClient")
     async def test_combined_filters(self, mock_client_cls):
@@ -140,8 +140,8 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
-        assert settings.filters["content_type"] == {"$eq": "lore"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["content_type"] == {"$eq": "lore"}
 
     @patch("server.R2RClient")
     async def test_default_limit_5(self, mock_client_cls):
@@ -153,7 +153,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.limit == 5
+        assert settings["limit"] == 5
 
     @patch("server.R2RClient")
     async def test_custom_limit(self, mock_client_cls):
@@ -165,7 +165,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.limit == 10
+        assert settings["limit"] == 10
 
     @patch("server.R2RClient")
     async def test_error_handling(self, mock_client_cls):
@@ -273,8 +273,8 @@ class TestGetChapter:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
-        assert settings.filters["chapter"] == {"$ilike": "%Ch 3%"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["chapter"] == {"$ilike": "%Ch 3%"}
 
     @patch("server.R2RClient")
     async def test_no_results(self, mock_client_cls):
