@@ -4,12 +4,7 @@ import os
 
 from mcp.server.fastmcp import FastMCP
 
-try:
-    from r2r import R2RClient
-    from shared.abstractions.search import SearchSettings
-except ImportError:
-    from r2r import R2RClient
-    from shared.abstractions.search import SearchSettings
+from r2r import R2RClient
 
 mcp = FastMCP("R2R")
 
@@ -47,7 +42,7 @@ async def search(
         if collection_ids:
             effective_filters["collection_ids"] = {"$overlap": collection_ids}
 
-        settings = SearchSettings(limit=limit, filters=effective_filters)
+        settings = {"limit": limit, "filters": effective_filters}
 
         result = client.retrieval.search(
             query=query,
