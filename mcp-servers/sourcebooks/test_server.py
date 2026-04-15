@@ -1,14 +1,9 @@
 """Tests for the Worldbuilding Source Books MCP server (sourcebooks/server.py)."""
 
 import os
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-# Ensure server module can be imported from this directory
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import server  # noqa: E402
 from server import search_lore, list_books, get_chapter  # noqa: E402
@@ -104,7 +99,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.use_hybrid_search is True
+        assert settings["use_hybrid_search"] is True
 
     @patch("server.R2RClient")
     async def test_filter_by_book(self, mock_client_cls):
@@ -116,7 +111,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
     @patch("server.R2RClient")
     async def test_filter_by_content_type(self, mock_client_cls):
@@ -128,7 +123,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["content_type"] == {"$eq": "lore"}
+        assert settings["filters"]["content_type"] == {"$eq": "lore"}
 
     @patch("server.R2RClient")
     async def test_combined_filters(self, mock_client_cls):
@@ -140,8 +135,8 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
-        assert settings.filters["content_type"] == {"$eq": "lore"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["content_type"] == {"$eq": "lore"}
 
     @patch("server.R2RClient")
     async def test_default_limit_5(self, mock_client_cls):
@@ -153,7 +148,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.limit == 5
+        assert settings["limit"] == 5
 
     @patch("server.R2RClient")
     async def test_custom_limit(self, mock_client_cls):
@@ -165,7 +160,7 @@ class TestSearchLore:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.limit == 10
+        assert settings["limit"] == 10
 
     @patch("server.R2RClient")
     async def test_error_handling(self, mock_client_cls):
@@ -273,8 +268,8 @@ class TestGetChapter:
 
         call_kwargs = client.retrieval.search.call_args
         settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-        assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
-        assert settings.filters["chapter"] == {"$ilike": "%Ch 3%"}
+        assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
+        assert settings["filters"]["chapter"] == {"$ilike": "%Ch 3%"}
 
     @patch("server.R2RClient")
     async def test_no_results(self, mock_client_cls):

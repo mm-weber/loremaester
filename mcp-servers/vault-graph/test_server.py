@@ -83,16 +83,6 @@ def vault_dir():
         yield tmpdir
 
 
-@pytest.fixture(autouse=True)
-def _setup_path():
-    """Add the vault-graph directory to sys.path so we can import server."""
-    import sys
-
-    vault_graph_dir = os.path.dirname(os.path.abspath(__file__))
-    if vault_graph_dir not in sys.path:
-        sys.path.insert(0, vault_graph_dir)
-
-
 @pytest.fixture()
 def server(vault_dir):
     """Import and configure the server module with the test vault."""

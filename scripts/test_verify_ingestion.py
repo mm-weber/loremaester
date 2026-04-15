@@ -41,14 +41,16 @@ class TestVerificationReport:
 class TestCheckDocumentExists:
     def test_document_found_success_returns_pass(self):
         client = MagicMock()
-        client.documents.retrieve.return_value.results.status = "success"
-        result = check_document_exists(client, "7a3f")
+        client.documents.retrieve.return_value.results.ingestion_status = "success"
+        client.documents.retrieve.return_value.results.metadata = {}
+        result, status, metadata, doc_info = check_document_exists(client, "7a3f")
         assert result == CheckResult("Document exists", "PASS", "status: success")
+        assert status == "success"
 
     def test_document_not_found_returns_fail(self):
         client = MagicMock()
         client.documents.retrieve.side_effect = Exception("Not found")
-        result = check_document_exists(client, "7a3f")
+        result, status, metadata, doc_info = check_document_exists(client, "7a3f")
         assert result.status == "FAIL"
         assert "not found" in result.message.lower()
 
@@ -99,12 +101,12 @@ class TestCheckSearchCoherence:
             r.document_id = "7a3f"
             r.score = 0.72
             results.append(r)
-        client.retrieval.search.return_value.chunk_search_results = results
+        client.retrieval.search.return_value.results.chunk_search_results = results
         result = check_search_coherence(client, "7a3f", "Monster Manual")
         assert result.status == "PASS"
 
         # FAIL case: no results
-        client.retrieval.search.return_value.chunk_search_results = []
+        client.retrieval.search.return_value.results.chunk_search_results = []
         result = check_search_coherence(client, "7a3f", "Monster Manual")
         assert result.status == "FAIL"
 
@@ -132,7 +134,7 @@ class TestRunVerification:
     @patch("verify_ingestion.check_chunk_count")
     @patch("verify_ingestion.check_document_exists")
     def test_pipeline_runs_all_checks(self, mock_exists, mock_chunks, mock_quality, mock_search):
-        mock_exists.return_value = CheckResult("Document exists", "PASS", "ok")
+        mock_exists.return_value = (CheckResult("Document exists", "PASS", "ok"), "success", {}, MagicMock())
         mock_chunks.return_value = CheckResult("Chunk count", "PASS", "ok")
         mock_quality.return_value = CheckResult("Text quality", "PASS", "ok")
         mock_search.return_value = CheckResult("Search coherence", "PASS", "ok")

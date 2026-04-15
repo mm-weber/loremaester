@@ -27,7 +27,7 @@
     },
     "r2r": {
       "command": "python",
-      "args": ["/workspace/repos/R2R-ClaudeCode-integration/implement-D6/r2r_mcp_wrapper.py"],
+      "args": ["r2r_mcp_wrapper.py"],
       "env": {
         "R2R_API_BASE": "http://host.docker.internal:7272",
         "R2R_API_KEY": "${R2R_API_KEY}"
@@ -35,14 +35,14 @@
     },
     "sourcebooks": {
       "command": "python",
-      "args": ["/workspace/mcp-servers/sourcebooks/server.py"],
+      "args": ["mcp-servers/sourcebooks/server.py"],
       "env": {
         "R2R_API_BASE": "http://host.docker.internal:7272"
       }
     },
     "vault-graph": {
       "command": "python",
-      "args": ["/workspace/mcp-servers/vault-graph/server.py"],
+      "args": ["mcp-servers/vault-graph/server.py"],
       "env": {
         "VAULT_PATH": "/workspace/vault"
       }

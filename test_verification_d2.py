@@ -8,9 +8,6 @@ Integration-style smoke tests covering:
 """
 
 import os
-import sys
-
-sys.path.insert(0, "/workspace/repos/R2R-ClaudeCode-integration/verification-tests-1-4")
 
 from unittest.mock import MagicMock, patch
 from uuid import UUID

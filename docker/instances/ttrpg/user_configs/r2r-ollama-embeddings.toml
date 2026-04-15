@@ -1,0 +1,34 @@
+# R2R config: Ollama embeddings only.
+# No completion/LLM config — Claude Code handles all reasoning via MCP servers.
+
+[embedding]
+provider = "ollama"
+base_model = "mxbai-embed-large"
+base_dimension = 1_024
+batch_size = 32
+concurrent_request_limit = 2
+
+[completion_embedding]
+provider = "ollama"
+base_model = "mxbai-embed-large"
+base_dimension = 1_024
+batch_size = 32
+concurrent_request_limit = 2
+
+[ingestion]
+provider = "unstructured_local"
+strategy = "auto"
+chunking_strategy = "by_title"
+new_after_n_chars = 384
+max_characters = 512
+combine_under_n_chars = 128
+overlap = 20
+skip_document_summary = true
+automatic_extraction = false
+
+[orchestration]
+provider = "hatchet"
+
+[app]
+# Default PDF upload limit is 30MB — TTRPG sourcebooks regularly exceed this.
+max_upload_size_by_type = { pdf = 300_000_000 }

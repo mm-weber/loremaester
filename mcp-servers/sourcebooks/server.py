@@ -1,18 +1,10 @@
 """Worldbuilding Source Books MCP server — lore-aware search tools wrapping R2R."""
 
 import os
-import sys
 from collections import defaultdict
 
 from mcp.server.fastmcp import FastMCP
-
-try:
-    from r2r import R2RClient
-    from shared.abstractions.search import SearchSettings
-except ImportError:
-    sys.path.insert(0, "/workspace/repos/R2R/main/py/")
-    from r2r import R2RClient
-    from shared.abstractions.search import SearchSettings
+from r2r import R2RClient
 
 mcp = FastMCP("Worldbuilding Source Books")
 
@@ -33,14 +25,14 @@ async def search_lore(query: str, book: str = None, content_type: str = None, li
         if content_type:
             filters["content_type"] = {"$eq": content_type}
 
-        settings = SearchSettings(
-            filters=filters,
-            limit=limit,
-            use_hybrid_search=True,
-            use_semantic_search=True,
-            include_metadatas=True,
-            include_scores=True,
-        )
+        settings = {
+            "filters": filters,
+            "limit": limit,
+            "use_hybrid_search": True,
+            "use_semantic_search": True,
+            "include_metadatas": True,
+            "include_scores": True,
+        }
 
         result = client.retrieval.search(query=query, search_settings=settings)
         chunks = result.results.chunk_search_results
@@ -105,13 +97,13 @@ async def get_chapter(book: str, chapter: str) -> str:
             "book_title": {"$eq": book},
             "chapter": {"$ilike": f"%{chapter}%"},
         }
-        settings = SearchSettings(
-            filters=filters,
-            limit=50,
-            use_hybrid_search=True,
-            use_semantic_search=True,
-            include_metadatas=True,
-        )
+        settings = {
+            "filters": filters,
+            "limit": 50,
+            "use_hybrid_search": True,
+            "use_semantic_search": True,
+            "include_metadatas": True,
+        }
 
         result = client.retrieval.search(query=f"{book} {chapter}", search_settings=settings)
         chunks = result.results.chunk_search_results

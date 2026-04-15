@@ -38,7 +38,7 @@ All servers use stdio transport, run as Python processes, and are registered in 
 | # | Deliverable | Role |
 |---|---|---|
 | D1 | **Vault CLAUDE.md Template** | Teaches Claude how to read/write the GM's vault — frontmatter schemas, wikilink conventions, folder structure, search tips |
-| D2 | **R2R MCP Wrapper** | General-purpose MCP server wrapping R2R's SDK — search, ingest, list, delete documents and collections |
+| D2 | **R2R MCP Wrapper** | General-purpose MCP server wrapping R2R's SDK — search, ingest, list, and delete documents and collections |
 | D3 | **Sourcebooks MCP Server** | Worldbuilding-domain tools (`search_lore`, `list_books`, `get_chapter`) with TTRPG-aware metadata and hybrid search defaults |
 | D4 | **Vault Graph Builder** | CLI script that parses `[[wikilinks]]` from all vault notes and outputs a `.graph.json` adjacency structure |
 | D5 | **Vault Graph MCP Server** | MCP tools for navigating the wikilink graph — subgraph traversal, backlinks, centrality ranking, filtered search |
@@ -81,7 +81,7 @@ D7 (the worldbuilding plugin) sits at the top, orchestrating Claude's use of all
 
 ### Why separate R2R wrapper (D2) from Sourcebooks server (D3)?
 
-D2 is a **generic, reusable** R2R integration — it exposes raw search, ingest, list, and delete operations with no domain knowledge. It lives in the R2R-ClaudeCode-integration repo and could be used for any R2R-backed project.
+D2 is a **generic, reusable** R2R integration — it exposes raw search, ingest, list, and delete operations with no domain knowledge. It could be used for any R2R-backed project.
 
 D3 is **domain-specific** — it speaks worldbuilding language (`search_lore`, `list_books`, `get_chapter`), enforces a metadata schema for source books (book title, system, publisher, content type, chapter, page range), and defaults to hybrid search because that works best for TTRPG content. It lives in the workspace alongside the other worldbuilding infrastructure.
 
@@ -110,6 +110,32 @@ MCP is Claude Code's native extension mechanism — stdio-based, composable, and
 - **No custom plugins or patches** — standard Claude Code configuration
 - **Independent scaling** — each server can be developed, tested, and restarted independently
 - **Composable** — Claude sees all tools from all servers in a unified namespace
+
+---
+
+## Repository Structure
+
+This is a single self-contained repository. R2R is consumed as a Docker image (`sciphiai/r2r`) and pip package (`r2r` for the SDK client). No separate R2R fork or clone is needed.
+
+```
+R2R-ClaudeCode-integration/
+├── docker/                    # Docker Compose deployment configs
+│   ├── compose.infra.yaml     # Shared infrastructure (postgres, hatchet, minio)
+│   ├── compose.app.yaml       # Per-instance R2R app (parameterized)
+│   ├── compose.full.yaml      # Single-stack deployment (all-in-one)
+│   ├── instances/             # Per-deployment configs (.env, user_configs/)
+│   └── env/                   # Environment variable files
+├── mcp-servers/
+│   ├── sourcebooks/           # D3: Worldbuilding lore search
+│   └── vault-graph/           # D5: Wikilink graph navigation
+├── scripts/                   # D4: Graph builder, OCR tools, ingestion
+├── plugins/                   # D7: Worldbuilding skill
+├── r2r_mcp_wrapper.py         # D2: Generic R2R MCP wrapper
+├── examples/                  # D1: Vault CLAUDE.md template
+├── docs/                      # Documentation
+├── requirements/              # EARS specifications
+└── .github/workflows/         # CI/CD
+```
 
 ---
 
@@ -148,29 +174,6 @@ Claude writes the results back:
 After vault changes, the graph is rebuilt:
 - Run `build-vault-graph.py` (D4) to regenerate `.graph.json`
 - Call `vault_reload_graph` (D5) to pick up changes without restarting the server
-
----
-
-## Implementation Order
-
-D1, D2, and D4 have no dependencies and can be built in parallel. The remaining deliverables follow a dependency chain:
-
-```
-Phase 1 (parallel):
-  D1 — Vault CLAUDE.md template (independent)
-  D2 — R2R MCP wrapper (independent)
-  D4 — Vault graph builder (independent)
-
-Phase 2 (depends on Phase 1):
-  D3 — Sourcebooks MCP server (follows D2's pattern)
-  D5 — Vault graph MCP server (reads D4's output)
-
-Phase 3 (depends on Phase 2):
-  D6 — Settings configuration (registers D3 + D5)
-
-Phase 4 (depends on Phase 3):
-  D7 — Worldbuilding plugin (orchestrates everything)
-```
 
 ---
 

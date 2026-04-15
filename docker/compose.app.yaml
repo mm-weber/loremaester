@@ -1,0 +1,90 @@
+# Per-instance R2R application stack.
+# Requires compose.infra.yaml to be running first (r2r-infra network + hatchet_api_key volume).
+#
+# Setup:
+#   cp instances/ttrpg/.env.example instances/ttrpg/.env   # then customize
+#
+# Usage:
+#   docker compose -f compose.app.yaml --env-file instances/ttrpg/.env up -d
+#   docker compose -f compose.app.yaml --env-file instances/coding/.env up -d
+
+services:
+  unstructured:
+    image: ragtoriches/unst-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7275/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  graph_clustering:
+    image: ragtoriches/cluster-prod
+    ports:
+      - "${GRAPH_CLUSTERING_PORT:-7276}:7276"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7276/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  r2r:
+    image: sciphiai/r2r:latest
+    ports:
+      - "${R2R_PORT:-7272}:${R2R_PORT:-7272}"
+    env_file:
+      - ./env/r2r-full.env
+    environment:
+      # Instance-specific overrides (take precedence over env_file)
+      - R2R_PORT=${R2R_PORT:-7272}
+      - R2R_HOST=0.0.0.0
+      - R2R_PROJECT_NAME=${R2R_PROJECT_NAME:-r2r_default}
+      - R2R_CONFIG_PATH=/app/user_configs/${R2R_CONFIG_FILE:-r2r-ollama-embeddings.toml}
+      # Shared infra (reached via r2r-infra network)
+      - R2R_POSTGRES_HOST=postgres
+      - R2R_POSTGRES_PORT=5432
+      # Local services (reached via default project network)
+      - UNSTRUCTURED_SERVICE_URL=http://unstructured:7275
+      - CLUSTERING_SERVICE_URL=http://graph_clustering:7276
+      # Hatchet
+      - HATCHET_CLIENT_TLS_STRATEGY=none
+    command: sh /scripts/start-r2r.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${R2R_PORT:-7272}/v3/health"]
+      interval: 6s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: on-failure
+    volumes:
+      - ./instances/${INSTANCE}/user_configs:/app/user_configs
+      - ./user_tools:/app/user_tools
+      - hatchet_api_key:/hatchet_api_key:ro
+      - ./scripts:/scripts
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - default
+      - r2r-infra
+    depends_on:
+      unstructured:
+        condition: service_healthy
+      graph_clustering:
+        condition: service_healthy
+
+  r2r-dashboard:
+    image: sciphiai/r2r-dashboard:1.0.3
+    environment:
+      - NEXT_PUBLIC_R2R_DEPLOYMENT_URL=http://localhost:${R2R_PORT:-7272}
+      - NEXT_PUBLIC_HATCHET_DASHBOARD_URL=http://localhost:7274
+      - NEXT_PUBLIC_R2R_DEFAULT_EMAIL=admin@example.com
+      - NEXT_PUBLIC_R2R_DEFAULT_PASSWORD=change_me_immediately
+    ports:
+      - "${DASHBOARD_PORT:-7273}:3000"
+
+networks:
+  r2r-infra:
+    external: true
+
+volumes:
+  hatchet_api_key:
+    external: true

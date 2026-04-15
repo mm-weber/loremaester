@@ -10,22 +10,22 @@ Set up R2R semantic search with Ollama embeddings, ingest your PDF sourcebooks (
 
 ```
   HOST MACHINE                                    DEVCONTAINER
- ┌───────────────────────────────┐              ┌──────────────────────────────┐
- │                               │              │  Claude Code                 │
- │  Ollama (:11434)              │              │    ├─ r2r MCP server         │
- │  └─ mxbai-embed-large         │              │    ├─ sourcebooks MCP server  │
- │     (embedding model only)    │              │    ├─ vault-graph MCP server  │
- │                               │              │    └─ worldbuilding skill     │
- │  R2R Server (:7272)           │◄────────────►│                              │
- │  ├─ PostgreSQL + pgvector     │  host.       │  Obsidian vault (bind mount) │
- │  ├─ Unstructured.io (OCR)    │  docker.     │  .graph.json                 │
- │  └─ Hatchet (orchestration)  │  internal    │                              │
- │                               │  :7272       │                              │
- │  R2R Dashboard (:7273)        │              │                              │
- │                               │              │                              │
- │  PDF ingestion                │              │                              │
- │  (r2r CLI / SDK / scripts)   │              │                              │
- └───────────────────────────────┘              └──────────────────────────────┘
+ +-------------------------------+              +------------------------------+
+ |                               |              |  Claude Code                 |
+ |  Ollama (:11434)              |              |    +- r2r MCP server         |
+ |  +- mxbai-embed-large         |              |    +- sourcebooks MCP server  |
+ |     (embedding model only)    |              |    +- vault-graph MCP server  |
+ |                               |              |    +- worldbuilding skill     |
+ |  R2R Server (:7272)           |<------------>|                              |
+ |  +- PostgreSQL + pgvector     |  host.       |  Obsidian vault (bind mount) |
+ |  +- Unstructured.io (OCR)    |  docker.     |  .graph.json                 |
+ |  +- Hatchet (orchestration)  |  internal    |                              |
+ |                               |  :7272       |                              |
+ |  R2R Dashboard (:7273)        |              |                              |
+ |                               |              |                              |
+ |  PDF ingestion                |              |                              |
+ |  (r2r CLI / SDK / scripts)   |              |                              |
+ +-------------------------------+              +------------------------------+
 ```
 
 ### Key Architecture Point
@@ -130,64 +130,18 @@ mxbai-embed-large:latest   ...           670 MB  ...
 
 Docker Full Mode gives you PostgreSQL + pgvector for vector storage, Unstructured.io for PDF parsing (including OCR for scanned/image PDFs), and Hatchet for orchestration.
 
-### 2a. Clone the R2R Repository
+### 2a. Docker Compose Files
 
-```bash
-git clone https://github.com/SciPhi-AI/R2R.git
-cd R2R
-```
+The Docker Compose files are included in this repository under `docker/`. No need to clone R2R separately.
 
-### 2b. Create a Custom R2R Config (Embeddings Only)
+### 2b. R2R Config (Embeddings Only)
 
-Since Claude Code handles all reasoning, R2R only needs an embedding configuration. Create a minimal TOML config:
+Since Claude Code handles all reasoning, R2R only needs an embedding configuration. A ready-to-use config is provided at `docker/user_configs/r2r-ollama-embeddings.toml` — no changes needed.
 
-```bash
-mkdir -p docker/user_configs
-```
-
-Save the following as `docker/user_configs/r2r-ollama-embeddings.toml`:
-
-```toml
-# R2R config: Ollama embeddings only.
-# No completion/LLM config — Claude Code handles all reasoning via MCP servers.
-
-[embedding]
-provider = "ollama"
-base_model = "mxbai-embed-large"
-base_dimension = 1_024
-batch_size = 32
-concurrent_request_limit = 2
-
-[completion_embedding]
-provider = "ollama"
-base_model = "mxbai-embed-large"
-base_dimension = 1_024
-batch_size = 32
-concurrent_request_limit = 2
-
-[ingestion]
-provider = "unstructured_local"
-strategy = "auto"
-chunking_strategy = "by_title"
-new_after_n_chars = 384
-max_characters = 512
-combine_under_n_chars = 128
-overlap = 20
-skip_document_summary = true
-automatic_extraction = false
-
-[orchestration]
-provider = "hatchet"
-
-[app]
-# Default PDF upload limit is 30MB — TTRPG sourcebooks regularly exceed this.
-max_upload_size_by_type = { pdf = 300_000_000 }
-```
-
-> **What each section does:**
-> - `[embedding]` / `[completion_embedding]` — Tells R2R to use Ollama's `mxbai-embed-large` for converting text to vectors
-> - `[ingestion]` — Uses Unstructured.io (running as a Docker service) for PDF parsing, including OCR for scanned documents. `skip_document_summary` and `automatic_extraction` are set to disable LLM calls (we use Ollama for embeddings only, not completions)
-> - `[orchestration]` — Uses Hatchet for managing async ingestion jobs
+The config sets up:
+- `[embedding]` / `[completion_embedding]` — Tells R2R to use Ollama's `mxbai-embed-large` for converting text to vectors
+- `[ingestion]` — Uses Unstructured.io (running as a Docker service) for PDF parsing, including OCR for scanned documents. `skip_document_summary` and `automatic_extraction` are set to disable LLM calls (we use Ollama for embeddings only, not completions)
+- `[orchestration]` — Uses Hatchet for managing async ingestion jobs
 
 ### 2c. Configure Environment Variables
 
@@ -214,6 +168,8 @@ All other defaults are fine for local development:
 > **Note:** Don't edit `docker/env/r2r.env` — that file is for `compose.yaml` (basic mode). Our guide uses `compose.full.yaml`, which loads `r2r-full.env`.
 
 ### 2d. Start the Full Stack
+
+From the repository root:
 
 ```bash
 docker compose -f docker/compose.full.yaml --profile postgres up -d
@@ -257,6 +213,8 @@ docker compose -f docker/compose.full.yaml logs -f r2r
 docker compose -f docker/compose.full.yaml logs -f unstructured
 ```
 
+> **Multi-instance deployment:** For running multiple R2R instances (e.g., separate vaults), see `docker/compose.infra.yaml` and `docker/compose.app.yaml` with per-instance configs in `docker/instances/`.
+
 ---
 
 ## Step 3 — Classify Your PDFs
@@ -289,14 +247,14 @@ Old_Campaign_Guide.pdf     mixed        (200 of 400 pages have extractable text)
 
 ```
 Are your PDFs scanned (image-only or mixed)?
-├── Don't know
-│   └── Run: python scripts/detect_pdf_type.py /path/to/pdfs/
-├── Yes, and I'm running Docker Full Mode (Step 2)
-│   └── Just ingest normally — Unstructured.io handles OCR server-side automatically
-├── Yes, and I'm NOT running Docker Full Mode
-│   └── Preprocess first: python scripts/ocr_preprocess.py /path/to/book.pdf --book-title "..."
-└── No, they're text-native
-    └── Ingest directly (Step 4)
++-- Don't know
+|   +-- Run: python scripts/detect_pdf_type.py /path/to/pdfs/
++-- Yes, and I'm running Docker Full Mode (Step 2)
+|   +-- Just ingest normally — Unstructured.io handles OCR server-side automatically
++-- Yes, and I'm NOT running Docker Full Mode
+|   +-- Preprocess first: python scripts/ocr_preprocess.py /path/to/book.pdf --book-title "..."
++-- No, they're text-native
+    +-- Ingest directly (Step 4)
 ```
 
 > **Docker Full Mode users:** You don't need to do anything special for image PDFs. Unstructured.io performs OCR automatically during ingestion. Just follow Step 4 as normal.
@@ -311,10 +269,10 @@ Drop your PDFs into a flat folder — no special directory hierarchy needed:
 
 ```
 sourcebooks/
-├── Core_Rulebook_PF2e.pdf
-├── Lost_Omens_World_Guide.pdf
-├── Planescape_Campaign_Setting.pdf
-└── Bestiary_PF2e.pdf
++-- Core_Rulebook_PF2e.pdf
++-- Lost_Omens_World_Guide.pdf
++-- Planescape_Campaign_Setting.pdf
++-- Bestiary_PF2e.pdf
 ```
 
 ### Metadata Schema
@@ -671,117 +629,3 @@ Save the result to my vault.
 5. Writes the note to the correct vault folder
 6. Updates related notes with backlinks
 7. Calls `vault_reload_graph()` to refresh the graph
-
----
-
-## Troubleshooting
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| "Connection refused" on `search_lore` | R2R not running or wrong URL | Verify `curl http://localhost:7272/v3/health` on host; check that `R2R_API_BASE` uses `host.docker.internal`, not `localhost` |
-| ".graph.json not found" | Graph not built | Run `python scripts/build_vault_graph.py /workspace/vault` |
-| "Note 'X' not found" | Stale graph after vault edits | Call `vault_reload_graph()` or re-run `build_vault_graph.py` |
-| MCP server shows as disconnected | Wrong path in settings.json | Paths must be absolute; verify `python -c "import mcp, r2r"` succeeds in the devcontainer |
-| "No books found" from `list_books` | PDFs not ingested with metadata | Re-ingest with `book_title` in the metadata dict (see Step 4) |
-| `ImportError: No module named 'r2r'` | SDK not installed in devcontainer | `uv pip install r2r` |
-| `host.docker.internal` doesn't resolve | Linux without gateway config | Add `"--add-host=host.docker.internal:host-gateway"` to `runArgs` in `devcontainer.json` |
-| Search returns no results for an ingested book | Image PDF ingested without OCR (Light Mode) | Use Docker Full Mode (Unstructured.io handles OCR) or preprocess with `scripts/ocr_preprocess.py` |
-| Search returns garbled/nonsensical text | Poor OCR quality on scanned pages | Re-ingest with a different OCR engine, or check original scan quality |
-| `detect_pdf_type.py` says "mixed" | PDF has some text pages and some image pages | Ingest in Docker Full Mode (Unstructured handles both), or preprocess image pages with `ocr_preprocess.py` |
-| Ollama connection refused from R2R | R2R container can't reach host Ollama | Verify `OLLAMA_API_BASE=http://host.docker.internal:11434` in `r2r-full.env`; verify `ollama serve` is running on host |
-| R2R starts but embeddings fail | Wrong config or Ollama model not pulled | Verify `ollama list` shows `mxbai-embed-large`; check R2R logs with `docker compose -f docker/compose.full.yaml logs r2r` |
-| R2R container keeps restarting | Dependency service not healthy | Check `docker compose -f docker/compose.full.yaml --profile postgres ps -a` for crashed services; check logs with `docker compose ... logs <service>` |
-
----
-
-## Resetting the Database
-
-To completely wipe all R2R data (documents, vectors, users, job history) and start fresh:
-
-### Full Reset (nuclear option)
-
-```bash
-# Stop all services and destroy all volumes
-docker compose -f docker/compose.full.yaml --profile postgres down -v
-```
-
-The `-v` flag removes all named volumes. This deletes:
-- All ingested documents, chunks, and vector embeddings (postgres_data)
-- Hatchet job history and configuration
-- RabbitMQ message queues
-- MinIO object storage
-
-After reset, start fresh:
-
-```bash
-docker compose -f docker/compose.full.yaml --profile postgres up -d
-```
-
-You'll need to re-ingest all documents (Step 4).
-
-### Partial Reset (documents only)
-
-To remove just the ingested documents without resetting Hatchet/orchestration:
-
-```bash
-# Delete the R2R postgres volume only
-docker compose -f docker/compose.full.yaml --profile postgres down
-docker volume rm postgres_data
-docker compose -f docker/compose.full.yaml --profile postgres up -d
-```
-
----
-
-## Quick Reference
-
-### Environment Variables
-
-| Variable | Where | Value |
-|----------|-------|-------|
-| `R2R_API_BASE` | devcontainer (settings.json) | `http://host.docker.internal:7272` |
-| `VAULT_PATH` | devcontainer (settings.json) | `/workspace/vault` (must match your bind mount) |
-| `R2R_CONFIG_NAME` | host (r2r-full.env) | *(empty — cleared to avoid conflict with `R2R_CONFIG_PATH`)* |
-| `R2R_CONFIG_PATH` | host (r2r-full.env) | `/app/user_configs/r2r-ollama-embeddings.toml` |
-| `OLLAMA_API_BASE` | host (r2r-full.env) | `http://host.docker.internal:11434` |
-| `R2R_API_KEY` | devcontainer (settings.json) | R2R auth key (if configured) |
-
-### All 13 MCP Tools
-
-**r2r** (generic R2R operations):
-- `search` — Search R2R documents by query with optional filters
-- `ingest_document` — Ingest raw text or pre-chunked content into R2R
-- `list_documents` — List documents, optionally filtered by collection
-- `delete_document` — Delete a document by ID
-- `list_collections` — List all R2R collections
-
-**sourcebooks** (worldbuilding-specific):
-- `search_lore` — Hybrid search across sourcebooks, filterable by book and content type
-- `list_books` — List all ingested sourcebooks with system/publisher info
-- `get_chapter` — Retrieve full chapter text from a specific book
-
-**vault-graph** (Obsidian wikilink navigation):
-- `vault_graph` — BFS traversal from a note, showing connections up to N hops
-- `vault_backlinks` — List all notes that link to a given note
-- `vault_search_notes` — Search notes by name pattern, tag, or type
-- `vault_central_notes` — Rank notes by connection count (degree centrality)
-- `vault_reload_graph` — Reload `.graph.json` from disk without restarting
-
-### Scripts Reference
-
-| Script | Purpose | Runs on |
-|--------|---------|---------|
-| `scripts/detect_pdf_type.py` | Classify PDFs as text-native, image-only, or mixed | Host |
-| `scripts/ocr_preprocess.py` | Client-side OCR for image PDFs (Tesseract or Surya engine) | Host |
-| `scripts/verify_ingestion.py` | Post-ingestion quality check (chunk count, text quality, search coherence) | Host |
-| `scripts/build_vault_graph.py` | Parse `[[wikilinks]]` into `.graph.json` | Devcontainer |
-| `ingest_books.py` | Bulk-ingest PDFs with folder-based metadata inference | Host |
-
-### Sourcebook Metadata Schema
-
-```json
-{
-  "book_title": "Core Rulebook"
-}
-```
-
-> Optional fields: `page_range`, `system`, `publisher`, `content_type`, `chapter` — accepted if provided, gracefully ignored if missing.
