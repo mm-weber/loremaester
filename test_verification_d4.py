@@ -315,7 +315,7 @@ class TestEndToEndWorldbuildingSession:
             # Verify filter was applied
             call_kwargs = client.retrieval.search.call_args
             settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
-            assert settings.filters["book_title"] == {"$eq": "Dwarf Kingdoms"}
+            assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
         # 4. get_chapter (full chapter text)
         with patch.object(_sb_server, "R2RClient") as mock_cls:
