@@ -144,6 +144,13 @@ ENV/
 env.bak/
 venv.bak/
 
+# Docker compose env files. The `env/` rule above also matches docker/env/;
+# re-include that directory but still ignore the populated .env files inside it.
+# Only *.env.example templates are tracked.
+!/docker/env/
+/docker/env/*.env
+!/docker/env/*.env.example
+
 # Spyder project settings
 .spyderproject
 .spyproject
