@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["r2r"]
+# ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata."""
 
 import sys
