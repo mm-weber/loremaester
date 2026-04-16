@@ -130,9 +130,20 @@ mxbai-embed-large:latest   ...           670 MB  ...
 
 Docker Full Mode gives you PostgreSQL + pgvector for vector storage, Unstructured.io for PDF parsing (including OCR for scanned/image PDFs), and Hatchet for orchestration.
 
-### 2a. Docker Compose Files
+### 2a. Docker Compose files and helper scripts
 
-The Docker Compose files are included in this repository under `docker/`. No need to clone R2R separately.
+Everything needed to run R2R lives under `docker/` — you don't need to clone R2R separately.
+
+| Path | What it is |
+|------|------------|
+| `docker/compose.full.yaml` | Single-instance full-mode stack — **used by this guide** |
+| `docker/compose.yaml` | Light mode (R2R without Hatchet/Unstructured) — not covered here |
+| `docker/compose.infra.yaml` + `docker/compose.app.yaml` | Multi-instance deployment path — see note at the end of this step |
+| `docker/env/` | Env files that compose loads via `env_file:` directives (bootstrapped in Step 2c) |
+| `docker/user_configs/` | R2R's TOML configuration, bind-mounted into the container at `/app/user_configs/` |
+| `docker/scripts/` | Container-side init/startup scripts |
+
+> **About `docker/scripts/`.** You don't invoke these yourself. Three of them — `create-hatchet-db.sh` (creates the Hatchet DB), `setup-token.sh` (generates the Hatchet API key), and `start-r2r.sh` (boots the R2R process) — are bind-mounted into the `hatchet-create-db`, `setup-token`, and `r2r` containers respectively and run as their entrypoints. The remaining two (`r2r-infra.sh`, `r2r-instance.sh`) are host-side helpers for the multi-instance deployment path and can be ignored for this guide.
 
 ### 2b. R2R Config (Embeddings Only)
 
@@ -143,29 +154,43 @@ The config sets up:
 - `[ingestion]` — Uses Unstructured.io (running as a Docker service) for PDF parsing, including OCR for scanned documents. `skip_document_summary` and `automatic_extraction` are set to disable LLM calls (we use Ollama for embeddings only, not completions)
 - `[orchestration]` — Uses Hatchet for managing async ingestion jobs
 
-### 2c. Configure Environment Variables
+The env var pointing R2R at this file (`R2R_CONFIG_PATH`) is pre-set in `r2r-full.env.example` — you only touch it if you want to swap in a different config.
 
-Edit `docker/env/r2r-full.env` — this is the env file loaded by `compose.full.yaml`.
+### 2c. Bootstrap the environment files
 
-Two variables need changing:
+`compose.full.yaml` loads per-service settings from files in `docker/env/`. Those `.env` files are **gitignored** (they typically hold service credentials), so the repo ships `*.env.example` templates you copy before starting the stack.
 
-| Variable | Default | Change to | Why |
-|----------|---------|-----------|-----|
-| `R2R_CONFIG_NAME` | `full` | *(clear it — leave empty)* | `R2R_CONFIG_NAME` and `R2R_CONFIG_PATH` are mutually exclusive. We need `R2R_CONFIG_PATH` for our custom config. |
-| `R2R_CONFIG_PATH` | *(empty)* | `/app/user_configs/r2r-ollama-embeddings.toml` | Points to the custom config created in Step 2b. The `docker/user_configs/` directory is mounted into the container at `/app/user_configs/`. |
+| Env file | Loaded by | Required for `--profile postgres`? |
+|----------|-----------|------------------------------------|
+| `r2r-full.env` | the `r2r` service | **Yes** |
+| `postgres.env` | the `postgres` service | **Yes** — you passed `--profile postgres` |
+| `hatchet.env` | all 7 `hatchet-*` services | **Yes** — Hatchet services have no profile and always start |
+| `r2r-dashboard.env` | the `r2r-dashboard` service | **Yes** — dashboard needs the R2R and Hatchet URLs |
+| `minio.env` | the `minio` service | No — only loaded with `--profile minio` |
+
+Copy the templates:
 
 ```bash
-# In docker/env/r2r-full.env, find and change these two lines:
-R2R_CONFIG_NAME=
-R2R_CONFIG_PATH=/app/user_configs/r2r-ollama-embeddings.toml
+cd docker/env/
+cp postgres.env.example       postgres.env
+cp hatchet.env.example        hatchet.env
+cp r2r-full.env.example       r2r-full.env
+cp r2r-dashboard.env.example  r2r-dashboard.env
+cp minio.env.example          minio.env   # optional — only needed with --profile minio
+cd -
 ```
 
-All other defaults are fine for local development:
-- `OLLAMA_API_BASE` is already `http://host.docker.internal:11434` (reaches Ollama on your host)
-- API keys (OpenAI, Anthropic, etc.) are empty — not needed since Claude Code handles all LLM work
-- Postgres credentials default to `postgres`/`postgres` — fine for local use
+The shipped defaults are safe for local, single-user development:
+- Postgres credentials are `postgres`/`postgres`; Hatchet's are `hatchet_user`/`hatchet_password`.
+- `OLLAMA_API_BASE=http://host.docker.internal:11434` — lets the R2R container reach Ollama running on your host.
+- `R2R_CONFIG_PATH=/app/user_configs/r2r-ollama-embeddings.toml` — points at the TOML from Step 2b (`docker/user_configs/` is bind-mounted to `/app/user_configs/` inside the container).
+- No provider API keys are populated; Claude Code handles all LLM work, so none are needed.
 
-> **Note:** Don't edit `docker/env/r2r.env` — that file is for `compose.yaml` (basic mode). Our guide uses `compose.full.yaml`, which loads `r2r-full.env`.
+> **When would you edit these?** If you change Postgres credentials in `postgres.env`, update the matching `R2R_POSTGRES_*` vars in `r2r-full.env` so they stay in sync. `R2R_CONFIG_NAME` and `R2R_CONFIG_PATH` are **mutually exclusive** — if you switch to a built-in R2R config preset, clear `R2R_CONFIG_PATH` and set `R2R_CONFIG_NAME`. Ports are defined in `compose.full.yaml`, not the env files.
+
+> **Security note.** The defaults in `*.env.example` are for local development only. Change every credential (Postgres passwords, RabbitMQ, the dashboard login) before exposing R2R on a shared network.
+
+> **Not using this guide's compose file?** `docker/env/r2r.env` is for `compose.yaml` (light mode) and isn't created by this flow. Stick to the five files above for `compose.full.yaml`.
 
 ### 2d. Start the Full Stack
 
