@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["r2r", "pdfplumber", "kreuzberg"]
+# dependencies = ["r2r", "pdfplumber", "kreuzberg", "paddleocr", "paddlepaddle-gpu"]
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
 
@@ -23,7 +23,7 @@ from r2r import R2RClient
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only
 IMAGE_ONLY_THRESHOLD = 0.1
-OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract")
+OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "paddleocr")
 OCR_LANGUAGE = os.environ.get("KREUZBERG_OCR_LANGUAGE", "eng")
 
 
