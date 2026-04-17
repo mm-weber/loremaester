@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10,<3.13"
-# dependencies = ["r2r", "pdfplumber", "kreuzberg", "paddleocr", "paddlepaddle-gpu==2.6.1.post120"]
+# dependencies = ["r2r", "pdfplumber", "kreuzberg>=4.5.0", "paddleocr", "paddlepaddle-gpu==2.6.1.post120"]
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
 
