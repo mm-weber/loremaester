@@ -70,12 +70,30 @@ def main():
     pdf_dir = Path(sys.argv[1])
     client = R2RClient(R2R_BASE)
 
-    pdfs = sorted(pdf_dir.rglob("*.pdf"))
-    if not pdfs:
+    all_pdfs = sorted(pdf_dir.rglob("*.pdf"))
+    if not all_pdfs:
         print(f"No PDFs found in {pdf_dir}")
         sys.exit(1)
 
-    print(f"Found {len(pdfs)} PDF(s) in {pdf_dir}\n")
+    # Dedupe by filename — rglob finds the same book twice when a subdirectory
+    # mirrors the root (e.g. /library/foo.pdf and /library/Planescape/foo.pdf).
+    # First occurrence in sort order wins; later copies are logged and skipped.
+    seen = set()
+    pdfs = []
+    dupes = []
+    for pdf in all_pdfs:
+        if pdf.name in seen:
+            dupes.append(pdf)
+            continue
+        seen.add(pdf.name)
+        pdfs.append(pdf)
+
+    print(f"Found {len(all_pdfs)} PDF path(s) in {pdf_dir}; {len(pdfs)} unique filename(s).")
+    if dupes:
+        print(f"Skipping {len(dupes)} duplicate path(s):")
+        for d in dupes:
+            print(f"  - {d.relative_to(pdf_dir)}")
+    print()
 
     succeeded = []
     failed = []
