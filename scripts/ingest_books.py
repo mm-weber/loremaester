@@ -14,6 +14,7 @@ OCR engine / language can be overridden via env:
     KREUZBERG_OCR_LANGUAGE eng (default) — Kreuzberg language code
 """
 
+import hashlib
 import os
 import sys
 from pathlib import Path
@@ -25,6 +26,15 @@ R2R_BASE = "http://localhost:7272"
 IMAGE_ONLY_THRESHOLD = 0.1
 OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "paddleocr")
 OCR_LANGUAGE = os.environ.get("KREUZBERG_OCR_LANGUAGE", "eng")
+
+
+def file_sha1(path, chunk_size=1024 * 1024):
+    """Full-file SHA1 digest. Streaming read so big PDFs don't blow memory."""
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        while chunk := f.read(chunk_size):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def is_image_pdf(pdf_path):
@@ -75,24 +85,27 @@ def main():
         print(f"No PDFs found in {pdf_dir}")
         sys.exit(1)
 
-    # Dedupe by filename — rglob finds the same book twice when a subdirectory
-    # mirrors the root (e.g. /library/foo.pdf and /library/Planescape/foo.pdf).
-    # First occurrence in sort order wins; later copies are logged and skipped.
-    seen = set()
+    # Dedupe by SHA1 content hash. Catches the same book mirrored in a
+    # subdirectory (/library/foo.pdf and /library/Planescape/foo.pdf) AND the
+    # same bytes under different filenames. First occurrence in sort order
+    # wins; later copies are logged and skipped.
+    print(f"Found {len(all_pdfs)} PDF path(s) in {pdf_dir}. Hashing for dedup...")
+    seen_hashes = {}  # sha1 -> Path (the kept copy)
     pdfs = []
-    dupes = []
+    dupes = []  # list of (dupe_path, original_path)
     for pdf in all_pdfs:
-        if pdf.name in seen:
-            dupes.append(pdf)
+        sha = file_sha1(pdf)
+        if sha in seen_hashes:
+            dupes.append((pdf, seen_hashes[sha]))
             continue
-        seen.add(pdf.name)
+        seen_hashes[sha] = pdf
         pdfs.append(pdf)
 
-    print(f"Found {len(all_pdfs)} PDF path(s) in {pdf_dir}; {len(pdfs)} unique filename(s).")
+    print(f"  {len(pdfs)} unique book(s).")
     if dupes:
-        print(f"Skipping {len(dupes)} duplicate path(s):")
-        for d in dupes:
-            print(f"  - {d.relative_to(pdf_dir)}")
+        print(f"Skipping {len(dupes)} duplicate(s) (same SHA1 as the kept copy):")
+        for dupe, original in dupes:
+            print(f"  - {dupe.relative_to(pdf_dir)}  (same content as {original.relative_to(pdf_dir)})")
     print()
 
     succeeded = []
