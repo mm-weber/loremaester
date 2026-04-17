@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10,<3.13"
-# dependencies = ["r2r", "pdfplumber", "kreuzberg>=4.5.0", "paddleocr", "paddlepaddle-gpu==2.6.1.post120"]
+# dependencies = [
+#   "r2r",
+#   "pdfplumber",
+#   "kreuzberg[easyocr]>=4.5.0",
+#   "torch==2.9.1+cu126",
+# ]
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
 
@@ -9,23 +14,15 @@ Routes image-heavy PDFs through Kreuzberg (host-side OCR) to sidestep the
 single-instance Unstructured container bottleneck. Text-native PDFs still
 go through R2R's native parsing so chunking metadata stays consistent.
 
-Required invocation — paddlepaddle-gpu wheels aren't on PyPI, so point uv
-at PaddlePaddle's own index via env var:
+OCR engine / language can be overridden via env:
+    KREUZBERG_OCR_ENGINE    easyocr (default, GPU via torch+CUDA) | tesseract (CPU only) | paddleocr
+    KREUZBERG_OCR_LANGUAGE  en (default) — Kreuzberg language code. Two-letter
+                            (ISO 639-1) for easyocr/paddleocr, three-letter
+                            (ISO 639-3, e.g. "eng") for tesseract.
 
-    UV_EXTRA_INDEX_URL=https://www.paddlepaddle.org.cn/packages/stable/cu120/ \\
-        uv run scripts/ingest_books.py <pdf-dir>
-
-Or export it once for the shell session:
-
-    export UV_EXTRA_INDEX_URL=https://www.paddlepaddle.org.cn/packages/stable/cu120/
-
-OCR engine / language / model tier can be overridden via env:
-    KREUZBERG_OCR_ENGINE      paddleocr (default) | tesseract | easyocr
-    KREUZBERG_OCR_LANGUAGE    eng (default) — Kreuzberg language code
-    KREUZBERG_OCR_MODEL_TIER  server (default) | mobile — PaddleOCR model size.
-                              "mobile" (~21 MB) runs on CPU; "server" (~172 MB)
-                              is the GPU-accelerated tier. Only applies to
-                              KREUZBERG_OCR_ENGINE=paddleocr.
+PaddleOCR note — the paddleocr backend requires extra deps not pinned here
+(paddleocr + paddlepaddle-gpu from the PaddlePaddle index). Tesseract is
+CPU-only; there is no GPU build. For GPU OCR, stick with easyocr.
 """
 
 import hashlib
@@ -38,11 +35,10 @@ from r2r import R2RClient
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only
 IMAGE_ONLY_THRESHOLD = 0.1
-OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "paddleocr")
-OCR_LANGUAGE = os.environ.get("KREUZBERG_OCR_LANGUAGE", "eng")
-# "server" = ~172 MB GPU-optimized PaddleOCR. "mobile" = ~21 MB CPU fallback.
-# Without this, Kreuzberg defaults to "mobile" and never routes to GPU even
-# when paddlepaddle-gpu is installed.
+OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "easyocr")
+OCR_LANGUAGE = os.environ.get("KREUZBERG_OCR_LANGUAGE", "en")
+# Only consulted when OCR_ENGINE == "paddleocr". "server" = ~172 MB GPU-optimized;
+# "mobile" = ~21 MB CPU. Kreuzberg defaults to "mobile" otherwise.
 OCR_MODEL_TIER = os.environ.get("KREUZBERG_OCR_MODEL_TIER", "server")
 
 
@@ -70,14 +66,17 @@ def ingest_via_kreuzberg(client, pdf_path, metadata):
     """OCR client-side with Kreuzberg, ingest extracted text as raw_text."""
     from kreuzberg import ExtractionConfig, OcrConfig, extract_file_sync
 
-    print(f"  OCR (kreuzberg, {OCR_ENGINE}, tier={OCR_MODEL_TIER}): {pdf_path.name} — this takes a while for big scans...")
-    config = ExtractionConfig(
-        ocr=OcrConfig(
-            backend=OCR_ENGINE,
-            language=OCR_LANGUAGE,
-            model_tier=OCR_MODEL_TIER,
-        )
-    )
+    ocr_kwargs = {"backend": OCR_ENGINE, "language": OCR_LANGUAGE}
+    if OCR_ENGINE == "paddleocr":
+        # PaddleOcrConfig isn't registered as a pyo3 class in kreuzberg 4.8.x
+        # despite the .pyi stub — the kwarg is serde-deserialized, so pass a dict.
+        ocr_kwargs["paddle_ocr_config"] = {"model_tier": OCR_MODEL_TIER}
+        tier_suffix = f", tier={OCR_MODEL_TIER}"
+    else:
+        tier_suffix = ""
+
+    print(f"  OCR (kreuzberg, {OCR_ENGINE}{tier_suffix}): {pdf_path.name} — this takes a while for big scans...")
+    config = ExtractionConfig(ocr=OcrConfig(**ocr_kwargs))
     result = extract_file_sync(str(pdf_path), config=config)
     if not result.content.strip():
         raise RuntimeError(f"kreuzberg returned empty text for {pdf_path.name}")
