@@ -128,7 +128,13 @@ R2R-ClaudeCode-integration/
 ├── mcp-servers/
 │   ├── sourcebooks/           # D3: Worldbuilding lore search
 │   └── vault-graph/           # D5: Wikilink graph navigation
-├── scripts/                   # D4: Graph builder, OCR tools, ingestion
+├── scripts/
+│   ├── build_vault_graph.py   # D4: Parse [[wikilinks]] → .graph.json
+│   ├── detect_pdf_type.py     # Classify PDFs as text-native / image-only / mixed
+│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R, image→kreuzberg)
+│   ├── ocr_preprocess.py      # Standalone OCR via pytesseract/surya (non-ingesting)
+│   ├── extract_text.py        # Standalone kreuzberg text extraction (images + docs)
+│   └── verify_ingestion.py    # Post-ingestion quality checks against R2R
 ├── plugins/                   # D7: Worldbuilding skill
 ├── r2r_mcp_wrapper.py         # D2: Generic R2R MCP wrapper
 ├── examples/                  # D1: Vault CLAUDE.md template

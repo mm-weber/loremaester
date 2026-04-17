@@ -1,29 +1,39 @@
-# User Configs Directory
+# `docker/user_configs/`
 
-## Overview
-This directory is mounted inside the R2R Docker container and is intended for custom configuration files. Any files placed here will be accessible to the application running in the container.
+This directory holds R2R's TOML configuration. It's bind-mounted into the
+R2R container at `/app/user_configs/`, and `R2R_CONFIG_PATH` in
+`../env/r2r-full.env` points at a file here.
 
-## Usage
-1. Place your custom configuration files in this directory.
-2. Set the `R2R_CONFIG_PATH` in the `r2r.env` or `r2r-full.env` files.
-3. The path format inside the container is: `/app/user_configs/<config>.toml`
+## What's in here
 
-## Configuration
-The application uses the environment variable you set to locate your configuration file:
-```
-R2R_CONFIG_PATH=/app/user_configs/<config>.toml
-```
+| File | Purpose |
+|---|---|
+| `r2r-ollama-embeddings.toml` | Embeddings-only R2R config used by `compose.full.yaml` — Ollama for embeddings, Unstructured.io for PDF parsing, Hatchet for orchestration, no completion/LLM provider (Claude Code does all reasoning). |
 
-If you want to use a different filename, update the `R2R_CONFIG_PATH` variable in your environment file to point to your custom file, for example:
-```
-R2R_CONFIG_PATH=/app/user_configs/my_custom_config.toml
-```
+This is the config the quickstart ships. You don't need to edit it for
+normal use.
+
+## Using a different config
+
+1. Drop your `.toml` in this directory.
+2. Update `R2R_CONFIG_PATH` in `../env/r2r-full.env` to
+   `/app/user_configs/<your-file>.toml`.
+3. Restart the R2R service:
+   ```bash
+   docker compose -f docker/compose.full.yaml --profile postgres up -d r2r
+   ```
+
+Note: `R2R_CONFIG_NAME` and `R2R_CONFIG_PATH` are mutually exclusive — if
+you switch to one of R2R's built-in config presets, clear
+`R2R_CONFIG_PATH` in the env file and set `R2R_CONFIG_NAME` instead.
 
 ## Troubleshooting
-If you encounter configuration errors, check:
-1. Your configuration file exists in this directory
-2. The filename matches what's specified in `R2R_CONFIG_PATH`
-3. The file has proper permissions (readable)
-4. The file contains valid TOML syntax
 
-For more detailed configuration information, see the main documentation.
+If R2R fails to start with a config error:
+- Confirm the filename in `R2R_CONFIG_PATH` matches what's in this dir
+  (path is container-side: `/app/user_configs/<file>.toml`).
+- `docker compose -f docker/compose.full.yaml logs r2r` will show the
+  parsing error with a line number if the TOML is malformed.
+
+See [../../docs/quickstart.md](../../docs/quickstart.md) Step 2 for the
+broader R2R setup flow.

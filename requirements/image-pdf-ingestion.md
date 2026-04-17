@@ -1,5 +1,17 @@
 # Image PDF Ingestion — Requirements
 
+> **Status:** Implemented. All P0/P1 requirements (FR-1 through FR-4, FR-6)
+> shipped. See:
+> - `scripts/detect_pdf_type.py` (FR-2)
+> - `scripts/ocr_preprocess.py` — standalone OCR path (FR-3, pytesseract/surya)
+> - `scripts/ingest_books.py` — primary bulk-ingest path with auto-routing
+>   between R2R-native and client-side kreuzberg OCR (not originally
+>   specified here; supersedes FR-3 for the happy path)
+> - `scripts/verify_ingestion.py` (FR-4)
+> - `docs/quickstart.md` Steps 3–4 (FR-6)
+>
+> FR-5 (MCP base64 ingestion) remains deferred.
+
 ## 1. Problem Statement
 
 TTRPG sourcebooks are frequently scanned PDFs — image-only pages with no selectable text. The Worldbuilding Assistant's DESIGN.md (line 23) states that R2R "handles OCR, chunking, and vector indexing" for these books, but this only works under a specific R2R deployment mode (Docker Full Mode with Unstructured.io).
@@ -112,7 +124,7 @@ PDF file
   → Document ID + per-page confidence scores
 ```
 
-**Metadata preservation:** The script MUST attach metadata matching the schema used by `mcp-servers/sourcebooks/server.py` (lines 50-54):
+**Metadata preservation:** The script MUST attach metadata matching the schema used by `mcp-servers/sourcebooks/server.py` (see the chunk-metadata extraction around line 43 — `book_title`, `chapter`, `page_range`):
 
 ```python
 metadata = {
@@ -237,7 +249,7 @@ Show `verify_ingestion.py` as a recommended post-ingestion check.
 
 The following are explicitly out of scope for this project:
 
-- **Extending MCP wrapper to accept `file_path`.** Architecture constraint: the devcontainer cannot access the host filesystem. `file_path` ingestion requires server-side file access. See `ARCHITECHTURE_beta.md` lines 148-150.
+- **Extending MCP wrapper to accept `file_path`.** Architecture constraint: the devcontainer cannot access the host filesystem. `file_path` ingestion requires server-side file access. (Earlier revisions of this spec cross-linked an `ARCHITECHTURE_beta.md` draft that has since been superseded by `docs/design.md`; the constraint itself is unchanged.)
 - **Running OCR inside the devcontainer.** No Tesseract available, no GPU access, not the right environment for heavy processing.
 - **Automatic OCR detection during ingestion.** This would be an R2R server-side feature — outside our control.
 - **Modifying R2R's ingestion pipeline.** We work with R2R as-is and provide client-side tooling around it.

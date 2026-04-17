@@ -53,8 +53,20 @@ python scripts/extract_text.py --engine paddleocr --language deu <file>...
 ## Dependencies
 
 - `kreuzberg` (required)
-- `tesseract-ocr` system package (required for default engine)
+- `tesseract-ocr` system package (required for the default engine)
 - `r2r` SDK (required only when `--ingest` is used)
+
+**Per-backend extras.** Kreuzberg bundles tesseract support out of the
+box, but the other backends are opt-in:
+
+- `--engine easyocr` → install `kreuzberg[easyocr]`, which pulls in
+  `easyocr` and `torch`. GPU-accelerated if CUDA is available; see
+  `docs/troubleshooting.md` for the torch cu126 pin used by
+  `ingest_books.py`.
+- `--engine paddleocr` → install `paddleocr` and `paddlepaddle-gpu`
+  (the latter lives on PaddlePaddle's own index, not PyPI). Useful
+  for languages where EasyOCR struggles; otherwise stick with the
+  default.
 
 ## Output Format
 
