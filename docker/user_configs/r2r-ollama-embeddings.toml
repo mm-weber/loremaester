@@ -30,5 +30,7 @@ automatic_extraction = false
 provider = "hatchet"
 
 [app]
-# Default PDF upload limit is 30MB — TTRPG sourcebooks regularly exceed this.
-max_upload_size_by_type = { pdf = 300_000_000 }
+# Default PDF upload limit is 30MB. TTRPG sourcebooks (especially scanned
+# Planescape/Ravenloft TSR box sets) regularly exceed 300MB once reshaped
+# through Unstructured, so cap is 500MB.
+max_upload_size_by_type = { pdf = 500_000_000 }
