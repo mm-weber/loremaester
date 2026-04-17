@@ -2,9 +2,6 @@
 # /// script
 # requires-python = ">=3.10,<3.13"
 # dependencies = ["r2r", "pdfplumber", "kreuzberg", "paddleocr", "paddlepaddle-gpu==2.6.1.post120"]
-#
-# [tool.uv]
-# extra-index-url = "https://www.paddlepaddle.org.cn/packages/stable/cu120/"
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
 
@@ -12,8 +9,18 @@ Routes image-heavy PDFs through Kreuzberg (host-side OCR) to sidestep the
 single-instance Unstructured container bottleneck. Text-native PDFs still
 go through R2R's native parsing so chunking metadata stays consistent.
 
+Required invocation — paddlepaddle-gpu wheels aren't on PyPI, so point uv
+at PaddlePaddle's own index via env var:
+
+    UV_EXTRA_INDEX_URL=https://www.paddlepaddle.org.cn/packages/stable/cu120/ \\
+        uv run scripts/ingest_books.py <pdf-dir>
+
+Or export it once for the shell session:
+
+    export UV_EXTRA_INDEX_URL=https://www.paddlepaddle.org.cn/packages/stable/cu120/
+
 OCR engine / language can be overridden via env:
-    KREUZBERG_OCR_ENGINE   tesseract (default) | easyocr | paddleocr
+    KREUZBERG_OCR_ENGINE   paddleocr (default) | tesseract | easyocr
     KREUZBERG_OCR_LANGUAGE eng (default) — Kreuzberg language code
 """
 
