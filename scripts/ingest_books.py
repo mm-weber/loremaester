@@ -28,6 +28,7 @@ CPU-only; there is no GPU build. For GPU OCR, stick with easyocr.
 import hashlib
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 from r2r import R2RClient
@@ -63,7 +64,14 @@ def is_image_pdf(pdf_path):
 
 
 def ingest_via_kreuzberg(client, pdf_path, metadata):
-    """OCR client-side with Kreuzberg, ingest extracted text as raw_text."""
+    """OCR client-side with Kreuzberg; ingest via a named temp .txt.
+
+    We intentionally write the extracted text to a temp file and use
+    `file_path=` instead of `raw_text=`. R2R only derives the document
+    title from the filename and only auto-assigns the user's default
+    collection on the file-path code path — both are lost if we pass
+    raw_text directly.
+    """
     from kreuzberg import ExtractionConfig, OcrConfig, extract_file_sync
 
     ocr_kwargs = {"backend": OCR_ENGINE, "language": OCR_LANGUAGE}
@@ -81,9 +89,14 @@ def ingest_via_kreuzberg(client, pdf_path, metadata):
     if not result.content.strip():
         raise RuntimeError(f"kreuzberg returned empty text for {pdf_path.name}")
 
-    response = client.documents.create(raw_text=result.content, metadata=metadata)
+    # Temp .txt named after the PDF stem so R2R stamps title="<stem>.txt"
+    # and assigns the doc to the user's default collection.
+    with tempfile.TemporaryDirectory(prefix="ingest_books_") as tmp_dir:
+        tmp_path = Path(tmp_dir) / f"{pdf_path.stem}.txt"
+        tmp_path.write_text(result.content, encoding="utf-8")
+        response = client.documents.create(file_path=str(tmp_path), metadata=metadata)
     doc_id = response.results.document_id
-    print(f"  Ingested (kreuzberg → raw_text): {pdf_path.name} -> {doc_id}")
+    print(f"  Ingested (kreuzberg → {pdf_path.stem}.txt): {pdf_path.name} -> {doc_id}")
     return doc_id
 
 
