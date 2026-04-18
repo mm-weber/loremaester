@@ -93,7 +93,7 @@ Parsing `[[wikilinks]]` from every `.md` file on every query would be slow for l
 
 - **Fast queries** — graph traversal is in-memory dictionary lookups
 - **Simple MCP server** — D5 just reads JSON, no filesystem parsing
-- **Explicit rebuild cycle** — the GM (or Claude) runs the builder after vault changes, keeping the graph intentionally up to date via `vault_reload_graph`
+- **Explicit rebuild cycle** — the GM (or Claude) triggers a rebuild after vault changes via `vault_rebuild_graph` (re-parses vault + reloads cache); `vault_reload_cache` is the cheaper "re-read JSON only" variant that flags staleness when the on-disk graph is behind the vault
 
 ### Why hybrid search as the default for lore queries?
 
@@ -178,8 +178,7 @@ Claude writes the results back:
 
 ### 5. Graph Rebuild
 After vault changes, the graph is rebuilt:
-- Run `build-vault-graph.py` (D4) to regenerate `.graph.json`
-- Call `vault_reload_graph` (D5) to pick up changes without restarting the server
+- Call `vault_rebuild_graph` (D5) — re-parses the vault and reloads the in-memory cache in one step, no server restart needed. (The bare `build_vault_graph.py` CLI still works for external automation.)
 
 ---
 

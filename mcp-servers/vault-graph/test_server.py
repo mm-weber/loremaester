@@ -3,6 +3,7 @@
 import json
 import os
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -131,7 +132,14 @@ class TestServerSetup:
         tool_names = set()
         for tool in server.mcp._tool_manager.list_tools():
             tool_names.add(tool.name)
-        expected = {"vault_graph", "vault_backlinks", "vault_central_notes", "vault_search_notes", "vault_reload_graph"}
+        expected = {
+            "vault_graph",
+            "vault_backlinks",
+            "vault_central_notes",
+            "vault_search_notes",
+            "vault_reload_cache",
+            "vault_rebuild_graph",
+        }
         assert expected.issubset(tool_names), f"Missing tools: {expected - tool_names}"
 
     def test_env_var_vault_path(self, vault_dir):
@@ -313,11 +321,11 @@ class TestVaultSearchNotes:
 
 
 # ===========================================================================
-# TestVaultReloadGraph (REQ-D5-05)
+# TestVaultReloadCache (REQ-D5-05)
 # ===========================================================================
 
 
-class TestVaultReloadGraph:
+class TestVaultReloadCache:
     @pytest.mark.asyncio
     async def test_reload_updates_data(self, server, vault_dir):
         # Add a new node to the graph file on disk
@@ -335,12 +343,71 @@ class TestVaultReloadGraph:
         with open(graph_path, "w") as f:
             json.dump(graph, f)
 
-        result = await _call(server, "vault_reload_graph")
-        assert "7" in result or "success" in result.lower() or "reload" in result.lower()
+        result = await _call(server, "vault_reload_cache")
+        assert "7" in result or "reload" in result.lower()
 
         # Verify new data is accessible
         search_result = await _call(server, "vault_search_notes", name_pattern="New Note")
         assert "New Note" in search_result
+
+    @pytest.mark.asyncio
+    async def test_reload_surfaces_staleness(self, server, vault_dir):
+        """When .md files are newer than .graph.json, reload response flags STALE."""
+        # Create a real .md file with an mtime newer than .graph.json's
+        md_path = Path(vault_dir) / "NewerNote.md"
+        md_path.write_text("---\ntype: lore\n---\n# Newer\n", encoding="utf-8")
+        # Bump its mtime well beyond graph mtime in case FS granularity is coarse
+        graph_path = Path(vault_dir) / ".graph.json"
+        future = graph_path.stat().st_mtime + 60
+        os.utime(md_path, (future, future))
+
+        result = await _call(server, "vault_reload_cache")
+        assert "STALE" in result
+        assert "1 .md file" in result
+
+    @pytest.mark.asyncio
+    async def test_reload_no_staleness_when_fresh(self, server, vault_dir):
+        """No STALE suffix when every .md file is older than the graph."""
+        result = await _call(server, "vault_reload_cache")
+        assert "STALE" not in result
+
+
+# ===========================================================================
+# TestVaultRebuildGraph
+# ===========================================================================
+
+
+class TestVaultRebuildGraph:
+    @pytest.mark.asyncio
+    async def test_rebuild_from_vault(self, server, vault_dir):
+        """vault_rebuild_graph re-parses .md files and picks up new notes."""
+        # Seed two notes with a wikilink between them
+        (Path(vault_dir) / "A.md").write_text(
+            "---\ntype: lore\n---\nLinks to [[B]].\n", encoding="utf-8"
+        )
+        (Path(vault_dir) / "B.md").write_text(
+            "---\ntype: lore\n---\nI am B.\n", encoding="utf-8"
+        )
+
+        result = await _call(server, "vault_rebuild_graph")
+        assert "rebuilt" in result.lower()
+        assert "2" in result  # at least 2 notes (plus whatever was in the test graph)
+
+        # Verify A→B edge landed in the in-memory graph
+        search_result = await _call(server, "vault_search_notes", name_pattern="A")
+        assert "A" in search_result
+
+    @pytest.mark.asyncio
+    async def test_rebuild_handles_missing_builder(self, server, vault_dir):
+        """If the builder isn't importable, the tool reports a clear error."""
+        saved = server._builder
+        try:
+            server._builder = None
+            result = await _call(server, "vault_rebuild_graph")
+            assert "error" in result.lower()
+            assert "build_vault_graph" in result.lower()
+        finally:
+            server._builder = saved
 
 
 # ===========================================================================

@@ -535,7 +535,7 @@ Add the `mcpServers` block to your Claude Code settings. Replace `/path/to/repo`
 |--------|-------|----------|
 | **r2r** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | `R2R_API_BASE`, `R2R_API_KEY` |
 | **sourcebooks** | `search_lore`, `list_books`, `get_chapter` | `R2R_API_BASE` |
-| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_graph` | `VAULT_PATH` |
+| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | `VAULT_PATH` |
 
 ### 6d. Linux Networking Workaround
 
@@ -559,10 +559,10 @@ Restart Claude Code, then run:
 /mcp
 ```
 
-You should see 3 servers connected with 13 tools total:
+You should see 3 servers connected with 14 tools total:
 - `r2r` — 5 tools
 - `sourcebooks` — 3 tools
-- `vault-graph` — 5 tools
+- `vault-graph` — 6 tools
 
 ---
 
@@ -614,4 +614,4 @@ Save the result to my vault.
 4. Generates an NPC with correct frontmatter, wikilinks, and voice
 5. Writes the note to the correct vault folder
 6. Updates related notes with backlinks
-7. Calls `vault_reload_graph()` to refresh the graph
+7. Calls `vault_rebuild_graph()` to re-parse the vault and refresh the graph

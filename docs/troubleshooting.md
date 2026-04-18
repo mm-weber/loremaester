@@ -126,7 +126,7 @@ Check your `~/.zshrc` / `~/.bashrc` if the variable keeps coming back — an old
 
 **Cause:** The graph file is stale — notes were added, renamed, or deleted since the graph was last built.
 
-**Fix:** Call the `vault_reload_graph()` MCP tool, or re-run `python scripts/build_vault_graph.py /workspace/vault`.
+**Fix:** Call the `vault_rebuild_graph()` MCP tool — it re-parses the vault and reloads the cache in one step. Note: `vault_reload_cache()` only re-reads the existing JSON and will flag staleness in its response; use it after an external rebuild, not as a refresh.
 
 ---
 

@@ -24,13 +24,13 @@ R2R handles **embedding and retrieval only** — all reasoning is done by Claude
 
 ## Features
 
-**3 MCP Servers, 13 Tools:**
+**3 MCP Servers, 14 Tools:**
 
 | Server | Tools | Purpose |
 |--------|-------|---------|
 | **r2r** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | Generic R2R operations |
 | **sourcebooks** | `search_lore`, `list_books`, `get_chapter` | Worldbuilding-aware lore search with book/chapter/page citations |
-| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_graph` | Obsidian `[[wikilink]]` graph navigation |
+| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | Obsidian `[[wikilink]]` graph navigation |
 
 **Plus:**
 - Docker Compose deployment (single-stack or multi-instance)
