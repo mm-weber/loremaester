@@ -418,7 +418,7 @@ class TestEndToEndWorldbuildingSession:
         graph_path.write_text(json.dumps(graph, indent=2), encoding="utf-8")
 
         # 4. Reload graph in server
-        reload_result = await vg_server.vault_reload_graph()
+        reload_result = await vg_server.vault_reload_cache()
         assert "success" in reload_result.lower() or "reload" in reload_result.lower()
 
         # 5. Verify new note in graph
