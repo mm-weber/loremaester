@@ -200,9 +200,6 @@ services:
 
   r2r:
     image: sciphiai/r2r:latest
-    depends_on:
-      wait-for-hatchet-grpc:
-        condition: service_completed_successfully
     ports:
       - "7272:7272"
     env_file:
@@ -230,6 +227,8 @@ services:
         condition: service_healthy
       graph_clustering:
         condition: service_healthy
+      wait-for-hatchet-grpc:
+        condition: service_completed_successfully
 
   r2r-dashboard:
     image: sciphiai/r2r-dashboard:1.0.3
