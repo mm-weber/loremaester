@@ -1,0 +1,92 @@
+{
+  "name": "R2R-ClaudeCode-integration",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "options": ["--network=host"],
+    "args": {
+      "TZ": "${localEnv:TZ:America/Los_Angeles}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2"
+    }
+  },
+
+  // --- Capabilities ---
+  // NET_ADMIN for the firewall init script.
+  // seccomp profile is broader than Docker default to allow nested Docker
+  // (DinD); see comments inside dind-seccomp.json.
+  // host.docker.internal is mapped to the host gateway so R2R-in-DinD
+  // can reach Ollama-on-host at host.docker.internal:11434.
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--security-opt", "seccomp=.devcontainer/dind-seccomp.json",
+    "--add-host=host.docker.internal:host-gateway"
+  ],
+
+  // --- Features ---
+  // Docker-in-Docker so the R2R Compose stack runs inside this container.
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "dockerDashComposeVersion": "v2",
+      "installDockerBuildx": true
+    }
+  },
+
+  // --- VS Code ---
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-python.python"
+      ],
+      "settings": {
+        "editor.formatOnSave": false,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/.git/objects/**": true
+        }
+      }
+    }
+  },
+
+  // PID 1 runs as root so the entrypoint can run init-firewall.sh and
+  // the DinD startup wrapper without sudo. Interactive shells attach as
+  // `node` per remoteUser. overrideCommand: false keeps our custom CMD
+  // (`while sleep ...`) instead of VS Code's default, which would
+  // prevent the entrypoint's exec "$@" from chaining cleanly.
+  "containerUser": "root",
+  "remoteUser": "node",
+  "overrideCommand": false,
+
+  // --- Mounts ---
+  "mounts": [
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    // SSH agent forwarding from host (for git push/pull via SSH).
+    // If the host has no SSH agent (e.g. Windows without ssh-agent),
+    // remove this mount and use HTTPS+PAT for git auth instead.
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
+  ],
+
+  // --- Environment ---
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "SSH_AUTH_SOCK": "/ssh-agent",
+    "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=accept-new"
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/R2R-ClaudeCode-integration,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspaces/R2R-ClaudeCode-integration",
+
+  // Forward R2R's API + dashboard ports so the host browser can hit them
+  // (useful for verifying ingestion via the dashboard UI).
+  "forwardPorts": [7272, 7273],
+
+  // Suppress VS Code's automatic port forwarding for ALL OTHER ports.
+  // Anything we want forwarded is in forwardPorts above; everything else
+  // is intentionally scoped to the container's network namespace.
+  "otherPortsAttributes": {
+    "onAutoForward": "ignore"
+  }
+}
