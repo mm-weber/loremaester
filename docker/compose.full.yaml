@@ -135,7 +135,8 @@ services:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8733/live"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 30
+      start_period: 30s
 
   hatchet-dashboard:
     image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15
@@ -190,12 +191,40 @@ services:
   # `_InactiveRpcError: Connection refused`, and SystemExit(1)s into a
   # restart loop. This container polls 7077 with `nc -z` until TCP accepts,
   # then exits 0 — and r2r's depends_on (below) gates on that exit.
+  #
+  # The gate below is `service_started`, NOT `service_healthy`. Gating
+  # the gRPC poll on the HTTP /live healthcheck would re-introduce the
+  # very fragility this sidecar exists to bypass: if /live is slow to
+  # pass or flaps, the gRPC poll never even starts and compose hangs at
+  # "Waiting 300s+". The TCP poll below IS the readiness check — Docker
+  # just needs hatchet-engine's container to exist so DNS resolves the
+  # name. Do not "fix" this back to service_healthy.
+  #
+  # The loop is bounded to 300s; on timeout it exits 1, failing r2r's
+  # `service_completed_successfully` gate fast (with a logline) rather
+  # than hanging indefinitely if hatchet-engine never binds 7077.
   wait-for-hatchet-grpc:
     image: alpine:latest
-    command: sh -c "until nc -z hatchet-engine 7077; do echo 'waiting for hatchet gRPC on 7077...'; sleep 1; done; echo 'hatchet gRPC reachable'"
+    # Compose interpolates ${VAR} in YAML values, so shell variables here
+    # need $$ to survive (${i} → $${i}). Using exec-form + literal `|`
+    # block keeps newlines so the if/then/fi parses correctly.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 300); do
+          if nc -z hatchet-engine 7077; then
+            echo "hatchet gRPC reachable after $${i}s"
+            exit 0
+          fi
+          echo "waiting for hatchet gRPC on 7077... ($${i}/300)"
+          sleep 1
+        done
+        echo "TIMEOUT: hatchet gRPC not reachable after 300s" >&2
+        exit 1
     depends_on:
       hatchet-engine:
-        condition: service_healthy
+        condition: service_started
     restart: "no"
 
   r2r:
