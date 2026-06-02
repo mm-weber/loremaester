@@ -129,6 +129,7 @@ If all three respond with cited results, the install is verified.
 
 ## When something doesn't work
 
+- **Port 7272 already in use when bringing up R2R** — if `docker compose up -d` fails with "port is already allocated" / "bind: address already in use", a VS Code Server process inside the devcontainer is holding the port. This happens when an older `devcontainer.json` used `forwardPorts: [7272, 7273]` (eager binding) instead of `portsAttributes` (lazy, on-listen). Fix: rebuild the devcontainer (`Dev Containers: Rebuild Container`) to pick up the current `devcontainer.json`. Quick workaround without rebuilding: open VS Code's Ports panel (View → Ports), right-click 7272 → "Stop Forwarding Port", repeat for 7273 if needed, then retry the `docker compose` command.
 - **Devcontainer build fails on pip install** — usually a network issue. Verify outbound HTTPS to pypi.org works from the host; try rebuilding (`Dev Containers: Rebuild Container`).
 - **R2R container can't reach Ollama** — verify the host can reach itself at `host.docker.internal:11434` from inside Docker. On Linux, the `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles this; on macOS, Docker Desktop maps it automatically.
 - **`/mcp` shows 0 servers** — check that the paths in your `.mcp.json` resolve inside the container. The workspace is mounted at `/workspaces/R2R-ClaudeCode-integration/` (not `/workspace/`).

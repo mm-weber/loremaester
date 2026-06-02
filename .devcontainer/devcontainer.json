@@ -79,13 +79,18 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/R2R-ClaudeCode-integration,type=bind,consistency=delegated",
   "workspaceFolder": "/workspaces/R2R-ClaudeCode-integration",
 
-  // Forward R2R's API + dashboard ports so the host browser can hit them
-  // (useful for verifying ingestion via the dashboard UI).
-  "forwardPorts": [7272, 7273],
+  // Forward R2R's API + dashboard ports when docker-compose publishes
+  // them. Using portsAttributes (not forwardPorts) so VS Code waits for
+  // each service to actually start listening before forwarding — avoids
+  // the port collision where forwardPorts would eagerly bind 7272/7273
+  // inside the devcontainer before docker-compose tries to publish them.
+  "portsAttributes": {
+    "7272": {"label": "R2R API", "onAutoForward": "notify"},
+    "7273": {"label": "R2R Dashboard", "onAutoForward": "openBrowser"}
+  },
 
-  // Suppress VS Code's automatic port forwarding for ALL OTHER ports.
-  // Anything we want forwarded is in forwardPorts above; everything else
-  // is intentionally scoped to the container's network namespace.
+  // Suppress auto-forward for every other internal port (Postgres,
+  // Hatchet, MinIO, Unstructured) — keeps the Ports panel quiet.
   "otherPortsAttributes": {
     "onAutoForward": "ignore"
   }
