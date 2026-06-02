@@ -93,7 +93,7 @@ Parsing `[[wikilinks]]` from every `.md` file on every query would be slow for l
 
 - **Fast queries** — graph traversal is in-memory dictionary lookups
 - **Simple MCP server** — D5 just reads JSON, no filesystem parsing
-- **Explicit rebuild cycle** — the GM (or Claude) runs the builder after vault changes, keeping the graph intentionally up to date via `vault_reload_graph`
+- **Explicit rebuild cycle** — the GM (or Claude) triggers a rebuild after vault changes via `vault_rebuild_graph` (re-parses vault + reloads cache); `vault_reload_cache` is the cheaper "re-read JSON only" variant that flags staleness when the on-disk graph is behind the vault
 
 ### Why hybrid search as the default for lore queries?
 
@@ -128,7 +128,13 @@ R2R-ClaudeCode-integration/
 ├── mcp-servers/
 │   ├── sourcebooks/           # D3: Worldbuilding lore search
 │   └── vault-graph/           # D5: Wikilink graph navigation
-├── scripts/                   # D4: Graph builder, OCR tools, ingestion
+├── scripts/
+│   ├── build_vault_graph.py   # D4: Parse [[wikilinks]] → .graph.json
+│   ├── detect_pdf_type.py     # Classify PDFs as text-native / image-only / mixed
+│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R, image→kreuzberg)
+│   ├── ocr_preprocess.py      # Standalone OCR via pytesseract/surya (non-ingesting)
+│   ├── extract_text.py        # Standalone kreuzberg text extraction (images + docs)
+│   └── verify_ingestion.py    # Post-ingestion quality checks against R2R
 ├── plugins/                   # D7: Worldbuilding skill
 ├── r2r_mcp_wrapper.py         # D2: Generic R2R MCP wrapper
 ├── examples/                  # D1: Vault CLAUDE.md template
@@ -172,8 +178,7 @@ Claude writes the results back:
 
 ### 5. Graph Rebuild
 After vault changes, the graph is rebuilt:
-- Run `build-vault-graph.py` (D4) to regenerate `.graph.json`
-- Call `vault_reload_graph` (D5) to pick up changes without restarting the server
+- Call `vault_rebuild_graph` (D5) — re-parses the vault and reloads the in-memory cache in one step, no server restart needed. (The bare `build_vault_graph.py` CLI still works for external automation.)
 
 ---
 

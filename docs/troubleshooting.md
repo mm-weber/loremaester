@@ -50,7 +50,55 @@
 
 **Cause:** Poor OCR quality on the original scanned pages.
 
-**Fix:** Re-ingest with a different OCR engine, or check the quality of the original scan. `scripts/ocr_preprocess.py` supports both Tesseract and Surya engines.
+**Fix:** Re-ingest with a different OCR engine. `scripts/ingest_books.py` defaults to EasyOCR (GPU via torch+CUDA); override with `KREUZBERG_OCR_ENGINE=tesseract` for CPU, or try `paddleocr` if you have the paddlepaddle-gpu deps installed. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but fragile on multi-column layouts.
+
+### `scripts/ingest_books.py` fails with `kreuzberg returned empty text`
+
+**Cause:** The selected OCR backend ran but extracted zero usable text. We've observed this specifically with `paddleocr` on heavily scanned Planescape-era TSR PDFs; EasyOCR handles the same files fine.
+
+**Fix:** Switch to EasyOCR (the current default) or tesseract. Full command:
+
+```bash
+KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --extra-index-url https://download.pytorch.org/whl/cu126 \
+  --index-strategy unsafe-best-match \
+  scripts/ingest_books.py <pdf-dir>
+```
+
+### `torch` warns `CUDA initialization: driver too old (found version 12080)`
+
+**Cause:** The default PyPI `torch==2.9.1` wheel is built against CUDA 12.8 libs with a minimum-driver check that rejects even fresh CUDA-12.8 drivers (`12080`). After this warning fires, torch silently falls back to CPU and EasyOCR runs without GPU — an hour per book instead of minutes.
+
+**Fix:** The script already pins `torch==2.9.1+cu126` in its PEP 723 deps, but uv only picks up the cu126 variant if you point at PyTorch's own index:
+
+```bash
+uv run --no-project --python 3.12 \
+  --extra-index-url https://download.pytorch.org/whl/cu126 \
+  --index-strategy unsafe-best-match \
+  scripts/ingest_books.py <pdf-dir>
+```
+
+If you already ran once without those flags, uv cached the cu128 build — invalidate it first:
+
+```bash
+uv cache clean torch nvidia-cusparselt-cu12 nvidia-nvshmem-cu12 nvidia-cufile-cu12
+```
+
+To confirm the GPU is actually engaged after the fix, run `nvidia-smi` in a second terminal during OCR — the spawned `python` process should hold GPU memory and GPU-Util should spike 30–100 %.
+
+### `uv run` fails with `No solution found when resolving script dependencies`
+
+**Cause:** You have `UV_EXTRA_INDEX_URL` exported in your shell (typically pointing at PaddlePaddle's mirror from a previous paddleocr attempt). That mirror advertises stale `kreuzberg` / `easyocr` entries, and uv's default index strategy refuses to look past the first index that names a given package — so it fails to see the newer versions on PyPI.
+
+**Fix:** Unset the env var (or use `env -u` for a one-shot):
+
+```bash
+unset UV_EXTRA_INDEX_URL
+# or, per-command:
+env -u UV_EXTRA_INDEX_URL uv run --no-project --python 3.12 ...
+```
+
+Check your `~/.zshrc` / `~/.bashrc` if the variable keeps coming back — an older setup step may have written an `export` line that's no longer needed.
 
 ### `detect_pdf_type.py` says "mixed"
 
@@ -78,7 +126,7 @@
 
 **Cause:** The graph file is stale — notes were added, renamed, or deleted since the graph was last built.
 
-**Fix:** Call the `vault_reload_graph()` MCP tool, or re-run `python scripts/build_vault_graph.py /workspace/vault`.
+**Fix:** Call the `vault_rebuild_graph()` MCP tool — it re-parses the vault and reloads the cache in one step. Note: `vault_reload_cache()` only re-reads the existing JSON and will flag staleness in its response; use it after an external rebuild, not as a refresh.
 
 ---
 

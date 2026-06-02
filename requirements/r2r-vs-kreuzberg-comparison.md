@@ -1,8 +1,13 @@
 # R2R vs Kreuzberg — Multi-format RAG Ingestion Comparison
 
-> **Status:** Exploratory research — no implementation decisions made yet
-> **Date:** 2026-03-20
-> **Context:** M&A Due Diligence RAG pipeline, Docker Compose deployment, Claude Code via MCP
+> **Status:** Decision made — **Pattern B** (R2R native for text-native
+> PDFs, kreuzberg for image-only PDFs), implemented in
+> `scripts/ingest_books.py`. The script's `is_image_pdf()` check
+> (pdfplumber-based, <10 % of pages with extractable text) routes each
+> file to one of the two paths automatically. The rest of this document
+> is preserved as the research trail behind that decision.
+> **Date:** 2026-03-20 (research), decision confirmed 2026-04-17
+> **Context:** TTRPG sourcebook ingestion, Docker Compose deployment, Claude Code via MCP
 
 ---
 
@@ -126,6 +131,29 @@ incoming/
 
 ---
 
-## No Decision Needed Now
+## Decision (2026-04-17): Pattern B
 
-This is exploratory. The comparison is saved for future decision-making when we're ready to extend the ingestion pipeline beyond PDF-only.
+We shipped Pattern B in `scripts/ingest_books.py`. Rationale:
+
+- **TTRPG library is mixed** — digitally-purchased PDFs (text-native) live
+  alongside scanned classics (image-only). A single pipeline that picks
+  the right tool per-file is the cleanest ergonomic win.
+- **R2R's Unstructured.io path is already good for text-native PDFs**,
+  and staying on it means we inherit any upstream parser improvements
+  for free. Running everything through kreuzberg would throw that away.
+- **Kreuzberg's client-side OCR shines exactly where R2R struggles** —
+  scanned pages where R2R Light Mode just silently produces empty text.
+  EasyOCR via kreuzberg handles those reliably, GPU-accelerated via
+  torch+CUDA.
+- **The routing logic is one pdfplumber call** (`is_image_pdf()`), so the
+  added complexity is minimal.
+
+Pattern A (kreuzberg everywhere) was rejected because it gives up R2R's
+parser improvements for negligible quality gain on text-native books.
+Pattern C (folder-based) was rejected as premature — we can always
+layer folder-driven metadata on top of Pattern B later if a specific
+workflow demands it.
+
+The earlier "M&A Due Diligence" framing in this doc is stale — this
+repo's scope is TTRPG worldbuilding — but the format-by-format quality
+comparison still holds and informed the decision.

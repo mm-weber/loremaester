@@ -1,61 +1,29 @@
-# User-Defined Tools Directory
+# `docker/user_tools/`
 
-## Overview
-This directory is mounted inside the R2R Docker container and is intended for custom tool files. Any files placed here will be accessible to the application running in the container.
+Bind-mounted into the R2R container at `/app/user_tools/` so R2R's
+agent can load custom Python tool definitions at runtime.
 
-## Usage
-1. Place your custom tool definitions in this directory. Utilize the template structure demonstrated here.
-2. Add any additional dependencies that you may need to the user_requirements.txt file in this directory.
-3. Include the tool in your agent configuration.
+## Status in this repo
 
-## Creating a tool
-```python
-from core.base.agent.tools.base import Tool
+**Not used.** This project puts its tool surface in Claude Code via MCP
+servers (see `../../mcp-servers/` and `../../r2r_mcp_wrapper.py`), not
+in R2R's agent runtime. Claude Code handles all reasoning — R2R is
+restricted to embeddings, search, and ingestion, with no completion
+provider configured.
 
+The directory exists so R2R's container bind-mount stays valid even
+when empty. `user_requirements.txt` here is the hook for extra Python
+deps if you ever do register a tool.
 
-class ToolNameTool(Tool):
-    """
-    A user defined tool.
-    """
+## If you want to add R2R-side tools
 
-    def __init__(self):
-        super().__init__(
-            name="tool_name",
-            description="A natural language tool description that is shown to the agent.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "input_parameter": {
-                        "type": "string",
-                        "description": "Define any input parameters by their name and type",
-                    },
-                },
-                "required": ["input_parameter"],
-            },
-            results_function=self.execute,
-            llm_format_function=None,
-        )
+You probably don't need to for this project's use case. If you're
+extending R2R for a different workflow where the R2R agent itself
+needs additional tools, follow R2R's upstream documentation at
+https://r2r-docs.sciphi.ai/ — the interface (subclass
+`core.base.agent.tools.base.Tool`, register in a config) lives
+upstream and isn't mirrored here.
 
-    async def execute(self, input_parameter: str, *args, **kwargs):
-        """
-        Implementation of the tool.
-        """
-
-        # Any custom tool logic can go here
-
-        output_response = some_method(input_parameter)
-
-        result = AggregateSearchResult(
-            generic_tool_result=[web_response],
-        )
-
-        # Add to results collector if context is provided
-        if context and hasattr(context, "search_results_collector"):
-            context.search_results_collector.add_aggregate_result(result)
-
-        return result
-```
-
-## Troubleshooting
-
-For more detailed configuration information, see the main documentation.
+Register your tool in `../user_configs/<config>.toml` under the agent
+section, add any Python deps to `user_requirements.txt`, and restart
+the `r2r` service.

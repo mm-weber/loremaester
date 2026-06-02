@@ -311,11 +311,7 @@ Only `book_title` is required. The sourcebooks MCP server uses it for `search_lo
 
 > **Note:** The server also accepts `system`, `publisher`, `content_type`, and `chapter` if provided — they just aren't required.
 
-### Ingesting Text-Native PDFs (and Image PDFs in Docker Full Mode)
-
-For text-native PDFs — or any PDFs when running Docker Full Mode (Unstructured.io handles OCR automatically) — use the bulk ingestion script.
-
-#### Single PDF
+### Single PDF
 
 ```bash
 # Install the R2R CLI if not already available
@@ -325,97 +321,62 @@ r2r documents create /path/to/book.pdf \
   --metadata '{"book_title": "Core Rulebook"}'
 ```
 
-#### Bulk Ingestion Script
+### Bulk Ingestion Script
 
-Save this as `ingest_books.py` and run it on the host:
+The repo ships `scripts/ingest_books.py`, a PEP 723-style single-file script
+that bulk-ingests a folder of PDFs with automatic image-vs-text routing,
+SHA1 content-hash deduplication, and client-side OCR for scanned books:
 
-```python
-#!/usr/bin/env python3
-"""Bulk-ingest PDFs into R2R with sourcebook metadata."""
+- **Text-native PDFs** → forwarded to R2R via `documents.create(file_path=…)`.
+  In Docker Full Mode this means Unstructured.io parses them server-side.
+- **Image-only PDFs** (detected by pdfplumber: <10% of pages have extractable
+  text) → OCR'd client-side via [Kreuzberg](https://kreuzberg.dev/) with
+  EasyOCR as the default backend (GPU-accelerated via torch+CUDA), then
+  pushed to R2R as `raw_text`.
 
-import sys
-from pathlib import Path
-from r2r import R2RClient
-
-R2R_BASE = "http://localhost:7272"
-
-def ingest_pdf(client, pdf_path, metadata):
-    result = client.documents.create(file_path=str(pdf_path), metadata=metadata)
-    doc_id = result.results.document_id
-    print(f"  Ingested: {pdf_path.name} -> {doc_id}")
-    return doc_id
-
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python ingest_books.py <folder_of_pdfs>")
-        sys.exit(1)
-
-    pdf_dir = Path(sys.argv[1])
-    client = R2RClient(R2R_BASE)
-
-    pdfs = sorted(pdf_dir.rglob("*.pdf"))
-    if not pdfs:
-        print(f"No PDFs found in {pdf_dir}")
-        sys.exit(1)
-
-    print(f"Found {len(pdfs)} PDF(s) in {pdf_dir}\n")
-
-    succeeded = []
-    failed = []
-
-    for pdf in pdfs:
-        book_title = pdf.stem.replace("_", " ").replace("-", " ").title()
-        metadata = {"book_title": book_title}
-
-        print(f"[{book_title}]")
-        try:
-            ingest_pdf(client, pdf, metadata)
-            succeeded.append(pdf.name)
-        except Exception as e:
-            print(f"  FAILED: {pdf.name} — {e}")
-            failed.append(pdf.name)
-
-    print(f"\nDone. {len(succeeded)} succeeded, {len(failed)} failed.")
-    if failed:
-        print("Failed files:")
-        for name in failed:
-            print(f"  - {name}")
-
-if __name__ == "__main__":
-    main()
-```
+Run it with `uv run` — the script declares its own dependencies inline:
 
 ```bash
-python ingest_books.py /path/to/sourcebooks/
+uv run --no-project --python 3.12 \
+  --extra-index-url https://download.pytorch.org/whl/cu126 \
+  --index-strategy unsafe-best-match \
+  scripts/ingest_books.py /path/to/sourcebooks/
 ```
+
+The two uv flags are needed because the script pins `torch==2.9.1+cu126`, a
+local-version variant only published on PyTorch's own index. Skip them and
+uv won't find the CUDA-bound wheel. (See Troubleshooting if you hit
+`driver too old` or dependency-resolution errors.)
+
+#### OCR backend selection
+
+The default (`easyocr`) runs on GPU via torch+CUDA and needs no extra
+system packages. Two env-var overrides if you want to swap backends:
+
+```bash
+# Tesseract — CPU only. Requires `apt install tesseract-ocr tesseract-ocr-eng`
+KREUZBERG_OCR_ENGINE=tesseract KREUZBERG_OCR_LANGUAGE=eng \
+  uv run --no-project --python 3.12 scripts/ingest_books.py <pdf-dir>
+
+# PaddleOCR — needs paddlepaddle-gpu from PaddlePaddle's own index (not pinned
+# here because it doesn't live on PyPI). Only worth the trouble for languages
+# EasyOCR doesn't cover well.
+```
+
+Note the language code difference: `easyocr`/`paddleocr` take ISO 639-1
+two-letter codes (`en`, `de`), tesseract takes ISO 639-3 three-letter
+codes (`eng`, `deu`).
 
 ### Ingesting Image PDFs Without Docker Full Mode
 
-If you're running R2R in Light Mode and have scanned/image PDFs, preprocess them with client-side OCR first:
+If you're running R2R in Light Mode, `scripts/ingest_books.py` already
+handles scanned books — the kreuzberg client-side OCR path runs without
+needing Unstructured.io server-side. You don't need a separate tool.
 
-```bash
-# Using Tesseract (fast, requires system packages)
-python scripts/ocr_preprocess.py /path/to/scanned_book.pdf \
-    --book-title "Monster Manual" \
-    --engine tesseract
-
-# Using Surya (no system deps, Python-native, slower)
-python scripts/ocr_preprocess.py /path/to/scanned_book.pdf \
-    --book-title "Monster Manual" \
-    --engine surya
-```
-
-The script extracts text via OCR page-by-page, then ingests the resulting text into R2R with proper metadata.
-
-**Output:**
-
-```
-Ingested: Monster Manual
-  Document ID: 7a3f...
-  Pages processed: 320
-  Average confidence: 0.87
-  Low-confidence pages: 12, 45, 201
-```
+For one-off OCR experiments outside the ingestion flow (e.g., extracting
+text from a single image or PDF without pushing to R2R),
+`scripts/ocr_preprocess.py` wraps pytesseract/surya-ocr as an
+alternative — see its `--help` for flags.
 
 ### Verify Ingestion
 
@@ -574,7 +535,7 @@ Add the `mcpServers` block to your Claude Code settings. Replace `/path/to/repo`
 |--------|-------|----------|
 | **r2r** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | `R2R_API_BASE`, `R2R_API_KEY` |
 | **sourcebooks** | `search_lore`, `list_books`, `get_chapter` | `R2R_API_BASE` |
-| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_graph` | `VAULT_PATH` |
+| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | `VAULT_PATH` |
 
 ### 6d. Linux Networking Workaround
 
@@ -598,10 +559,10 @@ Restart Claude Code, then run:
 /mcp
 ```
 
-You should see 3 servers connected with 13 tools total:
+You should see 3 servers connected with 14 tools total:
 - `r2r` — 5 tools
 - `sourcebooks` — 3 tools
-- `vault-graph` — 5 tools
+- `vault-graph` — 6 tools
 
 ---
 
@@ -653,4 +614,4 @@ Save the result to my vault.
 4. Generates an NPC with correct frontmatter, wikilinks, and voice
 5. Writes the note to the correct vault folder
 6. Updates related notes with backlinks
-7. Calls `vault_reload_graph()` to refresh the graph
+7. Calls `vault_rebuild_graph()` to re-parse the vault and refresh the graph

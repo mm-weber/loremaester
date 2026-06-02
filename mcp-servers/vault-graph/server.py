@@ -1,8 +1,11 @@
 """Vault Graph MCP server — navigate the vault's wikilink graph."""
 
+import importlib.util
 import json
 import os
 from collections import deque
+from datetime import datetime, timezone
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
@@ -12,6 +15,18 @@ VAULT_PATH = os.environ.get("VAULT_PATH", "/workspace/vault")
 GRAPH_PATH = os.path.join(VAULT_PATH, ".graph.json")
 
 _graph = {"nodes": {}, "edges": [], "metadata": {}}
+
+# Load the builder script by path so vault_rebuild_graph can call it in-process.
+# Fail soft: if the builder isn't reachable, the server still starts and the
+# other tools work; only vault_rebuild_graph surfaces an error.
+_BUILDER_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "build_vault_graph.py"
+_builder = None
+try:
+    _spec = importlib.util.spec_from_file_location("build_vault_graph", _BUILDER_PATH)
+    _builder = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_builder)
+except Exception:
+    _builder = None
 
 
 def _load_graph():
@@ -32,14 +47,37 @@ def _check_graph() -> str | None:
     """Return an error message if the graph is not loaded, else None."""
     if not _graph.get("nodes"):
         if not os.path.exists(GRAPH_PATH):
-            return "Error: .graph.json not found. Run build-vault-graph.py first to generate it."
+            return "Error: .graph.json not found. Run vault_rebuild_graph to create it."
         try:
             with open(GRAPH_PATH, "r") as f:
                 json.load(f)
         except json.JSONDecodeError:
-            return "Error: .graph.json is malformed (invalid JSON). Re-run build-vault-graph.py."
+            return "Error: .graph.json is malformed (invalid JSON). Run vault_rebuild_graph to regenerate."
         return "Error: Graph is empty or not loaded."
     return None
+
+
+def _staleness_summary() -> str:
+    """Return a short warning if vault .md files are newer than .graph.json, else ''."""
+    try:
+        graph_mtime = os.path.getmtime(GRAPH_PATH)
+    except OSError:
+        return ""
+    newer_count = 0
+    newest_mtime = 0.0
+    for md in Path(VAULT_PATH).rglob("*.md"):
+        try:
+            m = md.stat().st_mtime
+        except OSError:
+            continue
+        if m > graph_mtime:
+            newer_count += 1
+            if m > newest_mtime:
+                newest_mtime = m
+    if newer_count == 0:
+        return ""
+    newest_iso = datetime.fromtimestamp(newest_mtime, tz=timezone.utc).isoformat(timespec="seconds")
+    return f" STALE: {newer_count} .md file(s) modified since last build (newest: {newest_iso})."
 
 
 @mcp.tool()
@@ -191,23 +229,45 @@ async def vault_search_notes(name_pattern: str = None, tag: str = None, note_typ
 
 
 @mcp.tool()
-async def vault_reload_graph() -> str:
-    """Reload .graph.json from disk without restarting the server."""
+async def vault_reload_cache() -> str:
+    """Re-read .graph.json from disk without rebuilding it. Fast. Use after an external rebuild."""
     global VAULT_PATH, GRAPH_PATH
     VAULT_PATH = os.environ.get("VAULT_PATH", "/workspace/vault")
     GRAPH_PATH = os.path.join(VAULT_PATH, ".graph.json")
     try:
         _load_graph()
     except FileNotFoundError:
-        return "Error: .graph.json not found. Run build-vault-graph.py first."
+        return "Error: .graph.json not found. Run vault_rebuild_graph to create it."
     except json.JSONDecodeError:
-        return "Error: .graph.json is malformed (invalid JSON)."
+        return "Error: .graph.json is malformed (invalid JSON). Run vault_rebuild_graph to regenerate."
     except Exception as e:
-        return f"Error reloading graph: {e}"
+        return f"Error reloading cache: {e}"
 
     count = _graph.get("metadata", {}).get("note_count", len(_graph.get("nodes", {})))
     edges = _graph.get("metadata", {}).get("edge_count", len(_graph.get("edges", [])))
-    return f"Graph reloaded successfully. {count} notes, {edges} edges."
+    return f"Cache reloaded: {count} notes, {edges} edges.{_staleness_summary()}"
+
+
+@mcp.tool()
+async def vault_rebuild_graph() -> str:
+    """Re-parse the vault, regenerate .graph.json, and reload the cache in one step."""
+    global VAULT_PATH, GRAPH_PATH
+    VAULT_PATH = os.environ.get("VAULT_PATH", "/workspace/vault")
+    GRAPH_PATH = os.path.join(VAULT_PATH, ".graph.json")
+    if _builder is None:
+        return (
+            f"Error: builder not importable at {_BUILDER_PATH}. "
+            "Shell out to `python scripts/build_vault_graph.py <vault>` instead."
+        )
+    try:
+        graph = _builder.build_graph(VAULT_PATH)
+        with open(GRAPH_PATH, "w", encoding="utf-8") as f:
+            json.dump(graph, f, indent=2)
+        _load_graph()
+    except Exception as e:
+        return f"Error rebuilding graph: {type(e).__name__}: {e}"
+    meta = _graph.get("metadata", {})
+    return f"Graph rebuilt: {meta.get('note_count', '?')} notes, {meta.get('edge_count', '?')} edges."
 
 
 if __name__ == "__main__":

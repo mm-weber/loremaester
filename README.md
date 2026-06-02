@@ -24,13 +24,13 @@ R2R handles **embedding and retrieval only** — all reasoning is done by Claude
 
 ## Features
 
-**3 MCP Servers, 13 Tools:**
+**3 MCP Servers, 14 Tools:**
 
 | Server | Tools | Purpose |
 |--------|-------|---------|
 | **r2r** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | Generic R2R operations |
 | **sourcebooks** | `search_lore`, `list_books`, `get_chapter` | Worldbuilding-aware lore search with book/chapter/page citations |
-| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_graph` | Obsidian `[[wikilink]]` graph navigation |
+| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | Obsidian `[[wikilink]]` graph navigation |
 
 **Plus:**
 - Docker Compose deployment (single-stack or multi-instance)
@@ -96,7 +96,7 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 - **[Quickstart](docs/quickstart.md)** — Full setup: Ollama, R2R, vault prep, MCP config, first session
 - **[Design](docs/design.md)** — Architecture decisions, component map, workflow
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues, database resets, multi-instance debugging
-- **[Migration Plan](requirements/migration-plan.md)** — EARS spec for the single-repo consolidation
+- **[Requirements](requirements/)** — EARS-style specs for image-PDF ingestion, standalone text extraction, and the R2R-vs-kreuzberg ingestion comparison
 
 ## Multi-Instance Deployment
 

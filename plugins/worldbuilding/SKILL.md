@@ -84,7 +84,7 @@ Only reach this step when the GM wants content saved to the vault.
 
 3. **Update related notes** — add `[[wikilinks]]` pointing to the new note in any existing notes that should reference it. Ask before modifying existing notes.
 
-4. **Refresh the graph**: call `vault_reload_graph()` so the graph index reflects the new content
+4. **Refresh the graph**: call `vault_rebuild_graph()` so the graph index reflects the new content. This re-parses the vault and reloads the cache in one step. (Note: `vault_reload_cache()` only re-reads the existing `.graph.json` — it won't pick up newly-written notes.)
 
 5. **Present a summary** to the GM:
    - What note was created (with path)
