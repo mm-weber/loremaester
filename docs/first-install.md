@@ -57,17 +57,22 @@ cd ../..
 The defaults are usable for the first launch. See [`quickstart.md`](./quickstart.md) for which values you'd customize for a production deployment.
 
 ### 5. Bring up the R2R stack (inside DinD)
+
+The compose project uses a `postgres` profile for the R2R database. Setting `COMPOSE_PROFILES` once means every subsequent compose command in the same shell picks it up without you having to pass `--profile postgres` each time:
 ```bash
-docker compose -f docker/compose.full.yaml --profile postgres up -d
+export COMPOSE_PROFILES=postgres
+docker compose -f docker/compose.full.yaml up -d
 docker compose -f docker/compose.full.yaml ps
 ```
-Expect 3-5 minutes on first start (Hatchet runs database migrations). Health check:
+Expect 3-5 minutes on first start (Hatchet runs database migrations). A short-lived `wait-for-hatchet-grpc` init container runs in the middle to ensure Hatchet's gRPC port is bound before r2r tries to register its workflows — you'll see it as `Exited (0)` in `ps` after a few seconds, which is normal.
+
+Health check:
 ```bash
 curl http://localhost:7272/v3/health
 ```
-Should return `{"status":"ok"}` or equivalent.
+Expected: `{"results":{"response":"ok"}}`.
 
-The R2R dashboard is on http://localhost:7273 (forwarded to your host via the `forwardPorts` setting).
+The R2R dashboard is on http://localhost:7273 (auto-forwarded to your host via the `portsAttributes` setting in `.devcontainer/devcontainer.json` — VS Code should offer to open it when r2r-dashboard becomes ready).
 
 ### 6. Ingest a small PDF corpus
 Put 3-5 PDFs at `/workspaces/R2R-ClaudeCode-integration/test-pdfs/` (or any path inside the workspace mount). Mix at least one text-native and one scanned/image PDF to exercise both ingestion paths.
@@ -130,6 +135,8 @@ If all three respond with cited results, the install is verified.
 ## When something doesn't work
 
 - **Port 7272 already in use when bringing up R2R** — if `docker compose up -d` fails with "port is already allocated" / "bind: address already in use", a VS Code Server process inside the devcontainer is holding the port. This happens when an older `devcontainer.json` used `forwardPorts: [7272, 7273]` (eager binding) instead of `portsAttributes` (lazy, on-listen). Fix: rebuild the devcontainer (`Dev Containers: Rebuild Container`) to pick up the current `devcontainer.json`. Quick workaround without rebuilding: open VS Code's Ports panel (View → Ports), right-click 7272 → "Stop Forwarding Port", repeat for 7273 if needed, then retry the `docker compose` command.
+- **`docker compose … ps` says "depends on undefined service postgres: invalid compose project"** — the `postgres` service is scoped to the `postgres` profile in `compose.full.yaml`. Either run `export COMPOSE_PROFILES=postgres` once in your shell (recommended), or pass `--profile postgres` on every compose invocation (`ps`, `logs`, `down`, etc.).
+- **`curl http://localhost:7272/v3/health` returns `curl: (56) Recv failure: Connection reset by peer`** — r2r isn't actually ready. With the shipped compose file's `wait-for-hatchet-grpc` init container, the most common cause (r2r racing Hatchet's gRPC bind) is already handled. If you still see the reset, run `docker compose -f docker/compose.full.yaml ps`: if r2r is `restarting`, `health: starting`, or has a much lower uptime than the rest of the stack, run `docker compose -f docker/compose.full.yaml logs r2r --tail 100` and look at the last error. Common remaining causes are Postgres auth misconfig (check `docker/env/r2r-full.env`), Ollama unreachable from inside the container (check `host.docker.internal:11434` is responding on the host), or an OCR-pipeline import failure.
 - **Devcontainer build fails on pip install** — usually a network issue. Verify outbound HTTPS to pypi.org works from the host; try rebuilding (`Dev Containers: Rebuild Container`).
 - **R2R container can't reach Ollama** — verify the host can reach itself at `host.docker.internal:11434` from inside Docker. On Linux, the `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles this; on macOS, Docker Desktop maps it automatically.
 - **`/mcp` shows 0 servers** — check that the paths in your `.mcp.json` resolve inside the container. The workspace is mounted at `/workspaces/R2R-ClaudeCode-integration/` (not `/workspace/`).

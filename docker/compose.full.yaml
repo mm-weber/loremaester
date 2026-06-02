@@ -182,8 +182,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # Init container: gate r2r startup on hatchet-engine's gRPC port (7077)
+  # being reachable. hatchet-engine's own healthcheck (further up) only
+  # probes HTTP /live on 8733, not 7077 — so `service_healthy` on
+  # hatchet-engine doesn't imply gRPC is ready. Without this gate, r2r
+  # races Hatchet's gRPC bind on every start, fails register_workflow with
+  # `_InactiveRpcError: Connection refused`, and SystemExit(1)s into a
+  # restart loop. This container polls 7077 with `nc -z` until TCP accepts,
+  # then exits 0 — and r2r's depends_on (below) gates on that exit.
+  wait-for-hatchet-grpc:
+    image: alpine:latest
+    command: sh -c "until nc -z hatchet-engine 7077; do echo 'waiting for hatchet gRPC on 7077...'; sleep 1; done; echo 'hatchet gRPC reachable'"
+    depends_on:
+      hatchet-engine:
+        condition: service_healthy
+    restart: "no"
+
   r2r:
     image: sciphiai/r2r:latest
+    depends_on:
+      wait-for-hatchet-grpc:
+        condition: service_completed_successfully
     ports:
       - "7272:7272"
     env_file:
