@@ -132,6 +132,51 @@ Try also:
 
 If all three respond with cited results, the install is verified.
 
+## TTRPG GM scaffold: `examples/ttrpg/`
+
+If you're using this stack as a TTRPG GM assistant — the primary intended use — the repo ships an `examples/ttrpg/` directory pre-wired for that workflow. Run Claude from inside that folder so the scaffold is its working directory:
+
+```bash
+cd examples/ttrpg
+claude
+```
+
+### Install the bundled skills
+
+Three universally-usable skills (`worldbuilding`, `session-creation`, `chronik`) sit at `examples/ttrpg/skills/`. They are reference copies — Claude only auto-loads skills from a real `.claude/skills/` location, so copy them into one:
+
+```bash
+# Project-local (recommended) — only loads when claude runs from examples/ttrpg/ or below
+mkdir -p examples/ttrpg/.claude/skills
+cp -r examples/ttrpg/skills/* examples/ttrpg/.claude/skills/
+
+# OR global — loads every time you start claude, anywhere
+mkdir -p ~/.claude/skills
+cp -r examples/ttrpg/skills/* ~/.claude/skills/
+```
+
+### CLAUDE.md placement when `examples/ttrpg/` is your working folder
+
+Two CLAUDE.md files give Claude the campaign context it needs:
+
+- **`examples/ttrpg/CLAUDE.md`** — top-level project context. Name your campaign, where the vault and sourcebooks live, what system you're running. Claude reads it on startup. Create your own; one short paragraph is usually enough.
+- **`examples/ttrpg/GM-Vault/CLAUDE.md`** — vault-specific context for when Claude is reading or writing vault notes. Copy the existing template:
+  ```bash
+  cp examples/vault-claude-md-template.md examples/ttrpg/GM-Vault/CLAUDE.md
+  # Edit GM-Vault/CLAUDE.md to fill in YOUR_SYSTEM, YOUR_WORLD, YOUR_CAMPAIGN, folder layout, etc.
+  ```
+
+### Drop your content in and re-run the ingest/graph steps
+
+- **`examples/ttrpg/GM-Vault/`** — your Obsidian vault (or a working copy). The `vault-graph` MCP server reads from here.
+- **`examples/ttrpg/sourcebooks/`** — sourcebook PDFs to ingest. Re-run step 6 against this path instead of `test-pdfs/`:
+  ```bash
+  uv run scripts/ingest_books.py examples/ttrpg/sourcebooks/ --collection campaign
+  uv run scripts/build_vault_graph.py examples/ttrpg/GM-Vault
+  ```
+
+Then update the `vault-graph` MCP server's `VAULT_PATH` env in `.mcp.json` to point at `examples/ttrpg/GM-Vault` and restart Claude. Verify with `/mcp` that the three servers reconnect, then run a worldbuilding prompt like *"Detail a new NPC in the [your campaign] vault"* — the `worldbuilding` skill should fire.
+
 ## When something doesn't work
 
 - **Port 7272 already in use when bringing up R2R** — if `docker compose up -d` fails with "port is already allocated" / "bind: address already in use", a VS Code Server process inside the devcontainer is holding the port. This happens when an older `devcontainer.json` used `forwardPorts: [7272, 7273]` (eager binding) instead of `portsAttributes` (lazy, on-listen). Fix: rebuild the devcontainer (`Dev Containers: Rebuild Container`) to pick up the current `devcontainer.json`. Quick workaround without rebuilding: open VS Code's Ports panel (View → Ports), right-click 7272 → "Stop Forwarding Port", repeat for 7273 if needed, then retry the `docker compose` command.
