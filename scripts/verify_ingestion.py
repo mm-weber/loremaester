@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "r2r",
+# ]
+# ///
 """Verification script for OCR ingestion quality."""
 from dataclasses import dataclass, field
 

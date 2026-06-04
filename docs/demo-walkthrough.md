@@ -92,9 +92,12 @@ The R2R dashboard is on http://localhost:7273 (auto-forwarded to your host via t
 
 ### 6. Ingest the bundled sourcebooks
 ```bash
-uv run scripts/detect_pdf_type.py examples/ttrpg/sourcebooks/
-uv run scripts/ingest_books.py examples/ttrpg/sourcebooks/
-uv run scripts/verify_ingestion.py --all
+uv run --no-project scripts/detect_pdf_type.py examples/ttrpg/sourcebooks/
+uv run --no-project --python 3.12 \
+  --extra-index-url https://download.pytorch.org/whl/cu126 \
+  --index-strategy unsafe-best-match \
+  scripts/ingest_books.py examples/ttrpg/sourcebooks/
+uv run --no-project scripts/verify_ingestion.py --all
 ```
 `detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (by default with EasyOCR via [Kreuzberg](https://kreuzberg.dev/)) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
 
@@ -105,7 +108,7 @@ uv run scripts/verify_ingestion.py --all
 The Grunvyr_Campaign scaffold starts empty — no NPCs, no locations, no factions yet. Build the (empty) graph so the `vault-graph` MCP server has an index to load:
 
 ```bash
-uv run scripts/build_vault_graph.py examples/ttrpg/GM-Vault
+uv run --no-project scripts/build_vault_graph.py examples/ttrpg/GM-Vault
 ```
 
 You should see `Graph built: 0 notes, 0 edges → examples/ttrpg/GM-Vault/.graph.json`. We'll populate the vault during Demos C and D — the graph rebuilds itself then.

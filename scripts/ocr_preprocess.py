@@ -1,3 +1,13 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pytesseract",
+#   "pdf2image",
+#   "Pillow",
+#   "pandas",
+#   "r2r",
+# ]
+# ///
 """OCR preprocessing utilities for scanned PDF pages."""
 from dataclasses import dataclass, field
 import types

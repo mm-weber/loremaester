@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pyyaml",
+# ]
+# ///
 """Vault Graph Builder — parse Obsidian vault into .graph.json."""
 import sys, json, re
 from pathlib import Path

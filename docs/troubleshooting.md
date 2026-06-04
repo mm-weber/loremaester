@@ -120,7 +120,7 @@ Check your `~/.zshrc` / `~/.bashrc` if the variable keeps coming back — an old
 
 **Cause:** The vault graph has not been built yet.
 
-**Fix:** Run `python scripts/build_vault_graph.py /workspace/vault` inside the devcontainer.
+**Fix:** Run `uv run --no-project scripts/build_vault_graph.py /workspace/vault` inside the devcontainer.
 
 ### "Note 'X' not found"
 

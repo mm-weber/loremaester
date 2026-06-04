@@ -48,7 +48,7 @@ ollama pull mxbai-embed-large && ollama serve
 docker compose -f docker/compose.full.yaml --profile postgres up -d
 
 # 3. Build your vault graph
-pip install pyyaml && python scripts/build_vault_graph.py /path/to/vault
+uv run --no-project scripts/build_vault_graph.py /path/to/vault
 
 # 4. Install MCP dependencies
 pip install mcp r2r pyyaml
@@ -123,11 +123,13 @@ Each instance gets its own Postgres schema (`R2R_PROJECT_NAME`), port range, and
 pytest -v --tb=short
 
 # Build vault graph
-python scripts/build_vault_graph.py /path/to/vault
+uv run --no-project scripts/build_vault_graph.py /path/to/vault
 
 # Classify PDFs before ingestion
-python scripts/detect_pdf_type.py /path/to/pdfs/
+uv run --no-project scripts/detect_pdf_type.py /path/to/pdfs/
 ```
+
+> **Running the scripts.** The `scripts/` are standalone [PEP 723](https://peps.python.org/pep-0723/) scripts — each declares its own dependencies inline, so `uv run --no-project scripts/<name>.py` fetches them into a throwaway environment automatically. The `--no-project` flag is required: `pyproject.toml` here configures pytest only (no `[project]` table), so a bare `uv run scripts/<name>.py` errors with *"No `project` table found"*. (If the dependencies are already installed in your environment, plain `python scripts/<name>.py` works too.) The OCR scripts (`extract_text.py`, `ocr_preprocess.py`) additionally need the system `tesseract`/`poppler` binaries, and `ingest_books.py` needs the PyTorch cu126 index for GPU OCR — see [docs/quickstart.md](docs/quickstart.md).
 
 ## License
 

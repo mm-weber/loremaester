@@ -301,7 +301,7 @@ Before ingesting, determine which of your PDFs are text-native (purchased digita
 ### 3a. Run the Detection Script
 
 ```bash
-python scripts/detect_pdf_type.py /path/to/your/sourcebooks/
+uv run --no-project scripts/detect_pdf_type.py /path/to/your/sourcebooks/
 ```
 
 Output:
@@ -325,7 +325,7 @@ Old_Campaign_Guide.pdf     mixed        (200 of 400 pages have extractable text)
 ```
 Are your PDFs scanned (image-only or mixed)?
 +-- Don't know
-|   +-- Run: python scripts/detect_pdf_type.py /path/to/pdfs/
+|   +-- Run: uv run --no-project scripts/detect_pdf_type.py /path/to/pdfs/
 +-- Yes -- pick an OCR path:
 |   +-- Server-side (Docker Full Mode): ingest the PDF *directly* so R2R/Unstructured.io OCRs it
 |   |       e.g. r2r documents create book.pdf --metadata '{"book_title":"..."}'   (no client OCR deps)
@@ -437,13 +437,13 @@ After ingesting, verify that the text was extracted correctly:
 
 ```bash
 # Single document by title
-python scripts/verify_ingestion.py --book-title "Core Rulebook"
+uv run --no-project scripts/verify_ingestion.py --book-title "Core Rulebook"
 
 # Single document by ID
-python scripts/verify_ingestion.py --document-id 7a3f...
+uv run --no-project scripts/verify_ingestion.py --document-id 7a3f...
 
 # All ingested documents
-python scripts/verify_ingestion.py --all
+uv run --no-project scripts/verify_ingestion.py --all
 ```
 
 **Output:**
@@ -515,9 +515,7 @@ Open `/workspace/vault/CLAUDE.md` and replace the placeholders:
 Inside the devcontainer:
 
 ```bash
-uv pip install pyyaml
-
-python scripts/build_vault_graph.py /workspace/vault
+uv run --no-project scripts/build_vault_graph.py /workspace/vault
 ```
 
 Expected output:

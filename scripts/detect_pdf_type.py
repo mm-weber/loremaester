@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pdfplumber",
+# ]
+# ///
 """Detect whether a PDF is text-native, image-only, or mixed."""
 from dataclasses import dataclass
 from pathlib import Path

@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "kreuzberg",
+#   "r2r",
+# ]
+# ///
 """extract_text.py — Extract text from images/documents using kreuzberg OCR.
 
 Usage:

@@ -257,7 +257,7 @@ async def vault_rebuild_graph() -> str:
     if _builder is None:
         return (
             f"Error: builder not importable at {_BUILDER_PATH}. "
-            "Shell out to `python scripts/build_vault_graph.py <vault>` instead."
+            "Shell out to `uv run --no-project scripts/build_vault_graph.py <vault>` instead."
         )
     try:
         graph = _builder.build_graph(VAULT_PATH)
