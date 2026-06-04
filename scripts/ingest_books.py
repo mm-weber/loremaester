@@ -122,7 +122,7 @@ def main():
         sys.exit(1)
 
     # Dedupe by SHA1 content hash. Catches the same book mirrored in a
-    # subdirectory (/library/foo.pdf and /library/Planescape/foo.pdf) AND the
+    # subdirectory (/library/foo.pdf and /library/boxed-sets/foo.pdf) AND the
     # same bytes under different filenames. First occurrence in sort order
     # wins; later copies are logged and skipped.
     print(f"Found {len(all_pdfs)} PDF path(s) in {pdf_dir}. Hashing for dedup...")

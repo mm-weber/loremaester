@@ -299,7 +299,7 @@ Drop your PDFs into a flat folder — no special directory hierarchy needed:
 sourcebooks/
 +-- Core_Rulebook_PF2e.pdf
 +-- Lost_Omens_World_Guide.pdf
-+-- Planescape_Campaign_Setting.pdf
++-- Campaign_Setting_Boxed_Set.pdf
 +-- Bestiary_PF2e.pdf
 ```
 

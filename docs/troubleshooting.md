@@ -54,7 +54,7 @@
 
 ### `scripts/ingest_books.py` fails with `kreuzberg returned empty text`
 
-**Cause:** The selected OCR backend ran but extracted zero usable text. We've observed this specifically with `paddleocr` on heavily scanned Planescape-era TSR PDFs; EasyOCR handles the same files fine.
+**Cause:** The selected OCR backend ran but extracted zero usable text. We've observed this specifically with `paddleocr` on heavily scanned older TSR-era PDFs; EasyOCR handles the same files fine.
 
 **Fix:** Switch to EasyOCR (the current default) or tesseract. Full command:
 
