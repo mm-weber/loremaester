@@ -83,7 +83,8 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 │   └── vault-claude-md-template.md
 ├── r2r_mcp_wrapper.py             # Generic R2R MCP wrapper
 ├── docs/                          # Documentation
-│   ├── quickstart.md              # Full setup guide
+│   ├── demo-walkthrough.md        # 30-min hands-on demo with bundled content
+│   ├── quickstart.md              # Full setup guide for your own vault
 │   ├── design.md                  # Architecture and design decisions
 │   └── troubleshooting.md         # Common issues and fixes
 ├── requirements/                  # EARS specifications
@@ -93,7 +94,8 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 
 ## Documentation
 
-- **[Quickstart](docs/quickstart.md)** — Full setup: Ollama, R2R, vault prep, MCP config, first session
+- **[Demo walkthrough](docs/demo-walkthrough.md)** — 30-minute hands-on tour using bundled sourcebooks and the `Grunvyr_Campaign` scaffold. Best starting point if you want to see the product work before configuring your own content.
+- **[Quickstart](docs/quickstart.md)** — Full setup: Ollama, R2R, vault prep, MCP config, first session — for wiring up your own vault and sourcebooks.
 - **[Design](docs/design.md)** — Architecture decisions, component map, workflow
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues, database resets, multi-instance debugging
 - **[Requirements](requirements/)** — EARS-style specs for image-PDF ingestion, standalone text extraction, and the R2R-vs-kreuzberg ingestion comparison
