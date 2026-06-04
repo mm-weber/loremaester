@@ -130,4 +130,10 @@ python scripts/detect_pdf_type.py /path/to/pdfs/
 
 ## License
 
-Private repository.
+This project's own code is released under the **MIT License** — see [LICENSE](LICENSE).
+
+It orchestrates third-party components under their own licenses — notably
+[R2R](https://github.com/SciPhi-AI/R2R) (MIT) and, for *optional* client-side OCR,
+[kreuzberg](https://github.com/kreuzberg-dev/kreuzberg) (Elastic License 2.0, source-available).
+See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for full attribution and important usage
+notes before redistributing or hosting this project.
