@@ -276,15 +276,16 @@ Old_Campaign_Guide.pdf     mixed        (200 of 400 pages have extractable text)
 Are your PDFs scanned (image-only or mixed)?
 +-- Don't know
 |   +-- Run: python scripts/detect_pdf_type.py /path/to/pdfs/
-+-- Yes, and I'm running Docker Full Mode (Step 2)
-|   +-- Just ingest normally — Unstructured.io handles OCR server-side automatically
-+-- Yes, and I'm NOT running Docker Full Mode
-|   +-- Preprocess first: python scripts/ocr_preprocess.py /path/to/book.pdf --book-title "..."
++-- Yes -- pick an OCR path:
+|   +-- Server-side (Docker Full Mode): ingest the PDF *directly* so R2R/Unstructured.io OCRs it
+|   |       e.g. r2r documents create book.pdf --metadata '{"book_title":"..."}'   (no client OCR deps)
+|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image PDFs via Kreuzberg/EasyOCR
+|           (EasyOCR needs torch+CUDA; set KREUZBERG_OCR_ENGINE=tesseract for CPU)
 +-- No, they're text-native
-    +-- Ingest directly (Step 4)
+    +-- Ingest directly, or via scripts/ingest_books.py (Step 4)
 ```
 
-> **Docker Full Mode users:** You don't need to do anything special for image PDFs. Unstructured.io performs OCR automatically during ingestion. Just follow Step 4 as normal.
+> **Which tool does which OCR?** If you ingest an image PDF **directly** (single-PDF `r2r documents create`, or the `r2r` MCP `ingest_document`) in Docker Full Mode, R2R/Unstructured.io OCRs it server-side. The bulk helper `scripts/ingest_books.py` instead OCRs image PDFs **client-side** via Kreuzberg (Step 4), in any mode — so you choose the OCR path by choosing the tool.
 
 ---
 
@@ -371,9 +372,9 @@ codes (`eng`, `deu`).
 
 ### Ingesting Image PDFs Without Docker Full Mode
 
-If you're running R2R in Light Mode, `scripts/ingest_books.py` already
-handles scanned books — the kreuzberg client-side OCR path runs without
-needing Unstructured.io server-side. You don't need a separate tool.
+`scripts/ingest_books.py` OCRs scanned books **client-side** via Kreuzberg in
+any R2R mode, so it works even in Light Mode (no Unstructured.io needed). If you'd
+rather OCR server-side, ingest image PDFs directly in Docker Full Mode (see Step 3b).
 
 For one-off OCR experiments outside the ingestion flow (e.g., extracting
 text from a single image or PDF without pushing to R2R),
