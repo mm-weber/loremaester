@@ -62,7 +62,8 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 
 ```
 ├── docker/                        # Docker Compose deployment
-│   ├── compose.full.yaml          # Single-stack (all services)
+│   ├── compose.yaml               # Light mode (recommended): R2R + Postgres + MinIO
+│   ├── compose.full.yaml          # Full mode: + Unstructured.io, Hatchet, RabbitMQ
 │   ├── compose.infra.yaml         # Shared infrastructure (multi-instance)
 │   ├── compose.app.yaml           # Per-instance R2R app
 │   ├── instances/                 # Per-deployment .env configs

@@ -120,9 +120,10 @@ This is a single self-contained repository. R2R is consumed as a Docker image (`
 ```
 R2R-ClaudeCode-integration/
 ├── docker/                    # Docker Compose deployment configs
+│   ├── compose.yaml           # Light mode (recommended): R2R + Postgres + MinIO
 │   ├── compose.infra.yaml     # Shared infrastructure (postgres, hatchet, minio)
 │   ├── compose.app.yaml       # Per-instance R2R app (parameterized)
-│   ├── compose.full.yaml      # Single-stack deployment (all-in-one)
+│   ├── compose.full.yaml      # Full mode (all-in-one): + Unstructured.io, Hatchet
 │   ├── instances/             # Per-deployment configs (.env, user_configs/)
 │   └── env/                   # Environment variable files
 ├── mcp-servers/

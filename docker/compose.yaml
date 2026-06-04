@@ -69,6 +69,11 @@ services:
       - ./user_tools:/app/user_tools
     extra_hosts:
       - host.docker.internal:host-gateway
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   r2r-dashboard:
     image: sciphiai/r2r-dashboard:1.0.3

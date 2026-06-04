@@ -39,7 +39,7 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 | # | Component | What it does |
 |---|-----------|--------------|
 | 1 | **Ollama** | Runs the embedding model (`mxbai-embed-large`) locally — no API keys needed |
-| 2 | **R2R (Docker Full Mode)** | Search, ingestion, PostgreSQL + pgvector, Unstructured.io for PDF OCR |
+| 2 | **R2R (Docker)** | Search, ingestion, PostgreSQL + pgvector (Light Mode; Full Mode adds Unstructured.io for server-side PDF OCR) |
 | 3 | **Vault CLAUDE.md** | Teaches Claude your vault's structure, frontmatter schemas, wikilink conventions |
 | 4 | **R2R MCP Wrapper** | Generic search/ingest/list/delete against R2R |
 | 5 | **Sourcebooks MCP Server** | Worldbuilding-specific lore queries (`search_lore`, `list_books`, `get_chapter`) |
@@ -47,7 +47,7 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 | 7 | **Vault Graph MCP Server** | Graph traversal, backlinks, centrality ranking |
 | 8 | **Worldbuilding Skill** | Orchestrates the full workflow: gather context, research lore, generate, write back |
 
-> **Why does R2R live on the host?** R2R runs PostgreSQL with pgvector, an embedding pipeline, and Unstructured.io for PDF parsing. These are heavy services that don't belong inside a devcontainer. The devcontainer talks to R2R over the Docker bridge network via `host.docker.internal:7272`.
+> **Why does R2R live on the host?** R2R runs PostgreSQL with pgvector and an embedding pipeline (and, in Full Mode, Unstructured.io for PDF parsing). These are heavy services that don't belong inside a devcontainer. The devcontainer talks to R2R over the Docker bridge network via `host.docker.internal:7272`.
 
 > **Why Ollama instead of OpenAI?** Ollama runs entirely on your machine — no API keys, no per-token costs, no data leaving your network. The `mxbai-embed-large` model produces 1024-dimensional embeddings that work well for TTRPG sourcebook content.
 
@@ -60,7 +60,7 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 - [ ] [`uv`](https://docs.astral.sh/uv/) for Python package management: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - [ ] An Obsidian vault with TTRPG worldbuilding notes
 - [ ] PDF sourcebooks (optional — the system works with just the vault)
-- [ ] Docker + Docker Compose on the host (**required** for R2R Full Mode)
+- [ ] Docker + Docker Compose on the host (**required** to run R2R)
 - [ ] `pdfplumber` on the host for PDF type detection: `uv pip install pdfplumber`
 - [ ] (Optional) For client-side OCR without Docker Full Mode: `tesseract-ocr`, `poppler-utils`
 
@@ -80,7 +80,7 @@ uv pip install pdfplumber pdf2image Pillow pytesseract
 # Optional: uv pip install surya-ocr  (Python-native OCR, no system deps)
 ```
 
-> **Note:** If you're running Docker Full Mode (recommended), Unstructured.io handles OCR server-side and you don't need these system packages.
+> **Note:** These system packages are only for the standalone `scripts/ocr_preprocess.py` path. The main bulk-ingest script `scripts/ingest_books.py` OCRs image PDFs via Kreuzberg/EasyOCR (installed on demand, no system packages), and Full Mode OCRs server-side via Unstructured.io.
 
 ---
 
@@ -128,9 +128,59 @@ mxbai-embed-large:latest   ...           670 MB  ...
 
 ---
 
-## Step 2 — Start R2R with Docker Full Mode
+## Step 2 — Start R2R
 
-Docker Full Mode gives you PostgreSQL + pgvector for vector storage, Unstructured.io for PDF parsing (including OCR for scanned/image PDFs), and Hatchet for orchestration.
+R2R runs on the host in Docker. There are two deployment modes; **Light Mode is recommended** for a single-user setup:
+
+| Mode | Containers | Ingestion / Orchestration | Use it when |
+|------|-----------|---------------------------|-------------|
+| **Light (recommended)** | ~4 — Postgres, MinIO, R2R, dashboard | Built-in parser / in-process | Single user; you OCR image PDFs client-side (Step 4) |
+| **Full (advanced)** | ~15 — adds Unstructured.io, Hatchet, RabbitMQ | Unstructured.io / Hatchet | You want server-side OCR at ingest time, or durable/observable async ingestion |
+
+Both modes use Ollama for embeddings only — Claude Code does all reasoning. Either way, image-only PDFs can be OCR'd client-side with `scripts/ingest_books.py` (Step 4), so Light Mode loses no capability for that workflow.
+
+> **Light Mode is new in this release and not yet battle-tested** — Full Mode is the path that has seen heavy use. If you hit a snag, the Full Mode instructions below are the proven fallback; please report Light Mode issues.
+
+### Light Mode (recommended)
+
+The small stack: Postgres + pgvector, MinIO, R2R, and the dashboard — no Unstructured.io, Hatchet, or RabbitMQ. R2R uses its built-in parser and in-process orchestration (config: `docker/user_configs/r2r-light.toml`).
+
+**Bootstrap the env files.** `docker/env/*.env` are gitignored, so copy the templates Light Mode needs:
+
+```bash
+cd docker/env/
+cp r2r.env.example           r2r.env
+cp postgres.env.example      postgres.env
+cp minio.env.example         minio.env
+cp r2r-dashboard.env.example r2r-dashboard.env
+cd -
+```
+
+**Start the stack** (Postgres and MinIO sit behind compose profiles):
+
+```bash
+docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
+```
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| **postgres** | 5432 | PostgreSQL with pgvector for vector storage |
+| **minio** | 9000 / 9001 | Object storage for original files |
+| **graph_clustering** | 7276 | Graph community detection service |
+| **r2r** | 7272 | The R2R API |
+| **r2r-dashboard** | 7273 | Web UI |
+
+Verify R2R is healthy:
+
+```bash
+curl http://localhost:7272/v3/health
+```
+
+Then continue to **Step 3** below — ingestion and MCP setup are identical for both modes.
+
+### Full Mode (advanced)
+
+Full Mode gives you PostgreSQL + pgvector for vector storage, Unstructured.io for PDF parsing (including OCR for scanned/image PDFs), and Hatchet for orchestration.
 
 ### 2a. Docker Compose files and helper scripts
 
@@ -139,7 +189,7 @@ Everything needed to run R2R lives under `docker/` — you don't need to clone R
 | Path | What it is |
 |------|------------|
 | `docker/compose.full.yaml` | Single-instance full-mode stack — **used by this guide** |
-| `docker/compose.yaml` | Light mode (R2R without Hatchet/Unstructured) — not covered here |
+| `docker/compose.yaml` | Light mode (R2R without Hatchet/Unstructured) — see the **Light Mode** section above |
 | `docker/compose.infra.yaml` + `docker/compose.app.yaml` | Multi-instance deployment path — see note at the end of this step |
 | `docker/env/` | Env files that compose loads via `env_file:` directives (bootstrapped in Step 2c) |
 | `docker/user_configs/` | R2R's TOML configuration, bind-mounted into the container at `/app/user_configs/` |
@@ -192,7 +242,7 @@ The shipped defaults are safe for local, single-user development:
 
 > **Security note.** The defaults in `*.env.example` are for local development only. Change every credential (Postgres passwords, RabbitMQ, the dashboard login) before exposing R2R on a shared network.
 
-> **Not using this guide's compose file?** `docker/env/r2r.env` is for `compose.yaml` (light mode) and isn't created by this flow. Stick to the five files above for `compose.full.yaml`.
+> **Note:** `docker/env/r2r.env` is the env file for **Light Mode** (`compose.yaml`), bootstrapped in the Light Mode section above — it is not used by `compose.full.yaml`. For Full Mode, stick to the five files above.
 
 ### 2d. Start the Full Stack
 
