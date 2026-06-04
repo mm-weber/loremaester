@@ -504,7 +504,7 @@ Add the `mcpServers` block to your Claude Code settings. Replace `/path/to/repo`
   "mcpServers": {
     "r2r": {
       "command": "python",
-      "args": ["/path/to/repo/r2r_mcp_wrapper.py"],
+      "args": ["/path/to/repo/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
       "env": {
         "R2R_API_BASE": "http://host.docker.internal:7272",
         "R2R_API_KEY": "${R2R_API_KEY}"

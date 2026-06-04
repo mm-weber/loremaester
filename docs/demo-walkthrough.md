@@ -133,7 +133,7 @@ Edit `.mcp.json` so all three servers point at the right paths (replace your rep
   "mcpServers": {
     "r2r": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/r2r_mcp_wrapper.py"],
+      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
       "env": {"R2R_API_BASE": "http://localhost:7272"}
     },
     "sourcebooks": {

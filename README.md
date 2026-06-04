@@ -69,6 +69,7 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 │   ├── env/                       # Environment variable files
 │   └── scripts/                   # Container startup scripts
 ├── mcp-servers/
+│   ├── r2r-wrapper/               # Generic R2R MCP server (search/ingest/list)
 │   ├── sourcebooks/               # Worldbuilding lore search MCP server
 │   └── vault-graph/               # Wikilink graph navigation MCP server
 ├── scripts/                       # CLI tools
@@ -81,7 +82,6 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 │   └── worldbuilding/             # Claude Code worldbuilding skill
 ├── examples/
 │   └── vault-claude-md-template.md
-├── r2r_mcp_wrapper.py             # Generic R2R MCP wrapper
 ├── docs/                          # Documentation
 │   ├── demo-walkthrough.md        # 30-min hands-on demo with bundled content
 │   ├── quickstart.md              # Full setup guide for your own vault

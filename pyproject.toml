@@ -1,7 +1,7 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-pythonpath = [".", "scripts", "mcp-servers/sourcebooks", "mcp-servers/vault-graph"]
-testpaths = [".", "scripts", "mcp-servers/sourcebooks", "mcp-servers/vault-graph"]
+pythonpath = [".", "scripts", "mcp-servers/sourcebooks", "mcp-servers/vault-graph", "mcp-servers/r2r-wrapper"]
+testpaths = [".", "scripts", "mcp-servers/sourcebooks", "mcp-servers/vault-graph", "mcp-servers/r2r-wrapper"]
 filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20",
 ]

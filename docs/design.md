@@ -126,6 +126,7 @@ R2R-ClaudeCode-integration/
 │   ├── instances/             # Per-deployment configs (.env, user_configs/)
 │   └── env/                   # Environment variable files
 ├── mcp-servers/
+│   ├── r2r-wrapper/           # D2: Generic R2R MCP server (search/ingest/list)
 │   ├── sourcebooks/           # D3: Worldbuilding lore search
 │   └── vault-graph/           # D5: Wikilink graph navigation
 ├── scripts/
@@ -136,7 +137,6 @@ R2R-ClaudeCode-integration/
 │   ├── extract_text.py        # Standalone kreuzberg text extraction (images + docs)
 │   └── verify_ingestion.py    # Post-ingestion quality checks against R2R
 ├── plugins/                   # D7: Worldbuilding skill
-├── r2r_mcp_wrapper.py         # D2: Generic R2R MCP wrapper
 ├── examples/                  # D1: Vault CLAUDE.md template
 ├── docs/                      # Documentation
 ├── requirements/              # EARS specifications

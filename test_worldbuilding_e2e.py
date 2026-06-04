@@ -1,11 +1,10 @@
 """
-Verification tests for D4 (End-to-End Worldbuilding Session).
+End-to-end worldbuilding workflow test.
 
-Tests 1–3 verify individual components. Test 4 verifies the full worldbuilding
-workflow end-to-end: vault navigation → source book research → note creation →
-backlink updates → graph rebuild. Since we can't invoke Claude in automated
-tests, we simulate the workflow programmatically by calling the same tools
-Claude would use.
+Verifies the full worldbuilding workflow end-to-end: vault navigation →
+source book research → note creation → backlink updates → graph rebuild.
+Since we can't invoke Claude in automated tests, we simulate the workflow
+programmatically by calling the same tools Claude would use.
 """
 
 import importlib

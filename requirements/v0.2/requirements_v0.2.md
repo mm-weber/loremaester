@@ -8,7 +8,7 @@
 
 ## Overview
 
-Deep review of `mcp-servers/sourcebooks/server.py` (126 lines, 3 tools) against the generic `r2r_mcp_wrapper.py` (244 lines, 5 tools) and `vault-graph/server.py` (214 lines, 5 tools).
+Deep review of `mcp-servers/sourcebooks/server.py` (126 lines, 3 tools) against the generic `mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py` (244 lines, 5 tools) and `vault-graph/server.py` (214 lines, 5 tools).
 
 ---
 
@@ -41,7 +41,7 @@ def _get_client() -> R2RClient:
     return R2RClient(base_url)
 ```
 
-Every tool call creates a new `R2RClient`. This pattern appears in **all three servers** (`r2r_mcp_wrapper.py:12`, `sourcebooks/server.py:12`, `vault-graph` doesn't use R2R). If `R2RClient` opens a TCP connection or does auth handshake, this adds latency per call.
+Every tool call creates a new `R2RClient`. This pattern appears in **all three servers** (`mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py:12`, `mcp-servers/sourcebooks/server.py:12`, `vault-graph` doesn't use R2R). If `R2RClient` opens a TCP connection or does auth handshake, this adds latency per call.
 
 **Trade-off:** Creating per-call is safe (no stale connections, no thread safety concerns) but wasteful. The MCP server is a single-threaded stdio process — a module-level client would be fine.
 

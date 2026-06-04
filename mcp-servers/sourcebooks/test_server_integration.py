@@ -1,5 +1,5 @@
 """
-Verification tests for D3 (Sourcebooks MCP Server).
+Integration tests for the Sourcebooks MCP server (sourcebooks/server.py).
 
 Mock-based smoke/integration tests covering:
 - Full lifecycle: list_books → search_lore → scoped search → get_chapter
