@@ -78,7 +78,8 @@ Only reach this step when the GM wants content saved to the vault.
    | Lore/background | `{Campaign}/Background/` |
    | Rules | `{Campaign}/Rules/` |
    | PC | `{Campaign}/PC/` |
-   | Encounter | `{Campaign}/Encounters/` |
+
+   Encounter notes typically live as scene sub-files under `{Campaign}/Sessions/Session N/`, not in a standalone Encounters/ folder.
 
 2. **Include full frontmatter** matching the vault's schema for that note type
 

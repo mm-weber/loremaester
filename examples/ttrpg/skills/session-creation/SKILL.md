@@ -39,9 +39,9 @@ digraph session_creation {
 Use `/worldbuilding` Step 1 + Step 2 to gather context before brainstorming.
 
 1. **Determine next session number**: List `Sessions/Session *` folders, find highest N, use N+1. Always increment, never fill gaps.
-2. **Read recent sessions**: Last 1-2 session main files, focusing on `## Log` and `## Offene Enden` for open plot threads.
-3. **Read SpielerNotizen**: `SC/SpielerNotizen/` — source of truth for what actually happened to the PCs. Names may be phonetic/misspelled.
-4. **Check Fantasy Calendar**: `.obsidian/plugins/fantasy-calendar/data.json` — search for `"SC "` and `"[["` entries to find current in-game date and upcoming events.
+2. **Read recent sessions**: Last 1-2 session main files, focusing on `## Log` and `## Open Threads` for outstanding plot threads.
+3. **Read PlayerNotes**: `PC/PlayerNotes/` — source of truth for what actually happened to the PCs from the players' perspective. Names may be phonetic or misspelled; cross-reference against canonical vault notes.
+4. **Check in-game date** (if the vault tracks one): some vaults use a calendar plugin and store events at `.obsidian/plugins/<calendar-plugin>/data.json`. If present, search for the next in-game date and any upcoming events.
 5. **Map vault connections**: `vault_graph()`, `vault_backlinks()`, `vault_search_notes()` on active NPCs, locations, factions from recent sessions.
 6. **Research sourcebooks**: `search_lore()` and `get_chapter()` for published material relevant to upcoming content.
 7. **Summarize** findings for the GM: open threads, active NPCs, current date/location, relevant sourcebook material.
@@ -58,7 +58,7 @@ Use the brainstorming skill to work through the Lazy DM template collaboratively
 | 4. Secrets & Clues | 8-10 discoverable facts | Keep abstract from locations; can be revealed anywhere |
 | 5. Fantastic Locations | Evocative places | Link to existing `type: place` notes or create new ones via /worldbuilding |
 | 6. Important NPCs | Key characters | Link to existing `type: NPC` notes or create new ones via /worldbuilding |
-| 7. Relevant Monsters | Encounters | Stat blocks, encounter levels, AoN links |
+| 7. Relevant Monsters | Encounters | Stat blocks, encounter levels, system reference links |
 | 8. Loot | Rewards | Level-appropriate items, narrative significance |
 
 ### Phase 3: Build Scenes
@@ -109,13 +109,13 @@ Sessions/Session N/
 ```yaml
 ---
 type: session
-world: Golarion
-campaign: "Kingmaker 2e"
+world: <vault world>
+campaign: <vault campaign>
 date: YYYY-MM-DD          # real date
-game_date: 4722-MM-DD     # in-game date
+game_date: YYYY-MM-DD     # in-game date (if tracked)
 location: ""
-characters: ["Inaniana Flickerbraid", "Yoki", "Angrimm"]
-tags: [TVZ]
+characters: ["[[PC One]]", "[[PC Two]]", "[[PC Three]]"]
+tags: [session]
 ---
 ```
 - Fill all 8 steps from Phase 2
@@ -127,22 +127,22 @@ tags: [TVZ]
 ---
 type: Encounter
 aliases: []
-world: Golarion
-campaign: "Kingmaker 2e"
+world: <vault world>
+campaign: <vault campaign>
 date: YYYY-MM-DD
 date_ingame: []
 pc: []
 npc: []
 ---
 ```
-Sections: `## Hintergrund`, `## Beschreibung` (read-aloud in blockquotes), `## NPCs & Stats`, `## Weitere Entwicklungen`
+Sections: `## Background`, `## Description` (read-aloud in blockquotes), `## NPCs & Stats`, `## Further Developments`
 
-**New NPC/Location notes**: Create via `/worldbuilding` with proper frontmatter and folder placement (`NPC/`, `Orte/`).
+**New NPC/Location notes**: Create via `/worldbuilding` with proper frontmatter and folder placement (`NPC/`, `Locations/`).
 
 **After all files are written:**
 - Ensure every reference to a known entity uses `[[wikilinks]]`
 - Update related notes with backlinks (ask GM before modifying existing notes)
-- Call `vault_reload_graph()`
+- Call `vault_rebuild_graph()` so the new files appear in the wikilink index
 
 ### Phase 5: Review
 
@@ -161,7 +161,7 @@ Ask if adjustments are needed before finalizing.
 - **5RD is always offered, never forced** — GM decides per session
 - **Situations minimum: Location + Inhabitants + Goal** per scene
 - **Canon hierarchy**: Vault > sourcebooks (from /worldbuilding)
-- **Narrative in German** — match the vault's existing voice and style
+- **Match the vault's existing voice and style** — read a few existing notes to calibrate tone
 - **Headers**: Use template style (`Step 1:`, `Step 2:`, etc.)
 - **Never overwrite** existing session folders or notes
 - **Always ask** before modifying existing vault notes

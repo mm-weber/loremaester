@@ -37,30 +37,16 @@ Before generating anything, understand what already exists. The vault is canon.
 
 ### Step 2: Research Source Books
 
-Use the sourcebooks MCP server to find relevant published material. **Every sourcebook query uses the two-pass method below.** There is no "quick" mode — coverage is the default.
+Use the sourcebooks MCP server to find relevant published material.
 
-#### Pass 1: Enumerate + Broad Search
+1. **Broad search**: `search_lore(query="topic keywords")` for general results
+2. **Filtered search**: Narrow with `book` and `content_type` when results are too broad:
+   - `search_lore(query="dwarven politics", book="Dwarf Kingdoms Sourcebook")`
+   - `search_lore(query="undead", content_type="bestiary")`
+3. **Deep dive**: `get_chapter(book="Book Title", chapter="Chapter 3")` when you need full chapter context
+4. **Discover sources**: `list_books()` if unsure what source books are available
 
-1. **List all books.** Call `list_books()` first. This is mandatory — no exceptions, no shortcuts.
-2. **Run a broad search.** Call `search_lore(query="topic keywords")` *without* a `book=` filter to get the top-K semantic hits. Note which books appear in the results.
-3. **Optionally filter.** Use `content_type` to narrow if results are too noisy: `lore`, `rules`, `bestiary`, `adventure`, `setting`, `appendix`.
-
-#### Pass 2: Sweep Uncovered Books
-
-4. **Identify gaps.** Compare the `list_books()` inventory against the books that appeared in Pass 1 results. Every book that did NOT appear is uncovered.
-5. **Search each uncovered book explicitly.** For each one, run `search_lore(query="<topic>", book="<exact book name>")`. This is the only way to guarantee a book was actually checked — semantic search returns top-K *chunks*, not top-K *books*, so relevant content in lower-ranked books gets drowned out silently.
-6. **Track coverage.** Maintain a checklist: books covered in Pass 1 (appeared in broad results) + books covered in Pass 2 (explicit `book=` search) + books with 0 results. Every book must appear in exactly one category.
-7. **Report coverage.** When presenting findings, include a brief accounting (e.g., "45 books in library. 8 had relevant content, 37 searched with no results"). This lets the user audit completeness.
-
-#### Deep Dive into Specific Books
-
-8. **`get_chapter()`** — Use this when a book has highly relevant hits and you need full chapter context rather than snippet-level results.
-
-#### Why this matters
-
-**Critical anti-pattern:** Counting books that "appeared in broad search results" as covered. A book with six highly-relevant chunks can get drowned out if no single chunk scores high enough in the queries you ran. Appearance in broad results ≠ coverage. Only an explicit `book=` filter query counts as verified coverage for that book.
-
-**The model must never self-select into skipping books.** If a book exists in the library, it gets searched — either via Pass 1 (broad hit) or Pass 2 (explicit sweep). Only the user can authorize skipping books.
+Content types for filtering: `lore`, `rules`, `bestiary`, `adventure`, `setting`, `appendix`
 
 ### Step 3: Generate Content
 
@@ -92,13 +78,14 @@ Only reach this step when the GM wants content saved to the vault.
    | Lore/background | `{Campaign}/Background/` |
    | Rules | `{Campaign}/Rules/` |
    | PC | `{Campaign}/PC/` |
-   | Encounter | `{Campaign}/Encounters/` |
+
+   Encounter notes typically live as scene sub-files under `{Campaign}/Sessions/Session N/`, not in a standalone Encounters/ folder.
 
 2. **Include full frontmatter** matching the vault's schema for that note type
 
 3. **Update related notes** — add `[[wikilinks]]` pointing to the new note in any existing notes that should reference it. Ask before modifying existing notes.
 
-4. **Refresh the graph**: call `vault_reload_graph()` so the graph index reflects the new content
+4. **Refresh the graph**: call `vault_rebuild_graph()` so the graph index reflects the new content. This re-parses the vault and reloads the cache in one step. (Note: `vault_reload_cache()` only re-reads the existing `.graph.json` — it won't pick up newly-written notes.)
 
 5. **Present a summary** to the GM:
    - What note was created (with path)
