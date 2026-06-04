@@ -1,4 +1,10 @@
-# Sourcebooks MCP Server — Design Review
+# v0.2 Requirements
+
+> Candidate requirements and improvements for the **next** iteration. Most of this document is a
+> design review of the sourcebooks MCP server (the original v0.1-development seed); the **OCR &
+> licensing follow-ups** identified during the v0.1 public-release prep are appended at the end.
+
+## Sourcebooks MCP Server — Design Review
 
 ## Overview
 
@@ -183,3 +189,31 @@ async def search_lore(
 3. Enrich tool docstrings for better Claude tool selection
 4. Investigate client caching (profile `R2RClient.__init__` first)
 5. Consider `list_chunks` for `get_chapter` (requires R2R API investigation)
+
+---
+
+## OCR & Licensing Follow-ups (added during v0.1 release prep)
+
+### R-1 — Re-evaluate / remove the kreuzberg dependency (license footprint)
+`kreuzberg` powers the **optional** client-side OCR path (`scripts/ingest_books.py`,
+`scripts/extract_text.py`) and defaults to the **EasyOCR** backend. Recent kreuzberg (≥ 4.6) is
+licensed under **Elastic License 2.0** — source-available, *not* OSI open-source (see
+[`THIRD_PARTY_LICENSES.md`](../../THIRD_PARTY_LICENSES.md)). Because the path actually exercised is
+EasyOCR — which exposes its own Python API and is already shown to work *without* kreuzberg in
+`scripts/ocr_preprocess.py` (pytesseract/surya) — v0.2 should evaluate invoking EasyOCR (or
+Tesseract/Surya) directly and dropping kreuzberg, returning the stack to a fully permissive
+(MIT/Apache) license footprint. Cost: re-implementing kreuzberg's PDF/format handling and unified
+multi-engine config.
+
+### R-2 — Consolidate the three overlapping OCR code paths
+There are three OCR entry points with overlapping responsibility: `ingest_books.py` (kreuzberg,
+EasyOCR default, bulk-ingest), `extract_text.py` (kreuzberg, tesseract default, standalone), and
+`ocr_preprocess.py` (pytesseract/surya, no kreuzberg). v0.2 should consolidate these behind a
+single OCR module with a pluggable backend.
+
+### R-3 — End-to-end collection support (optional)
+The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` MCP server and the
+`ingest_books.py` / `verify_ingestion.py` CLIs do not scope by collection. If per-corpus isolation
+is desired, add a `--collection` option to the ingest/verify scripts **and** collection filtering
+to the sourcebooks server so retrieval honors it. (v0.1 docs intentionally omit `--collection`
+because it is not wired end-to-end.)
