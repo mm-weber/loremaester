@@ -2,7 +2,7 @@
 
 A 30-minute hands-on tour. By the end you will have:
 
-- Booted the full R2R stack inside a devcontainer.
+- Booted the full R2R stack on the host, driven by Claude Code from the devcontainer.
 - Ingested three bundled sourcebooks — two text-native, one image-only (OCR'd during ingest).
 - Watched all four bundled GM skills work against the empty `Grunvyr_Campaign` scaffold: search sourcebooks, draft an NPC, prep a session, run a mechanical vault sweep, and update a campaign chronicle from player notes.
 
@@ -24,14 +24,24 @@ On the machine where you'll run the devcontainer:
 
 | Requirement | Version / notes |
 |---|---|
-| **Docker** | Docker Desktop (macOS) or Docker Engine + Compose v2 (Linux). Needed for the outer container the devcontainer runs in. |
+| **Docker** | Docker Desktop (macOS) or Docker Engine + Compose v2 (Linux). Runs the R2R stack (on the host) and the devcontainer itself. |
 | **VS Code with Dev Containers extension** | Or the standalone `devcontainer` CLI. This is what opens the repo "in" the devcontainer. |
 | **Ollama** | Running on the host (not inside the container) with `mxbai-embed-large` pulled. The devcontainer reaches it via `host.docker.internal:11434`. Install at <https://ollama.com>, then `ollama pull mxbai-embed-large`. |
 | **Disk** | ~10 GB free (devcontainer image + R2R stack image layers + Postgres data + your PDFs) |
-| **RAM** | 12 GB+ recommended. The R2R stack inside the devcontainer uses ~3-4 GB; Ollama on the host wants 2+ GB; remainder for headroom. |
+| **RAM** | 12 GB+ recommended. The R2R stack (on the host) uses ~3-4 GB; Ollama on the host wants 2+ GB; remainder for headroom. |
 | **Network** | Outbound HTTPS to github.com, mcr.microsoft.com, hub.docker.com, pypi.org, astral.sh during build. |
+| **[uv](https://docs.astral.sh/uv/)** | On the host, for the ingestion/graph scripts (`uv run --no-project …` fetches each script's Python + deps). |
 
 **Windows is not currently supported** — the Ollama install path and `host.docker.internal` networking differ from the configurations validated here. Linux and macOS hosts are the supported platforms for v0.1.
+
+## How this demo runs
+
+You'll use **two terminals**:
+
+- **A host shell** — runs Ollama, the R2R stack (`docker compose`), and the ingestion/graph scripts. These reach R2R at **`localhost:7272`**.
+- **The devcontainer terminal** — runs Claude Code and the three MCP servers. These reach the host's R2R at **`host.docker.internal:7272`** — the devcontainer can't see the host's `localhost`.
+
+Each step below is marked **(on the host)** or **(in the devcontainer)** so you know which terminal to use.
 
 ## Step-by-step
 
@@ -50,7 +60,7 @@ First build: 10-20 minutes (downloading the base image + apt packages + Python d
 ### 3. Verify the in-container baseline
 Once the container opens, in its integrated terminal:
 ```bash
-docker --version                                            # DinD client
+docker --version                                            # Docker CLI present
 python3 --version                                           # ≥ 3.10
 pip list | grep -E '^(mcp|r2r|pyyaml|kreuzberg|uv) '       # all 5 present
 claude --version                                            # Claude Code CLI
@@ -60,7 +70,7 @@ curl -s http://host.docker.internal:11434/api/tags | head   # Ollama on host
 
 If `curl` fails to reach Ollama, double-check it's running on the host and bound to the default `:11434`. The `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles the Linux side; on macOS Docker Desktop maps `host.docker.internal` automatically.
 
-### 4. Stage env files
+### 4. Stage env files (on the host)
 ```bash
 cd docker/env
 cp postgres.env.example     postgres.env
@@ -72,7 +82,7 @@ cd ../..
 ```
 The defaults are usable for the first launch. See [`quickstart.md`](./quickstart.md) for which values you'd customize for a production deployment.
 
-### 5. Bring up the R2R stack (inside DinD)
+### 5. Bring up the R2R stack (on the host)
 
 The compose project uses a `postgres` profile for the R2R database. Setting `COMPOSE_PROFILES` once means every subsequent compose command in the same shell picks it up without you having to pass `--profile postgres` each time:
 ```bash
@@ -90,7 +100,7 @@ Expected: `{"results":{"response":"ok"}}`.
 
 The R2R dashboard is on http://localhost:7273 (auto-forwarded to your host via the `portsAttributes` setting in `.devcontainer/devcontainer.json` — VS Code should offer to open it when r2r-dashboard becomes ready).
 
-### 6. Ingest the bundled sourcebooks
+### 6. Ingest the bundled sourcebooks (on the host)
 ```bash
 uv run --no-project scripts/detect_pdf_type.py examples/ttrpg/sourcebooks/
 uv run --no-project --python 3.12 \
@@ -101,9 +111,9 @@ uv run --no-project scripts/verify_ingestion.py --all
 ```
 `detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (by default with EasyOCR via [Kreuzberg](https://kreuzberg.dev/)) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
 
-> **Choosing an OCR path.** EasyOCR (the default) uses torch+CUDA and is fastest with a GPU; on a CPU-only machine prefix the command with `KREUZBERG_OCR_ENGINE=tesseract` (Tesseract is bundled in the devcontainer). Prefer **server-side** OCR? In Docker Full Mode, ingest an image PDF *directly* (`r2r documents create <pdf> --metadata '{"book_title":"…"}'`) and R2R/Unstructured.io will OCR it — see [`quickstart.md`](./quickstart.md) Steps 3b–4. Client-side OCR runs inside the `ingest_books.py` command, so Vol III is fully ingested by the time it returns; if a book is missing, re-run `verify_ingestion.py --all`.
+> **Choosing an OCR path.** EasyOCR (the default) uses torch+CUDA and is fastest with a GPU; on a CPU-only machine prefix the command with `KREUZBERG_OCR_ENGINE=tesseract` (install Tesseract on the host — see [`quickstart.md`](./quickstart.md)). Prefer **server-side** OCR? In Docker Full Mode, ingest an image PDF *directly* (`r2r documents create <pdf> --metadata '{"book_title":"…"}'`) and R2R/Unstructured.io will OCR it — see [`quickstart.md`](./quickstart.md) Steps 3b–4. Client-side OCR runs inside the `ingest_books.py` command, so Vol III is fully ingested by the time it returns; if a book is missing, re-run `verify_ingestion.py --all`.
 
-### 7. Build the vault graph for `examples/ttrpg/GM-Vault/`
+### 7. Build the vault graph (on the host)
 
 The Grunvyr_Campaign scaffold starts empty — no NPCs, no locations, no factions yet. Build the (empty) graph so the `vault-graph` MCP server has an index to load:
 
@@ -113,7 +123,14 @@ uv run --no-project scripts/build_vault_graph.py examples/ttrpg/GM-Vault
 
 You should see `Graph built: 0 notes, 0 edges → examples/ttrpg/GM-Vault/.graph.json`. We'll populate the vault during Demos C and D — the graph rebuilds itself then.
 
-### 8. Wire up the MCP servers and install the GM skills
+### 8. Wire up the MCP servers and install the GM skills (in the devcontainer)
+
+Everything from here runs **in the devcontainer terminal**. First, confirm the devcontainer can reach the R2R you brought up on the host — this is the address the MCP servers will use:
+
+```bash
+curl http://host.docker.internal:7272/v3/health
+```
+Expected: `{"results":{"response":"ok"}}`.
 
 #### a. Install the four bundled skills
 
@@ -137,12 +154,12 @@ Edit `.mcp.json` so all three servers point at the right paths (replace your rep
     "r2r": {
       "command": "python3",
       "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
-      "env": {"R2R_API_BASE": "http://localhost:7272"}
+      "env": {"R2R_API_BASE": "http://host.docker.internal:7272"}
     },
     "sourcebooks": {
       "command": "python3",
       "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/sourcebooks/server.py"],
-      "env": {"R2R_API_BASE": "http://localhost:7272"}
+      "env": {"R2R_API_BASE": "http://host.docker.internal:7272"}
     },
     "vault-graph": {
       "command": "python3",
@@ -152,6 +169,8 @@ Edit `.mcp.json` so all three servers point at the right paths (replace your rep
   }
 }
 ```
+
+> The MCP servers run **inside the devcontainer**, so they use `host.docker.internal:7272` to reach the R2R you started on the host — not `localhost`. (This matches `.claude/settings.json` and `quickstart.md`.)
 
 #### c. Launch Claude from inside the scaffold
 
@@ -266,7 +285,7 @@ To replace the Grunvyr_Campaign demo content with your own vault and sourcebooks
 
 ## When something doesn't work
 
-- **Port 7272 already in use when bringing up R2R** — if `docker compose up -d` fails with "port is already allocated" / "bind: address already in use", a VS Code Server process inside the devcontainer is holding the port. This happens when an older `devcontainer.json` used `forwardPorts: [7272, 7273]` (eager binding) instead of `portsAttributes` (lazy, on-listen). Fix: rebuild the devcontainer (`Dev Containers: Rebuild Container`) to pick up the current `devcontainer.json`. Quick workaround without rebuilding: open VS Code's Ports panel (View → Ports), right-click 7272 → "Stop Forwarding Port", repeat for 7273 if needed, then retry the `docker compose` command.
+- **Port 7272 already in use when bringing up R2R (on the host)** — if `docker compose up -d` fails with "port is already allocated" / "bind: address already in use", another process on the host is bound to 7272 (a previous R2R run, or the devcontainer eagerly forwarding the port). This happens when an older `devcontainer.json` used `forwardPorts: [7272, 7273]` (eager binding) instead of `portsAttributes` (lazy, on-listen). Fix: rebuild the devcontainer (`Dev Containers: Rebuild Container`) to pick up the current `devcontainer.json`. Quick workaround without rebuilding: open VS Code's Ports panel (View → Ports), right-click 7272 → "Stop Forwarding Port", repeat for 7273 if needed, then retry the `docker compose` command.
 - **`docker compose … ps` says "depends on undefined service postgres: invalid compose project"** — the `postgres` service is scoped to the `postgres` profile in `compose.full.yaml`. Either run `export COMPOSE_PROFILES=postgres` once in your shell (recommended), or pass `--profile postgres` on every compose invocation (`ps`, `logs`, `down`, etc.).
 - **`wait-for-hatchet-grpc` exits with `TIMEOUT: hatchet gRPC not reachable after 300s`** — hatchet-engine never bound port 7077 in time. The most common cause is a stale `docker/env/hatchet.env` from before the `SERVER_GRPC_PORT=7077` fix landed — re-copy `hatchet.env.example` over your `hatchet.env` and `docker compose -f docker/compose.full.yaml down -v` to reset volumes, then `up -d` again. If it still times out, check `docker compose logs hatchet-engine` for the engine's own crash output.
 - **`curl http://localhost:7272/v3/health` returns `curl: (56) Recv failure: Connection reset by peer`** — r2r isn't actually ready. Run `docker compose -f docker/compose.full.yaml ps`: if r2r is `restarting`, `health: starting`, or has a much lower uptime than the rest of the stack, run `docker compose -f docker/compose.full.yaml logs r2r --tail 100` and look at the last error. Common remaining causes are Postgres auth misconfig (check `docker/env/r2r-full.env`), Ollama unreachable from inside the container (check `host.docker.internal:11434` is responding on the host), or an OCR-pipeline import failure.
@@ -274,6 +293,8 @@ To replace the Grunvyr_Campaign demo content with your own vault and sourcebooks
 - **Devcontainer build fails on pip install** — usually a network issue. Verify outbound HTTPS to pypi.org works from the host; try rebuilding (`Dev Containers: Rebuild Container`).
 - **R2R container can't reach Ollama** — verify the host can reach itself at `host.docker.internal:11434` from inside Docker. On Linux, the `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles this; on macOS, Docker Desktop maps it automatically.
 - **`/mcp` shows 0 servers** — check that the paths in your `.mcp.json` resolve inside the container. The workspace is mounted at `/workspaces/R2R-ClaudeCode-integration/` (not `/workspace/`).
+
+- **MCP servers load but searches fail (e.g. `search_lore` errors)** — the servers (in the devcontainer) can't reach R2R on the host. Confirm `curl http://host.docker.internal:7272/v3/health` works *from inside the devcontainer*, and that each `R2R_API_BASE` in `.mcp.json` is `http://host.docker.internal:7272` (not `localhost`).
 
 For a fuller list of known failure modes and workarounds, see [`troubleshooting.md`](./troubleshooting.md).
 
