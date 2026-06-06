@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import types
 
 LOW_CONFIDENCE_THRESHOLD = 0.7
+RENDER_SCALE = 2.78  # pdfium scale 1.0 = 72 dpi; 2.78 ≈ 200 dpi
 
 try:
     import pypdfium2
@@ -44,8 +45,20 @@ class OcrExtraction:
     low_confidence_pages: list = field(default_factory=list)
 
 
+def parse_page_range(range_str):
+    first, last = range_str.split("-")
+    return int(first), int(last)
+
+
 def render_pages(pdf_path, page_range=None):
-    return []
+    pdf = pypdfium2.PdfDocument(pdf_path)
+    n = len(pdf)
+    if page_range:
+        first, last = parse_page_range(page_range)  # 1-based inclusive
+        indices = range(first - 1, min(last, n))
+    else:
+        indices = range(n)
+    return [pdf[i].render(scale=RENDER_SCALE).to_pil() for i in indices]
 
 
 def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=None):
