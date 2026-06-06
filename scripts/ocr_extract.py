@@ -11,6 +11,8 @@
 from dataclasses import dataclass, field
 import types
 
+LOW_CONFIDENCE_THRESHOLD = 0.7
+
 try:
     import pypdfium2
 except ModuleNotFoundError:
@@ -77,4 +79,6 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
         for i, img in enumerate(images)
     ]
     content = "\n\n".join(f"[Page {p.page_number}]\n{p.text}" for p in pages)
-    return OcrExtraction(content=content, pages=pages, mean_confidence=0.0, low_confidence_pages=[])
+    mean_confidence = (sum(p.confidence for p in pages) / len(pages)) if pages else 0.0
+    low_confidence_pages = [p.page_number for p in pages if p.confidence < LOW_CONFIDENCE_THRESHOLD]
+    return OcrExtraction(content=content, pages=pages, mean_confidence=mean_confidence, low_confidence_pages=low_confidence_pages)
