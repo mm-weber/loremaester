@@ -44,3 +44,17 @@ class TestOcrPdfEasyocr:
         assert mock_reader_cls.call_count == 1   # ONE reader for the whole doc
         assert reader.readtext.call_count == 2   # one readtext PER PAGE
         assert "page one" in result.content and "page two" in result.content
+
+
+class TestOcrPdfAggregates:
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    def test_ocr_pdf_aggregates_confidence(self, mock_render, mock_ocr_image):
+        mock_render.return_value = [MagicMock(), MagicMock()]
+        mock_ocr_image.side_effect = [
+            PageOcrResult(1, "a", 0.95),
+            PageOcrResult(2, "b", 0.60),
+        ]
+        result = ocr_pdf("/x.pdf")
+        assert abs(result.mean_confidence - 0.775) < 1e-9
+        assert result.low_confidence_pages == [2]
