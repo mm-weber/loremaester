@@ -11,7 +11,7 @@ Registry of all development tracks. Each track is a distinct body of work with i
 
 ## Active Tracks
 
-### [ ] remove-kreuzberg_20260606: Remove kreuzberg — permissive, per-page OCR pipeline
+### [~] remove-kreuzberg_20260606: Remove kreuzberg — permissive, per-page OCR pipeline
 **Description:** Replace kreuzberg with a direct `pypdfium2` + per-page `tesseract`/`easyocr` OCR pipeline.
 **Priority:** High
 **Folder:** [./tracks/remove-kreuzberg_20260606/](./tracks/remove-kreuzberg_20260606/)

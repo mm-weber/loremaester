@@ -2,9 +2,11 @@
   "id": "remove-kreuzberg_20260606",
   "title": "Remove kreuzberg — permissive, per-page OCR pipeline",
   "type": "refactor",
-  "status": "pending",
+  "status": "in_progress",
   "created": "2026-06-06T22:34:42Z",
-  "updated": "2026-06-06T22:34:42Z",
+  "updated": "2026-06-06T22:49:24Z",
+  "current_phase": 1,
+  "current_task": "1.1",
   "phases": {
     "total": 4,
     "completed": 0
@@ -12,5 +14,6 @@
   "tasks": {
     "total": 13,
     "completed": 0
-  }
+  },
+  "commits": []
 }
