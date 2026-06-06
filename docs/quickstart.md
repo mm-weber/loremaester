@@ -139,7 +139,7 @@ R2R runs on the host in Docker. There are two deployment modes; **Light Mode is 
 
 Both modes use Ollama for embeddings only — Claude Code does all reasoning. Either way, image-only PDFs can be OCR'd client-side with `scripts/ingest_books.py` (Step 4), so Light Mode loses no capability for that workflow.
 
-> **Light Mode is new in this release and not yet battle-tested** — Full Mode is the path that has seen heavy use. If you hit a snag, the Full Mode instructions below are the proven fallback; please report Light Mode issues.
+> **Light Mode is the default for a single-user setup.** Reach for Full Mode (below) only if you want server-side OCR at ingest time, or durable/observable async ingestion (it adds Unstructured.io + Hatchet).
 
 ### Light Mode (recommended)
 
