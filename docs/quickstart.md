@@ -162,6 +162,8 @@ cd -
 docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 ```
 
+> **macOS/Docker Desktop:** delete the `172.17.0.1:7272:7272` line under the `r2r` service in `docker/compose.yaml` first — it's a Linux-only bind (it keeps R2R off the host LAN while still reachable from the devcontainer); `127.0.0.1` alone works on Docker Desktop.
+
 | Service | Port | Purpose |
 |---------|------|---------|
 | **postgres** | 5432 | PostgreSQL with pgvector for vector storage |

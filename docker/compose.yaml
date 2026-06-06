@@ -13,7 +13,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # loopback-only: internal to the stack (R2R reaches it over the compose
+      # network), so it is never exposed on the host's LAN.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -32,8 +34,8 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -45,7 +47,7 @@ services:
   graph_clustering:
     image: ragtoriches/cluster-prod
     ports:
-      - "7276:7276"
+      - "127.0.0.1:7276:7276"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7276/health"]
       interval: 10s
@@ -55,7 +57,13 @@ services:
   r2r:
     image: sciphiai/r2r:latest
     ports:
-      - "7272:7272"
+      # loopback (host localhost) + docker-bridge gateway (the devcontainer,
+      # via host.docker.internal) — NOT 0.0.0.0, so the host's LAN interface is
+      # not exposed. macOS/Docker Desktop: drop the 172.17.0.1 line (it errors
+      # there; 127.0.0.1 suffices). Verify the gateway from inside the
+      # container with `getent hosts host.docker.internal`.
+      - "127.0.0.1:7272:7272"
+      - "172.17.0.1:7272:7272"
     env_file:
       - ./env/r2r.env
     healthcheck:
@@ -80,4 +88,4 @@ services:
     env_file:
       - ./env/r2r-dashboard.env
     ports:
-      - "7273:3000"
+      - "127.0.0.1:7273:3000"

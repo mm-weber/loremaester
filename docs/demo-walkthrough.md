@@ -90,6 +90,8 @@ export COMPOSE_PROFILES=postgres
 docker compose -f docker/compose.full.yaml up -d
 docker compose -f docker/compose.full.yaml ps
 ```
+> **macOS/Docker Desktop:** before this step, delete the `172.17.0.1:7272:7272` line under the `r2r` service in `docker/compose.full.yaml` — that bind is Linux-only (it keeps R2R off the host LAN while still reachable from the devcontainer); on Docker Desktop the `127.0.0.1` line alone works.
+
 Expect 3-5 minutes on first start (Hatchet runs database migrations). A short-lived `wait-for-hatchet-grpc` init container runs in the middle to ensure Hatchet's gRPC port is bound before r2r tries to register its workflows — you'll see it as `Exited (0)` in `ps` after a few seconds, which is normal.
 
 Health check:

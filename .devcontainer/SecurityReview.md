@@ -56,9 +56,14 @@ container). DinD was removed because:
   so git over SSH works. While mounted, a compromised agent could use the host's keys.
   Mitigations if this matters: an agent that confirms each use, a scoped key, or switch
   to HTTPS+PAT and drop the mount.
-- **Host service exposure** — R2R on the host must be reachable from the container. Bind
-  R2R to the host gateway/loopback (not a routable `0.0.0.0` LAN interface), and consider
-  an API key (the shipped Ollama-embeddings config has no auth provider).
+- **Host service exposure** — *Mitigated.* The compose stacks bind every published port to
+  `127.0.0.1` **except** `r2r:7272`, which binds loopback **and** the docker-bridge gateway
+  (`172.17.0.1`) — so the devcontainer reaches it via `host.docker.internal` while the
+  host's routable LAN interface stays unbound (Postgres, MinIO, dashboards, queues are
+  loopback-only). *Remaining:* `r2r:7272` is still reachable from other containers on the
+  host and is **unauthenticated** (the Ollama-embeddings config configures no auth provider)
+  — add an R2R API key if that surface matters. (macOS/Docker Desktop: the `172.17.0.1` line
+  is Linux-only — drop it; `127.0.0.1` alone suffices there.)
 
 ## Validating after a rebuild
 - `docker --version` should be **absent** inside the container (no Docker shipped).
