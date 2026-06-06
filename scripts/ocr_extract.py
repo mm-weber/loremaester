@@ -9,6 +9,7 @@
 # ///
 """Per-page OCR extraction for scanned PDFs."""
 from dataclasses import dataclass, field
+import os
 import types
 
 LOW_CONFIDENCE_THRESHOLD = 0.7
@@ -105,6 +106,11 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
         ocr_image(img, page_number=i + 1, engine=engine, language=language, reader=reader)
         for i, img in enumerate(images)
     ]
+    if not any(p.text.strip() for p in pages):
+        raise RuntimeError(
+            f"OCR produced no text for {os.path.basename(str(pdf_path))} — "
+            f"all {len(pages)} page(s) were empty. The PDF may be blank or the OCR backend failed."
+        )
     content = "\n\n".join(f"[Page {p.page_number}]\n{p.text}" for p in pages)
     mean_confidence = (sum(p.confidence for p in pages) / len(pages)) if pages else 0.0
     low_confidence_pages = [p.page_number for p in pages if p.confidence < LOW_CONFIDENCE_THRESHOLD]
