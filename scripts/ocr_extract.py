@@ -42,7 +42,13 @@ def render_pages(pdf_path, page_range=None):
 
 
 def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=None):
-    return None
+    if engine == "tesseract":
+        text = pytesseract.image_to_string(image)
+        data = pytesseract.image_to_data(image, output_type="dict")
+        confs = [int(c) for c in data["conf"] if int(c) != -1]
+        confidence = (sum(confs) / len(confs) / 100.0) if confs else 0.0
+        return PageOcrResult(page_number=page_number, text=text, confidence=confidence)
+    raise ValueError(f"Unsupported OCR engine: {engine}")
 
 
 def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
