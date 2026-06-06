@@ -93,33 +93,46 @@ def print_easyocr_diagnostics():
         )
         if available:
             major, minor = torch.cuda.get_device_capability(0)
-            cc = major * 10 + minor  # e.g. 61 for a GTX 1060 (Pascal, sm_61)
             arches = torch.cuda.get_arch_list()
             print(
                 f"  GPU: {torch.cuda.get_device_name(0)} "
-                f"(compute capability {major}.{minor} / sm_{cc})"
+                f"(compute capability {major}.{minor} / sm_{major}{minor})"
             )
             print(f"  this torch wheel was built for: {arches}")
 
-            # sm_<cc> (SASS) must match the device exactly; compute_<n> (PTX)
-            # can JIT onto any device with cc >= n. If neither covers this GPU,
-            # CUDA kernels can't run — easyocr then tends to return empty text
-            # rather than raise, which is exactly the failure we're chasing.
+            # CUDA compatibility (NVIDIA's rules), so this doesn't false-alarm
+            # on cards like the GTX 10-series:
+            #  - sm_XY (SASS) runs on a device of the SAME major version with a
+            #    minor <= the device's ("minor-version forward compat") — so a
+            #    wheel with sm_60 DOES cover a 6.1 GPU.
+            #  - compute_XY (PTX) JITs onto any device whose cc >= XY.
+            # Only when nothing covers the device can CUDA kernels not run (then
+            # easyocr tends to return empty text rather than raise).
+            dev = (major, minor)
+
+            def _cc(arch):
+                tail = arch.rsplit("_", 1)[-1]
+                return (int(tail) // 10, int(tail) % 10) if tail.isdigit() else None
+
             def _covers(arch):
+                v = _cc(arch)
+                if v is None:
+                    return False
                 if arch.startswith("sm_"):
-                    return arch == f"sm_{cc}"
-                if arch.startswith("compute_") and arch.split("_")[-1].isdigit():
-                    return int(arch.split("_")[-1]) <= cc
+                    return v[0] == dev[0] and v[1] <= dev[1]
+                if arch.startswith("compute_"):
+                    return v <= dev
                 return False
 
             if not any(_covers(a) for a in arches):
                 print(
-                    f"  >> LIKELY CAUSE: this torch wheel ships no kernels for "
-                    f"sm_{cc}, so easyocr's CUDA ops fail on your GPU — often "
-                    f"silently, returning empty text instead of raising. Fixes: "
-                    f"use the default tesseract backend; force CPU with "
-                    f"CUDA_VISIBLE_DEVICES='' (slow but works); or install a "
-                    f"torch build that includes sm_{cc}."
+                    f"  >> LIKELY CAUSE: this torch wheel has no kernels that run "
+                    f"on sm_{major}{minor} (no matching sm_ SASS and no PTX that "
+                    f"can JIT down), so easyocr's CUDA ops fail on your GPU — "
+                    f"often silently, returning empty text. Fixes: use the "
+                    f"default tesseract backend; force CPU with "
+                    f"CUDA_VISIBLE_DEVICES=''; or install a torch build that "
+                    f"covers sm_{major}{minor}."
                 )
         else:
             print(
