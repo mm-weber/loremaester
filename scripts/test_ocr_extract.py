@@ -1,6 +1,6 @@
 """Tests for ocr_extract.py"""
 from unittest.mock import patch, MagicMock
-from ocr_extract import ocr_pdf, ocr_image, PageOcrResult
+from ocr_extract import ocr_pdf, ocr_image, render_pages, PageOcrResult
 
 
 class TestOcrPdf:
@@ -58,3 +58,18 @@ class TestOcrPdfAggregates:
         result = ocr_pdf("/x.pdf")
         assert abs(result.mean_confidence - 0.775) < 1e-9
         assert result.low_confidence_pages == [2]
+
+
+class TestRenderPages:
+    @patch("ocr_extract.pypdfium2.PdfDocument", create=True)
+    def test_render_pages_returns_one_pil_image_per_page(self, mock_pdfdoc):
+        page0, page1 = MagicMock(), MagicMock()
+        page0.render.return_value.to_pil.return_value = "img0"
+        page1.render.return_value.to_pil.return_value = "img1"
+        doc = MagicMock()
+        doc.__len__.return_value = 2
+        doc.__getitem__.side_effect = [page0, page1]
+        mock_pdfdoc.return_value = doc
+        result = render_pages("/x.pdf")
+        assert result == ["img0", "img1"]
+        mock_pdfdoc.assert_called_once_with("/x.pdf")
