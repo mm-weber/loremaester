@@ -87,3 +87,16 @@ class TestMissingDependency:
         mock_pdfdoc.return_value = doc
         with pytest.raises(RuntimeError, match="pypdfium2"):
             render_pages("/x.pdf")
+
+
+class TestEmptyText:
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    def test_ocr_pdf_all_empty_pages_raises_with_filename(self, mock_render, mock_ocr_image):
+        mock_render.return_value = [MagicMock(), MagicMock()]
+        mock_ocr_image.side_effect = [
+            PageOcrResult(1, "", 0.0),
+            PageOcrResult(2, "   ", 0.0),
+        ]
+        with pytest.raises(RuntimeError, match="Grunvyr-Vol-III"):
+            ocr_pdf("/books/Grunvyr-Vol-III.pdf", engine="tesseract")
