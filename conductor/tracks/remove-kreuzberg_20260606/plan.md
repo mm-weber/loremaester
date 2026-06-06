@@ -13,7 +13,7 @@ kreuzberg consumers, update tests and docs, and drop the dependency.
 ## Progress Summary
 | Phase | Status | Progress |
 | ----- | ------ | -------- |
-| Phase 1: Shared OCR module | [ ] Not started | 0% |
+| Phase 1: Shared OCR module | [x] Complete | 100% |
 | Phase 2: Rewire ingest_books.py | [ ] Not started | 0% |
 | Phase 3: Rewire extract_text.py + tests | [ ] Not started | 0% |
 | Phase 4: Docs, licenses, cleanup | [ ] Not started | 0% |
@@ -23,14 +23,16 @@ Create `scripts/ocr_extract.py` — `ocr_pdf(path, engine="tesseract", language=
 Per-page by construction (never hands the whole document to one OCR call).
 
 ### Tasks
-- [ ] 1.1 Render pages via `pypdfium2.PdfDocument(path)` → `page.render(scale≈2.78 ≈200 dpi).to_pil()`.
-- [ ] 1.2 Per-page OCR: tesseract (`pytesseract.image_to_string` + `image_to_data` confidence,
-      mirroring `ocr_preprocess.py:62-66`) / easyocr (module-level `Reader`, `.readtext(detail=0)`).
-- [ ] 1.3 Concatenate with `[Page N]` markers; return text + per-page confidence.
-- [ ] 1.4 Port `print_easyocr_diagnostics` / `describe_extraction` (adapted) from `ingest_books.py`.
+- [x] 1.1 Render pages via `pypdfium2` — `render_pages` (`RENDER_SCALE` ≈200 dpi, `page_range` support). (RED/GREEN-5)
+- [x] 1.2 Per-page OCR: tesseract (`image_to_string` + dict-based confidence) and easyocr (one reused `Reader`, `readtext` per page). (RED/GREEN-2, -3)
+- [x] 1.3 `ocr_pdf` orchestration: per-page loop, `[Page N]` concat in order, confidence aggregation (mean + low-confidence pages). (RED/GREEN-1, -4)
+- [x] 1.4 Robustness: actionable `RuntimeError` for missing pypdfium2/tesseract/easyocr; document-identifying error when all pages OCR empty. (RED/GREEN-6, -7)
+- [ ] 1.5 (DEFERRED → Phase 2) Port `print_easyocr_diagnostics` / `describe_extraction` — they move with the `ingest_books.py` rewiring where the originals live.
 
 ### Verification
-- [ ] `scripts/test_ocr_extract.py` (pypdfium2 + tesseract/easyocr mocked) passes; per-page loop verified.
+- [x] `python3 -m pytest scripts/test_ocr_extract.py -q` → **7 passed**; per-page proven (ocr_image called once per page; easyocr `Reader` built once).
+- [x] Module imports + tests run without numpy/pandas/kreuzberg/tesseract/easyocr installed (all mocked); `py_compile` clean.
+- [ ] Owner end-to-end (deferred to track end): real `uv run` on Vol III — tesseract ingests; easyocr per-page on the GTX 1060 (GPU memory across 16 pages).
 
 ### Checkpoint
 `[remove-kreuzberg_20260606] checkpoint: phase 1 complete`
