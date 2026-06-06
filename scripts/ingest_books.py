@@ -92,7 +92,35 @@ def print_easyocr_diagnostics():
             f"torch.cuda.is_available()={available}"
         )
         if available:
-            print(f"  GPU: {torch.cuda.get_device_name(0)}")
+            major, minor = torch.cuda.get_device_capability(0)
+            cc = major * 10 + minor  # e.g. 61 for a GTX 1060 (Pascal, sm_61)
+            arches = torch.cuda.get_arch_list()
+            print(
+                f"  GPU: {torch.cuda.get_device_name(0)} "
+                f"(compute capability {major}.{minor} / sm_{cc})"
+            )
+            print(f"  this torch wheel was built for: {arches}")
+
+            # sm_<cc> (SASS) must match the device exactly; compute_<n> (PTX)
+            # can JIT onto any device with cc >= n. If neither covers this GPU,
+            # CUDA kernels can't run — easyocr then tends to return empty text
+            # rather than raise, which is exactly the failure we're chasing.
+            def _covers(arch):
+                if arch.startswith("sm_"):
+                    return arch == f"sm_{cc}"
+                if arch.startswith("compute_") and arch.split("_")[-1].isdigit():
+                    return int(arch.split("_")[-1]) <= cc
+                return False
+
+            if not any(_covers(a) for a in arches):
+                print(
+                    f"  >> LIKELY CAUSE: this torch wheel ships no kernels for "
+                    f"sm_{cc}, so easyocr's CUDA ops fail on your GPU — often "
+                    f"silently, returning empty text instead of raising. Fixes: "
+                    f"use the default tesseract backend; force CPU with "
+                    f"CUDA_VISIBLE_DEVICES='' (slow but works); or install a "
+                    f"torch build that includes sm_{cc}."
+                )
         else:
             print(
                 "  >> No CUDA device visible. The cu126 wheel needs an NVIDIA "
