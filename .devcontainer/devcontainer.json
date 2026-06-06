@@ -11,25 +11,14 @@
   },
 
   // --- Capabilities ---
-  // NET_ADMIN for the firewall init script.
-  // seccomp profile is broader than Docker default to allow nested Docker
-  // (DinD); see comments inside dind-seccomp.json.
-  // host.docker.internal is mapped to the host gateway so R2R-in-DinD
-  // can reach Ollama-on-host at host.docker.internal:11434.
+  // NET_ADMIN is for the egress firewall (init-firewall.sh) ONLY.
+  // There is no Docker-in-Docker here: R2R runs on the host, and this
+  // container reaches it (and Ollama) via host.docker.internal. No seccomp
+  // override — Docker's default profile applies. See SecurityReview.md.
   "runArgs": [
     "--cap-add=NET_ADMIN",
-    "--security-opt", "seccomp=.devcontainer/dind-seccomp.json",
     "--add-host=host.docker.internal:host-gateway"
   ],
-
-  // --- Features ---
-  // Docker-in-Docker so the R2R Compose stack runs inside this container.
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "dockerDashComposeVersion": "v2",
-      "installDockerBuildx": true
-    }
-  },
 
   // --- VS Code ---
   "customizations": {
@@ -49,11 +38,10 @@
     }
   },
 
-  // PID 1 runs as root so the entrypoint can run init-firewall.sh and
-  // the DinD startup wrapper without sudo. Interactive shells attach as
-  // `node` per remoteUser. overrideCommand: false keeps our custom CMD
-  // (`while sleep ...`) instead of VS Code's default, which would
-  // prevent the entrypoint's exec "$@" from chaining cleanly.
+  // PID 1 runs as root so the entrypoint can run init-firewall.sh (iptables
+  // needs NET_ADMIN) without sudo. Interactive shells attach as `node` per
+  // remoteUser. overrideCommand: false keeps our CMD (the wait loop) so the
+  // entrypoint's exec "$@" chains cleanly.
   "containerUser": "root",
   "remoteUser": "node",
   "overrideCommand": false,
@@ -77,21 +65,5 @@
   },
 
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/R2R-ClaudeCode-integration,type=bind,consistency=delegated",
-  "workspaceFolder": "/workspaces/R2R-ClaudeCode-integration",
-
-  // Forward R2R's API + dashboard ports when docker-compose publishes
-  // them. Using portsAttributes (not forwardPorts) so VS Code waits for
-  // each service to actually start listening before forwarding — avoids
-  // the port collision where forwardPorts would eagerly bind 7272/7273
-  // inside the devcontainer before docker-compose tries to publish them.
-  "portsAttributes": {
-    "7272": {"label": "R2R API", "onAutoForward": "notify"},
-    "7273": {"label": "R2R Dashboard", "onAutoForward": "openBrowser"}
-  },
-
-  // Suppress auto-forward for every other internal port (Postgres,
-  // Hatchet, MinIO, Unstructured) — keeps the Ports panel quiet.
-  "otherPortsAttributes": {
-    "onAutoForward": "ignore"
-  }
+  "workspaceFolder": "/workspaces/R2R-ClaudeCode-integration"
 }

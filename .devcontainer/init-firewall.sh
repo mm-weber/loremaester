@@ -79,7 +79,7 @@ done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[] | select(test(":") | 
 # ============================================================
 # Allowed domains
 # Stock:     npm, Anthropic, Sentry, Statsig, VS Code
-# ADDED:     Python (PyPI + uv via astral.sh), Docker Hub
+# ADDED:     Python (PyPI + uv via astral.sh)
 # To extend: just add more domains to this list
 # ============================================================
 for domain in \
@@ -96,10 +96,6 @@ for domain in \
     "pypi.org" \
     "files.pythonhosted.org" \
     "astral.sh" \
-    "registry-1.docker.io" \
-    "auth.docker.io" \
-    "production.cloudflare.docker.com" \
-    "docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com" \
     ; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
@@ -118,31 +114,21 @@ for domain in \
     done < <(echo "$ips")
 done
 
-# Get host IP from default route
+# Get host gateway IP from default route — this is what host.docker.internal
+# resolves to, and how the devcontainer reaches services on the host.
 HOST_IP=$(ip route | grep default | cut -d" " -f3)
 if [ -z "$HOST_IP" ]; then
-    echo "ERROR: Failed to detect host IP"
+    echo "ERROR: Failed to detect host gateway IP"
     exit 1
 fi
+echo "Host gateway detected as: $HOST_IP"
 
-HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
-echo "Host network detected as: $HOST_NETWORK"
-
-# Allow traffic to the host network. This is what makes Ollama-on-host
-# reachable from R2R-in-DinD via host.docker.internal:11434.
-iptables -A INPUT -s "$HOST_NETWORK" -j ACCEPT
-iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
-
-# Allow traffic to Docker bridge networks (RFC1918 172.16.0.0/12).
-# Required for DinD: the devcontainer runs an inner Docker daemon
-# whose bridge networks live in this range. Without this, docker-proxy
-# (listening on 0.0.0.0:host_port) accepts inbound connections but
-# fails to forward to inner containers because the OUTPUT chain
-# rejects packets to the bridge subnet. Connections via the bridge
-# gateway IP (e.g. 172.19.0.1) work because they traverse FORWARD,
-# not OUTPUT — but `localhost:host_port` goes through docker-proxy.
-# This carve-out is RFC1918 private space; not an external egress.
-iptables -A OUTPUT -d 172.16.0.0/12 -j ACCEPT
+# Allow ONLY the host services the devcontainer actually needs:
+#   - R2R API on the host:  7272
+#   - Ollama on the host:  11434
+# Responses return via the ESTABLISHED rule below. This replaces the prior
+# whole-/24 carve-out; see .devcontainer/SecurityReview.md.
+iptables -A OUTPUT -d "$HOST_IP" -p tcp -m multiport --dports 7272,11434 -j ACCEPT
 
 # Set default policies to DROP
 iptables -P INPUT DROP

@@ -60,7 +60,6 @@ First build: 10-20 minutes (downloading the base image + apt packages + Python d
 ### 3. Verify the in-container baseline
 Once the container opens, in its integrated terminal:
 ```bash
-docker --version                                            # Docker CLI present
 python3 --version                                           # ≥ 3.10
 pip list | grep -E '^(mcp|r2r|pyyaml|kreuzberg|uv) '       # all 5 present
 claude --version                                            # Claude Code CLI
@@ -98,7 +97,7 @@ curl http://localhost:7272/v3/health
 ```
 Expected: `{"results":{"response":"ok"}}`.
 
-The R2R dashboard is on http://localhost:7273 (auto-forwarded to your host via the `portsAttributes` setting in `.devcontainer/devcontainer.json` — VS Code should offer to open it when r2r-dashboard becomes ready).
+The R2R dashboard is on http://localhost:7273 on the host — the same machine where you ran `docker compose`.
 
 ### 6. Ingest the bundled sourcebooks (on the host)
 ```bash
@@ -285,7 +284,7 @@ To replace the Grunvyr_Campaign demo content with your own vault and sourcebooks
 
 ## When something doesn't work
 
-- **Port 7272 already in use when bringing up R2R (on the host)** — if `docker compose up -d` fails with "port is already allocated" / "bind: address already in use", another process on the host is bound to 7272 (a previous R2R run, or the devcontainer eagerly forwarding the port). This happens when an older `devcontainer.json` used `forwardPorts: [7272, 7273]` (eager binding) instead of `portsAttributes` (lazy, on-listen). Fix: rebuild the devcontainer (`Dev Containers: Rebuild Container`) to pick up the current `devcontainer.json`. Quick workaround without rebuilding: open VS Code's Ports panel (View → Ports), right-click 7272 → "Stop Forwarding Port", repeat for 7273 if needed, then retry the `docker compose` command.
+- **Port 7272 already in use when bringing up R2R (on the host)** — `docker compose up -d` fails with "port is already allocated" / "bind: address already in use" when another process on the host is already bound to 7272 (commonly a previous R2R run). Find it with `lsof -i :7272` (or `ss -ltnp | grep 7272`), stop it (or change R2R's published port), then retry.
 - **`docker compose … ps` says "depends on undefined service postgres: invalid compose project"** — the `postgres` service is scoped to the `postgres` profile in `compose.full.yaml`. Either run `export COMPOSE_PROFILES=postgres` once in your shell (recommended), or pass `--profile postgres` on every compose invocation (`ps`, `logs`, `down`, etc.).
 - **`wait-for-hatchet-grpc` exits with `TIMEOUT: hatchet gRPC not reachable after 300s`** — hatchet-engine never bound port 7077 in time. The most common cause is a stale `docker/env/hatchet.env` from before the `SERVER_GRPC_PORT=7077` fix landed — re-copy `hatchet.env.example` over your `hatchet.env` and `docker compose -f docker/compose.full.yaml down -v` to reset volumes, then `up -d` again. If it still times out, check `docker compose logs hatchet-engine` for the engine's own crash output.
 - **`curl http://localhost:7272/v3/health` returns `curl: (56) Recv failure: Connection reset by peer`** — r2r isn't actually ready. Run `docker compose -f docker/compose.full.yaml ps`: if r2r is `restarting`, `health: starting`, or has a much lower uptime than the rest of the stack, run `docker compose -f docker/compose.full.yaml logs r2r --tail 100` and look at the last error. Common remaining causes are Postgres auth misconfig (check `docker/env/r2r-full.env`), Ollama unreachable from inside the container (check `host.docker.internal:11434` is responding on the host), or an OCR-pipeline import failure.

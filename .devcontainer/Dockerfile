@@ -107,12 +107,8 @@ COPY init-firewall.sh /usr/local/bin/
 USER root
 RUN chmod +x /usr/local/bin/init-firewall.sh
 
-# Allow node user to use Docker (DinD creates the socket after start)
-RUN groupadd -f docker && usermod -aG docker node
-
 # Entrypoint: runs as root (containerUser: "root" in devcontainer.json),
-# initializes the egress firewall, then chains into the DinD startup wrapper
-# (which spawns dockerd) and finally exec's the container CMD.
+# initializes the egress firewall, then exec's the container CMD.
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -4,11 +4,8 @@
     "allow": [
       "Bash(scripts/*)",
       "Bash(git *)",
-      "Bash(go *)",
-      "Bash(terraform *)",
       "Bash(npm *)",
       "Bash(python *)",
-      "Bash(docker *)",
       "Bash(gh *)",
       "Bash(make *)",
       "Read(*)",
@@ -20,11 +17,6 @@
     "deny": ["Bash(rm -rf /)", "Bash(sudo rm *)"]
   },
   "mcpServers": {
-    "terraform": {
-      "command": "docker",
-      "args": ["run", "--rm", "-i", "--network", "host", "hashicorp/terraform-mcp-server"],
-      "env": {}
-    },
     "r2r": {
       "command": "python",
       "args": ["mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
