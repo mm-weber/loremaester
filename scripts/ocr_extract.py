@@ -7,8 +7,19 @@
 #   "r2r",
 # ]
 # ///
-"""Per-page OCR extraction for scanned PDFs."""
+"""Per-page OCR extraction for scanned PDFs (kreuzberg-free).
+
+Renders each PDF page with pypdfium2 and OCRs it INDEPENDENTLY — one OCR call
+per page — then concatenates the per-page text. Per-page is deliberate: a
+single-page OCR call is reliable, whereas handing a whole multi-page document to
+one call is what failed under kreuzberg's EasyOCR path.
+
+Backends: tesseract (default, CPU) and easyocr (GPU opt-in, via one reused
+Reader). Both are Apache-2.0; pypdfium2 is Apache/BSD — a fully permissive
+footprint. Consumed by ingest_books.py and extract_text.py via ocr_pdf().
+"""
 from dataclasses import dataclass, field
+import io
 import os
 import types
 
@@ -83,7 +94,6 @@ def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=N
         confidence = (sum(confs) / len(confs) / 100.0) if confs else 0.0
         return PageOcrResult(page_number=page_number, text=text, confidence=confidence)
     elif engine == "easyocr":
-        import io
         buf = io.BytesIO()
         image.save(buf, format="PNG")
         results = reader.readtext(buf.getvalue(), detail=1)  # list of (bbox, text, conf)
@@ -101,6 +111,8 @@ def make_reader(language="eng"):
 
 def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
     images = render_pages(pdf_path, page_range)
+    # Build the easyocr Reader once, then OCR each page on its own — never the
+    # whole document in a single call (that is the kreuzberg failure we avoid).
     reader = make_reader(language) if engine == "easyocr" else None
     pages = [
         ocr_image(img, page_number=i + 1, engine=engine, language=language, reader=reader)
