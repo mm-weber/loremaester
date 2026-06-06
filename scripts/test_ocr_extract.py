@@ -20,6 +20,7 @@ class TestOcrPdf:
 
 
 class TestOcrImage:
+    @patch("ocr_extract._HAS_TESSERACT", True)
     @patch("ocr_extract.pytesseract.image_to_data", create=True)
     @patch("ocr_extract.pytesseract.image_to_string", create=True)
     def test_ocr_image_tesseract_returns_text_and_confidence(self, mock_str, mock_data):
@@ -31,6 +32,7 @@ class TestOcrImage:
 
 
 class TestOcrPdfEasyocr:
+    @patch("ocr_extract._HAS_EASYOCR", True)
     @patch("ocr_extract.easyocr.Reader", create=True)
     @patch("ocr_extract.render_pages")
     def test_ocr_pdf_easyocr_builds_one_reader_and_reads_each_page(self, mock_render, mock_reader_cls):
@@ -62,6 +64,7 @@ class TestOcrPdfAggregates:
 
 
 class TestRenderPages:
+    @patch("ocr_extract._HAS_PYPDFIUM2", True)
     @patch("ocr_extract.pypdfium2.PdfDocument", create=True)
     def test_render_pages_returns_one_pil_image_per_page(self, mock_pdfdoc):
         page0, page1 = MagicMock(), MagicMock()

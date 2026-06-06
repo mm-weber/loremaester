@@ -37,7 +37,8 @@ except ModuleNotFoundError:
 
 
 def _require(available, package, install_hint):
-    pass
+    if not available:
+        raise RuntimeError(f"{package} is not installed. Install it with: {install_hint}")
 
 
 @dataclass
@@ -61,6 +62,7 @@ def parse_page_range(range_str):
 
 
 def render_pages(pdf_path, page_range=None):
+    _require(_HAS_PYPDFIUM2, "pypdfium2", "pip install pypdfium2")
     pdf = pypdfium2.PdfDocument(pdf_path)
     n = len(pdf)
     if page_range:
@@ -73,6 +75,7 @@ def render_pages(pdf_path, page_range=None):
 
 def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=None):
     if engine == "tesseract":
+        _require(_HAS_TESSERACT, "pytesseract", "pip install pytesseract (and the system 'tesseract' binary)")
         text = pytesseract.image_to_string(image)
         data = pytesseract.image_to_data(image, output_type="dict")
         confs = [int(c) for c in data["conf"] if int(c) != -1]
@@ -90,6 +93,7 @@ def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=N
 
 
 def make_reader(language="eng"):
+    _require(_HAS_EASYOCR, "easyocr", "uv run --with easyocr (see docs/quickstart.md)")
     # easyocr auto-falls back to CPU when no CUDA device is available
     return easyocr.Reader([language], gpu=True)
 
