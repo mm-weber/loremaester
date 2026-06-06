@@ -1,4 +1,5 @@
 """Tests for ocr_extract.py"""
+import pytest
 from unittest.mock import patch, MagicMock
 from ocr_extract import ocr_pdf, ocr_image, render_pages, PageOcrResult
 
@@ -73,3 +74,13 @@ class TestRenderPages:
         result = render_pages("/x.pdf")
         assert result == ["img0", "img1"]
         mock_pdfdoc.assert_called_once_with("/x.pdf")
+
+
+class TestMissingDependency:
+    @patch("ocr_extract.pypdfium2.PdfDocument", create=True)
+    @patch("ocr_extract._HAS_PYPDFIUM2", False)
+    def test_render_pages_missing_pypdfium2_raises_actionable(self, mock_pdfdoc):
+        doc = MagicMock(); doc.__len__.return_value = 0
+        mock_pdfdoc.return_value = doc
+        with pytest.raises(RuntimeError, match="pypdfium2"):
+            render_pages("/x.pdf")

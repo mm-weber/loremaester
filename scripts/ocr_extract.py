@@ -16,18 +16,28 @@ RENDER_SCALE = 2.78  # pdfium scale 1.0 = 72 dpi; 2.78 ≈ 200 dpi
 
 try:
     import pypdfium2
+    _HAS_PYPDFIUM2 = True
 except ModuleNotFoundError:
     pypdfium2 = types.ModuleType("pypdfium2")
+    _HAS_PYPDFIUM2 = False
 
 try:
     import pytesseract
+    _HAS_TESSERACT = True
 except ModuleNotFoundError:
     pytesseract = types.ModuleType("pytesseract")
+    _HAS_TESSERACT = False
 
 try:
     import easyocr
+    _HAS_EASYOCR = True
 except ModuleNotFoundError:
     easyocr = types.ModuleType("easyocr")
+    _HAS_EASYOCR = False
+
+
+def _require(available, package, install_hint):
+    pass
 
 
 @dataclass
