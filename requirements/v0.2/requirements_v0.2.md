@@ -194,22 +194,81 @@ async def search_lore(
 
 ## OCR & Licensing Follow-ups (added during v0.1 release prep)
 
-### R-1 — Re-evaluate / remove the kreuzberg dependency (license footprint)
-`kreuzberg` powers the **optional** client-side OCR path (`scripts/ingest_books.py`,
-`scripts/extract_text.py`) and defaults to the **EasyOCR** backend. Recent kreuzberg (≥ 4.6) is
-licensed under **Elastic License 2.0** — source-available, *not* OSI open-source (see
-[`THIRD_PARTY_LICENSES.md`](../../THIRD_PARTY_LICENSES.md)). Because the path actually exercised is
-EasyOCR — which exposes its own Python API and is already shown to work *without* kreuzberg in
-`scripts/ocr_preprocess.py` (pytesseract/surya) — v0.2 should evaluate invoking EasyOCR (or
-Tesseract/Surya) directly and dropping kreuzberg, returning the stack to a fully permissive
-(MIT/Apache) license footprint. Cost: re-implementing kreuzberg's PDF/format handling and unified
-multi-engine config.
+### R-1 — Remove the kreuzberg dependency (functional liability + license footprint) — **ELEVATED**
+`kreuzberg` powers the client-side OCR path in `scripts/ingest_books.py` and `scripts/extract_text.py`
+(image-only PDFs route through `kreuzberg.extract_file_sync`; default backend is **tesseract**, with
+**EasyOCR**/PaddleOCR as opt-ins). v0.1 release-prep testing found kreuzberg's OCR layer
+**functionally unreliable for the path it exists to serve**, on top of its non-permissive license.
+Recommendation upgraded from *"evaluate"* to **remove** (v0.2; possibly v0.1 — see Effort).
+
+**Two independent kreuzberg OCR breakages were observed inside the supported version range** (full
+evidence in R-1E):
+
+1. **EasyOCR-on-PDF broken in kreuzberg 4.5–4.8.x.** The EasyOCR backend declared it could process a
+   PDF directly (`supports_document_processing() == True`) but relied on an **undeclared**
+   `pdf2image`/`pymupdf` dependency, so every image-only PDF failed —
+   `ParsingError: All OCR pipeline backends failed`, or silently empty. Fixed only in **4.9.3**.
+2. **EasyOCR still broken for multi-page PDFs in kreuzberg 4.9.9 (latest stable).** A *single-page*
+   PDF OCRs correctly, but any multi-page document returns **empty text** (verified at 8 and 16
+   pages) with **no error raised**. tesseract through the same kreuzberg path is unaffected, and
+   **standalone EasyOCR reads the very same rendered pages correctly** — so the fault is in
+   kreuzberg's multi-page EasyOCR execution, not EasyOCR, torch, CUDA, the GPU, or the documents.
+
+**License:** kreuzberg (≥ 4.6) is **Elastic License 2.0** — source-available, *not* OSI open-source
+(see [`THIRD_PARTY_LICENSES.md`](../../THIRD_PARTY_LICENSES.md)). Removing it returns the OCR stack
+to a fully permissive (MIT/Apache) footprint.
+
+**Requirement:** Drop kreuzberg from `scripts/ingest_books.py`, `scripts/extract_text.py`, and
+`scripts/test_extract_text.py`. Replace it with a direct OCR pipeline:
+
+- Render image-only PDF pages with a **permissively-licensed** renderer — `pypdfium2` (Apache/BSD,
+  pdfium) is ideal; `pdf2image`+poppler (already used by `scripts/ocr_preprocess.py`) also works.
+  **Avoid `pymupdf` in the shipped path — it is AGPL-3.0**, which would re-introduce a copyleft
+  footprint (the diagnostic probes used it for convenience only).
+- OCR **per page** with **tesseract** (default, CPU, permissive) and optionally **EasyOCR** (CUDA),
+  concatenating per-page text. Per-page OCR also **sidesteps the kreuzberg multi-page bug by
+  construction** (single-page EasyOCR is proven to work).
+- `scripts/ocr_preprocess.py` already demonstrates the kreuzberg-free pattern
+  (`pdf2image` + `pytesseract`/`surya`); consolidate onto it (see R-2).
+
+**Effort:** Modest. The building blocks already exist and are proven (the R-1E probes render with a
+PDF library and call EasyOCR/tesseract directly, successfully). What kreuzberg contributed —
+multi-format ingestion and a unified multi-engine config — is **not needed** for the PDF-only
+sourcebook corpus. The work is a small `render → per-page OCR → join` helper plus updating two
+scripts and one test. Cheap enough that a direct EasyOCR+CUDA path could land in **v0.1** if desired.
+
+#### R-1E — Evidence: kreuzberg EasyOCR investigation (v0.1 release prep, 2026-06)
+Environment: kreuzberg **4.9.9**, torch **2.9.1+cu126**, easyocr **1.7.2**, Python 3.12, NVIDIA
+GTX 1060 (compute capability 6.1 / `sm_61`, 6 GB), Linux. Subject:
+`examples/ttrpg/sourcebooks/Grunvyr-Vol-III-ImageOnly.pdf` — 16 pages, each a single full-page RGB
+raster (~200 dpi, FlateDecode; **no exotic codec**), 15 normal dark-on-light pages + 1 dark/inverted
+cover.
+
+Layers eliminated, in order:
+
+| Layer | Test | Result |
+|---|---|---|
+| torch / CUDA | fp32 matmul; `get_arch_list()` vs device cc | ✅ fine — `sm_60` covers `sm_61` (CUDA minor forward-compat) |
+| EasyOCR engine | `readtext` on synthetic **and** real rendered pages, GPU + CPU | ✅ reads them (cover p0 = 23 boxes, interior p3 = 93 boxes) |
+| kreuzberg version | `==4.7.0` vs `>=4.9.3` | 4.7.0 → *"All OCR pipeline backends failed"*; 4.9.3 PDF fix present but… |
+| document content | dark/inverted cover | ❌ not the cause — cover-only via kreuzberg = 236 chars; inverting it doesn't help |
+| **page count** | single- vs multi-page via kreuzberg+EasyOCR | **single-page works (p0 = 236, p3 = 1302 chars); 8 pp = 0; 16 pp = 0** |
+| tesseract | same multi-page doc via kreuzberg | ✅ works (ingests all 16 pages) |
+
+Conclusion: **kreuzberg+EasyOCR returns empty for multi-page PDFs while succeeding on single pages**
+— a clean, non-erroring failure isolated to kreuzberg's multi-page OCR path. With the earlier 4.5–4.8
+regression and the Elastic-2.0 license, kreuzberg is a net liability for this project's OCR needs.
+
+Minimal upstream repro (kreuzberg 4.9.9): `extract_file_sync(<1-page image PDF>,
+ExtractionConfig(ocr=OcrConfig(backend="easyocr")))` returns text; the identical call on an 8- or
+16-page image PDF returns empty. File against `kreuzberg-dev/kreuzberg`.
 
 ### R-2 — Consolidate the three overlapping OCR code paths
 There are three OCR entry points with overlapping responsibility: `ingest_books.py` (kreuzberg,
-EasyOCR default, bulk-ingest), `extract_text.py` (kreuzberg, tesseract default, standalone), and
+tesseract default, bulk-ingest), `extract_text.py` (kreuzberg, tesseract default, standalone), and
 `ocr_preprocess.py` (pytesseract/surya, no kreuzberg). v0.2 should consolidate these behind a
-single OCR module with a pluggable backend.
+single OCR module with a pluggable backend — the kreuzberg-free direct-OCR helper from **R-1** is
+the natural consolidation target.
 
 ### R-3 — End-to-end collection support (optional)
 The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` MCP server and the
