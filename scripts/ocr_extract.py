@@ -21,6 +21,11 @@ try:
 except ModuleNotFoundError:
     pytesseract = types.ModuleType("pytesseract")
 
+try:
+    import easyocr
+except ModuleNotFoundError:
+    easyocr = types.ModuleType("easyocr")
+
 
 @dataclass
 class PageOcrResult:
@@ -48,6 +53,8 @@ def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=N
         confs = [int(c) for c in data["conf"] if int(c) != -1]
         confidence = (sum(confs) / len(confs) / 100.0) if confs else 0.0
         return PageOcrResult(page_number=page_number, text=text, confidence=confidence)
+    elif engine == "easyocr":
+        return PageOcrResult(page_number=page_number, text="", confidence=0.0)
     raise ValueError(f"Unsupported OCR engine: {engine}")
 
 
