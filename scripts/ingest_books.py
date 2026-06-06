@@ -20,6 +20,10 @@ robust and dependency-light. Override the backend/language via env:
                             ISO 639-1 (en, de) for easyocr/paddleocr;
                             ISO 639-3 (eng, deu) for tesseract.
 
+Set INGEST_DEBUG=1 to print a full traceback for each per-file failure
+(otherwise failures are summarized to one line). For easyocr, a torch/CUDA
+banner is printed up front so an empty-text result is diagnosable.
+
 The neural backends are heavier opt-ins and are NOT in this script's default
 deps — install them for the run with uv `--with`. EasyOCR (GPU via torch+CUDA,
 sharper on noisy scans): set KREUZBERG_OCR_ENGINE=easyocr and add
@@ -32,6 +36,7 @@ import hashlib
 import os
 import sys
 import tempfile
+import traceback
 from pathlib import Path
 
 from r2r import R2RClient
@@ -66,6 +71,62 @@ def is_image_pdf(pdf_path):
         return (with_text / total) < IMAGE_ONLY_THRESHOLD
 
 
+def print_easyocr_diagnostics():
+    """Print a torch/CUDA banner before easyocr runs.
+
+    easyocr can finish without raising yet return no text — the usual cause is
+    a GPU/runtime mismatch (e.g. the torch `cu126` wheel against an NVIDIA
+    driver too old for CUDA 12.6). The extractor result alone doesn't reveal
+    that, so surface the backend + device state up front. Best-effort: never
+    let diagnostics abort the run.
+    """
+    if OCR_ENGINE != "easyocr":
+        return
+    print(f"easyocr diagnostics (language={OCR_LANGUAGE}):")
+    try:
+        import torch
+
+        available = torch.cuda.is_available()
+        print(
+            f"  torch {torch.__version__} (built for CUDA {torch.version.cuda}); "
+            f"torch.cuda.is_available()={available}"
+        )
+        if available:
+            print(f"  GPU: {torch.cuda.get_device_name(0)}")
+        else:
+            print(
+                "  >> No CUDA device visible. The cu126 wheel needs an NVIDIA "
+                "driver new enough for CUDA 12.6; without one, easyocr can "
+                "return empty text instead of erroring. Run `nvidia-smi` to "
+                "check — or just use the default tesseract backend."
+            )
+    except Exception as e:
+        print(f"  could not inspect torch: {type(e).__name__}: {e}")
+    print()
+
+
+def describe_extraction(result):
+    """Schema-tolerant one-line summary of a kreuzberg result, for diagnostics.
+
+    Used when OCR returns no text: report what the backend *did* see (raw
+    length, page/table/chunk counts, metadata) so 'empty result' is
+    distinguishable from 'never processed a page'. All lookups are defensive
+    so a result-schema change can't turn diagnostics into a second failure.
+    """
+    bits = [f"raw_len={len(getattr(result, 'content', '') or '')}"]
+    for attr in ("tables", "chunks", "images"):
+        value = getattr(result, attr, None)
+        if value is not None:
+            try:
+                bits.append(f"{attr}={len(value)}")
+            except TypeError:
+                bits.append(f"{attr}=present")
+    metadata = getattr(result, "metadata", None)
+    if metadata is not None:
+        bits.append((f"metadata={metadata!r}")[:200])
+    return "; ".join(bits)
+
+
 def ingest_via_kreuzberg(client, pdf_path, metadata):
     """OCR client-side with Kreuzberg; ingest via a named temp .txt.
 
@@ -90,7 +151,13 @@ def ingest_via_kreuzberg(client, pdf_path, metadata):
     config = ExtractionConfig(ocr=OcrConfig(**ocr_kwargs))
     result = extract_file_sync(str(pdf_path), config=config)
     if not result.content.strip():
-        raise RuntimeError(f"kreuzberg returned empty text for {pdf_path.name}")
+        raise RuntimeError(
+            f"kreuzberg ({OCR_ENGINE}) returned empty text for {pdf_path.name} "
+            f"[{describe_extraction(result)}] — the OCR backend ran without "
+            f"raising but produced no text. For easyocr this usually means a "
+            f"GPU/torch problem (see the diagnostics banner above); the same "
+            f"PDF will typically OCR with the default tesseract backend."
+        )
 
     # Temp .txt named after the PDF stem so R2R stamps title="<stem>.txt"
     # and assigns the doc to the user's default collection.
@@ -147,6 +214,8 @@ def main():
             print(f"  - {dupe.relative_to(pdf_dir)}  (same content as {original.relative_to(pdf_dir)})")
     print()
 
+    print_easyocr_diagnostics()
+
     succeeded = []
     failed = []
 
@@ -162,7 +231,9 @@ def main():
                 ingest_native(client, pdf, metadata)
             succeeded.append(pdf.name)
         except Exception as e:
-            print(f"  FAILED: {pdf.name} — {e}")
+            print(f"  FAILED: {pdf.name} — {type(e).__name__}: {e}")
+            if os.environ.get("INGEST_DEBUG"):
+                traceback.print_exc()
             failed.append(pdf.name)
 
     print(f"\nDone. {len(succeeded)} succeeded, {len(failed)} failed.")
@@ -170,6 +241,14 @@ def main():
         print("Failed files:")
         for name in failed:
             print(f"  - {name}")
+
+    if OCR_ENGINE == "easyocr":
+        print(
+            "\nNote: easyocr/torch may print 'terminate called ...' as the "
+            "process exits. That is a known native-teardown artifact (CUDA / "
+            "thread-pool destructors at shutdown), not an ingestion error — the "
+            "summary above is authoritative."
+        )
 
 
 if __name__ == "__main__":
