@@ -31,6 +31,7 @@ On the machine where you'll run the devcontainer:
 | **RAM** | 12 GB+ recommended. The R2R stack (on the host) uses ~3-4 GB; Ollama on the host wants 2+ GB; remainder for headroom. |
 | **Network** | Outbound HTTPS to github.com, mcr.microsoft.com, hub.docker.com, pypi.org, astral.sh during build. |
 | **[uv](https://docs.astral.sh/uv/)** | On the host, for the ingestion/graph scripts (`uv run --no-project …` fetches each script's Python + deps). |
+| **Tesseract** | The default OCR backend for image PDFs (`ingest_books.py`). `apt install tesseract-ocr` (Debian/Ubuntu) or `brew install tesseract` (macOS). |
 
 **Windows is not currently supported** — the Ollama install path and `host.docker.internal` networking differ from the configurations validated here. Linux and macOS hosts are the supported platforms for v0.1.
 
@@ -102,15 +103,12 @@ The R2R dashboard is on http://localhost:7273 on the host — the same machine w
 ### 6. Ingest the bundled sourcebooks (on the host)
 ```bash
 uv run --no-project scripts/detect_pdf_type.py examples/ttrpg/sourcebooks/
-uv run --no-project --python 3.12 \
-  --extra-index-url https://download.pytorch.org/whl/cu126 \
-  --index-strategy unsafe-best-match \
-  scripts/ingest_books.py examples/ttrpg/sourcebooks/
+uv run --no-project scripts/ingest_books.py examples/ttrpg/sourcebooks/
 uv run --no-project scripts/verify_ingestion.py --all
 ```
-`detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (by default with EasyOCR via [Kreuzberg](https://kreuzberg.dev/)) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
+`detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (with tesseract via [Kreuzberg](https://kreuzberg.dev/), the default backend) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
 
-> **Choosing an OCR path.** EasyOCR (the default) uses torch+CUDA and is fastest with a GPU; on a CPU-only machine prefix the command with `KREUZBERG_OCR_ENGINE=tesseract` (install Tesseract on the host — see [`quickstart.md`](./quickstart.md)). Prefer **server-side** OCR? In Docker Full Mode, ingest an image PDF *directly* (`r2r documents create <pdf> --metadata '{"book_title":"…"}'`) and R2R/Unstructured.io will OCR it — see [`quickstart.md`](./quickstart.md) Steps 3b–4. Client-side OCR runs inside the `ingest_books.py` command, so Vol III is fully ingested by the time it returns; if a book is missing, re-run `verify_ingestion.py --all`.
+> **Choosing an OCR path.** The default is **tesseract** (CPU; needs only the host `tesseract` binary — see [`quickstart.md`](./quickstart.md)), and it handles the bundled scans fine. For sharper OCR on a GPU you can opt into **EasyOCR** via uv `--with` — see the bulk-ingestion section of [`quickstart.md`](./quickstart.md). Prefer **server-side** OCR? In Docker Full Mode, ingest an image PDF *directly* (`r2r documents create <pdf> --metadata '{"book_title":"…"}'`) and R2R/Unstructured.io will OCR it. Client-side OCR runs inside the `ingest_books.py` command, so Vol III is fully ingested by the time it returns; if a book is missing, re-run `verify_ingestion.py --all`.
 
 ### 7. Build the vault graph (on the host)
 
@@ -200,7 +198,7 @@ Prompt:
 
 > Summarize what's in Volume III.
 
-**Expected**: Coherent text content comes back — chapter titles, topic descriptions, named entities. Volume III is the image-only PDF; the fact that any meaningful text returns at all means its scanned pages were OCR'd during ingest (client-side via EasyOCR/Kreuzberg in `ingest_books.py`) and R2R chunked and embedded the result.
+**Expected**: Coherent text content comes back — chapter titles, topic descriptions, named entities. Volume III is the image-only PDF; the fact that any meaningful text returns at all means its scanned pages were OCR'd during ingest (client-side via Kreuzberg/tesseract in `ingest_books.py`) and R2R chunked and embedded the result.
 
 **Proves**: The image-PDF OCR ingestion path works end to end — scanned pages become searchable lore. (The same result is achievable server-side via R2R/Unstructured.io in Docker Full Mode by ingesting the PDF directly; see [`quickstart.md`](./quickstart.md) Steps 3b–4.)
 
@@ -274,7 +272,7 @@ Then prompt:
 | Demo | Capability proven |
 |---|---|
 | A | Multi-book semantic search across the ingested corpus with citation metadata, via the `sourcebooks` MCP. |
-| B | OCR ingestion of image-only PDFs — scanned pages become searchable (client-side EasyOCR/Kreuzberg by default; server-side Unstructured.io also supported). |
+| B | OCR ingestion of image-only PDFs — scanned pages become searchable (client-side Kreuzberg/tesseract by default; server-side Unstructured.io also supported). |
 | C | The `worldbuilding` skill synthesizes vault canon + sourcebook research into a new note with correct frontmatter, asks before writing, refreshes the graph. |
 | D | The `session-creation` skill orchestrates the 8 Steps of the Lazy DM + Situations Checklist into a fully structured session folder. |
 | E | The `vault-scout` skill dispatches mechanical sweeps to Haiku, keeping main-agent context clean and token costs low. |
@@ -288,7 +286,7 @@ To replace the Grunvyr_Campaign demo content with your own vault and sourcebooks
 - **`docker compose … ps` says "depends on undefined service postgres: invalid compose project"** — the `postgres` service is scoped to the `postgres` profile in `compose.full.yaml`. Either run `export COMPOSE_PROFILES=postgres` once in your shell (recommended), or pass `--profile postgres` on every compose invocation (`ps`, `logs`, `down`, etc.).
 - **`wait-for-hatchet-grpc` exits with `TIMEOUT: hatchet gRPC not reachable after 300s`** — hatchet-engine never bound port 7077 in time. The most common cause is a stale `docker/env/hatchet.env` from before the `SERVER_GRPC_PORT=7077` fix landed — re-copy `hatchet.env.example` over your `hatchet.env` and `docker compose -f docker/compose.full.yaml down -v` to reset volumes, then `up -d` again. If it still times out, check `docker compose logs hatchet-engine` for the engine's own crash output.
 - **`curl http://localhost:7272/v3/health` returns `curl: (56) Recv failure: Connection reset by peer`** — r2r isn't actually ready. Run `docker compose -f docker/compose.full.yaml ps`: if r2r is `restarting`, `health: starting`, or has a much lower uptime than the rest of the stack, run `docker compose -f docker/compose.full.yaml logs r2r --tail 100` and look at the last error. Common remaining causes are Postgres auth misconfig (check `docker/env/r2r-full.env`), Ollama unreachable from inside the container (check `host.docker.internal:11434` is responding on the host), or an OCR-pipeline import failure.
-- **Vol III ingest takes 5+ minutes** — `ingest_books.py` is OCRing 16 image pages client-side. With EasyOCR on a CPU (no GPU) this is slow but normal; for a faster CPU run set `KREUZBERG_OCR_ENGINE=tesseract`. The command blocks until OCR finishes and then ingests, so the two text-native books (which ingest near-instantly) will already show `ingestion: success` in `verify_ingestion.py --all`.
+- **Vol III ingest takes a few minutes** — `ingest_books.py` is OCRing 16 image pages client-side with the default tesseract backend (CPU); that's normal. For sharper/GPU OCR, opt into EasyOCR (see [`quickstart.md`](./quickstart.md)). The command blocks until OCR finishes and then ingests, so the two text-native books (which ingest near-instantly) will already show `ingestion: success` in `verify_ingestion.py --all`.
 - **Devcontainer build fails on pip install** — usually a network issue. Verify outbound HTTPS to pypi.org works from the host; try rebuilding (`Dev Containers: Rebuild Container`).
 - **R2R container can't reach Ollama** — verify the host can reach itself at `host.docker.internal:11434` from inside Docker. On Linux, the `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles this; on macOS, Docker Desktop maps it automatically.
 - **`/mcp` shows 0 servers** — check that the paths in your `.mcp.json` resolve inside the container. The workspace is mounted at `/workspaces/R2R-ClaudeCode-integration/` (not `/workspace/`).

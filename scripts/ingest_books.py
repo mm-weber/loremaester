@@ -4,8 +4,7 @@
 # dependencies = [
 #   "r2r",
 #   "pdfplumber",
-#   "kreuzberg[easyocr]>=4.5.0",
-#   "torch==2.9.1+cu126",
+#   "kreuzberg>=4.5.0",
 # ]
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
@@ -14,15 +13,19 @@ Routes image-heavy PDFs through Kreuzberg (host-side OCR) to sidestep the
 single-instance Unstructured container bottleneck. Text-native PDFs still
 go through R2R's native parsing so chunking metadata stays consistent.
 
-OCR engine / language can be overridden via env:
-    KREUZBERG_OCR_ENGINE    easyocr (default, GPU via torch+CUDA) | tesseract (CPU only) | paddleocr
-    KREUZBERG_OCR_LANGUAGE  en (default) — Kreuzberg language code. Two-letter
-                            (ISO 639-1) for easyocr/paddleocr, three-letter
-                            (ISO 639-3, e.g. "eng") for tesseract.
+OCR defaults to tesseract (CPU; needs only the system `tesseract` binary) —
+robust and dependency-light. Override the backend/language via env:
+    KREUZBERG_OCR_ENGINE    tesseract (default) | easyocr | paddleocr
+    KREUZBERG_OCR_LANGUAGE  en (default; "eng" also works for tesseract).
+                            ISO 639-1 (en, de) for easyocr/paddleocr;
+                            ISO 639-3 (eng, deu) for tesseract.
 
-PaddleOCR note — the paddleocr backend requires extra deps not pinned here
-(paddleocr + paddlepaddle-gpu from the PaddlePaddle index). Tesseract is
-CPU-only; there is no GPU build. For GPU OCR, stick with easyocr.
+The neural backends are heavier opt-ins and are NOT in this script's default
+deps — install them for the run with uv `--with`. EasyOCR (GPU via torch+CUDA,
+sharper on noisy scans): set KREUZBERG_OCR_ENGINE=easyocr and add
+`--with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126'` plus the
+PyTorch cu126 index flags (see docs/quickstart.md). PaddleOCR: add
+`--with 'kreuzberg[paddleocr]'` (+ paddlepaddle from its own index).
 """
 
 import hashlib
@@ -36,7 +39,7 @@ from r2r import R2RClient
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only
 IMAGE_ONLY_THRESHOLD = 0.1
-OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "easyocr")
+OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract")
 OCR_LANGUAGE = os.environ.get("KREUZBERG_OCR_LANGUAGE", "en")
 # Only consulted when OCR_ENGINE == "paddleocr". "server" = ~172 MB GPU-optimized;
 # "mobile" = ~21 MB CPU. Kreuzberg defaults to "mobile" otherwise.

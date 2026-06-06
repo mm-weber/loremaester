@@ -80,7 +80,7 @@ uv pip install pdfplumber pdf2image Pillow pytesseract
 # Optional: uv pip install surya-ocr  (Python-native OCR, no system deps)
 ```
 
-> **Note:** These system packages are only for the standalone `scripts/ocr_preprocess.py` path. The main bulk-ingest script `scripts/ingest_books.py` OCRs image PDFs via Kreuzberg/EasyOCR (installed on demand, no system packages), and Full Mode OCRs server-side via Unstructured.io.
+> **Note:** With its default **tesseract** backend, `scripts/ingest_books.py` needs the system `tesseract` binary (above); the opt-in EasyOCR backend brings its own (torch-based) OCR instead. `scripts/ocr_preprocess.py` also uses these packages. Full Mode OCRs server-side via Unstructured.io.
 
 ---
 
@@ -329,8 +329,8 @@ Are your PDFs scanned (image-only or mixed)?
 +-- Yes -- pick an OCR path:
 |   +-- Server-side (Docker Full Mode): ingest the PDF *directly* so R2R/Unstructured.io OCRs it
 |   |       e.g. r2r documents create book.pdf --metadata '{"book_title":"..."}'   (no client OCR deps)
-|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image PDFs via Kreuzberg/EasyOCR
-|           (EasyOCR needs torch+CUDA; set KREUZBERG_OCR_ENGINE=tesseract for CPU)
+|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image PDFs via Kreuzberg (tesseract by default)
+|           (tesseract by default, CPU; opt into EasyOCR for GPU — see "Bulk Ingestion Script")
 +-- No, they're text-native
     +-- Ingest directly, or via scripts/ingest_books.py (Step 4)
 ```
@@ -384,41 +384,40 @@ SHA1 content-hash deduplication, and client-side OCR for scanned books:
   In Docker Full Mode this means Unstructured.io parses them server-side.
 - **Image-only PDFs** (detected by pdfplumber: <10% of pages have extractable
   text) → OCR'd client-side via [Kreuzberg](https://kreuzberg.dev/) with
-  EasyOCR as the default backend (GPU-accelerated via torch+CUDA), then
-  pushed to R2R as `raw_text`.
+  **tesseract** as the default backend (CPU; needs only the system `tesseract`
+  binary), then pushed to R2R.
 
 Run it with `uv run` — the script declares its own dependencies inline:
 
 ```bash
-uv run --no-project --python 3.12 \
+uv run --no-project scripts/ingest_books.py /path/to/sourcebooks/
+```
+
+Tesseract is the default because it's robust and dependency-light — no torch,
+no GPU. Install the binary first: `apt install tesseract-ocr tesseract-ocr-eng`
+(Debian/Ubuntu) or `brew install tesseract` (macOS).
+
+#### Higher-quality OCR: EasyOCR (opt-in, GPU)
+
+EasyOCR (torch+CUDA) is often sharper on noisy scans, but it's heavy and not in
+the script's default deps. Add it for the run with uv `--with`:
+
+```bash
+KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py /path/to/sourcebooks/
 ```
 
-The two uv flags are needed because the script pins `torch==2.9.1+cu126`, a
-local-version variant only published on PyTorch's own index. Skip them and
-uv won't find the CUDA-bound wheel. (See Troubleshooting if you hit
-`driver too old` or dependency-resolution errors.)
+The `--extra-index-url`/`--index-strategy` flags fetch `torch==2.9.1+cu126`, a
+local-version variant only published on PyTorch's own index (see Troubleshooting
+if you hit `driver too old` or resolution errors). PaddleOCR is analogous: add
+`--with 'kreuzberg[paddleocr]'` (+ paddlepaddle from its own index).
 
-#### OCR backend selection
-
-The default (`easyocr`) runs on GPU via torch+CUDA and needs no extra
-system packages. Two env-var overrides if you want to swap backends:
-
-```bash
-# Tesseract — CPU only. Requires `apt install tesseract-ocr tesseract-ocr-eng`
-KREUZBERG_OCR_ENGINE=tesseract KREUZBERG_OCR_LANGUAGE=eng \
-  uv run --no-project --python 3.12 scripts/ingest_books.py <pdf-dir>
-
-# PaddleOCR — needs paddlepaddle-gpu from PaddlePaddle's own index (not pinned
-# here because it doesn't live on PyPI). Only worth the trouble for languages
-# EasyOCR doesn't cover well.
-```
-
-Note the language code difference: `easyocr`/`paddleocr` take ISO 639-1
-two-letter codes (`en`, `de`), tesseract takes ISO 639-3 three-letter
-codes (`eng`, `deu`).
+Language codes differ by engine: tesseract takes ISO 639-3 three-letter codes
+(`KREUZBERG_OCR_LANGUAGE=eng`, `deu`); easyocr/paddleocr take ISO 639-1
+two-letter codes (`en`, `de`).
 
 ### Ingesting Image PDFs Without Docker Full Mode
 

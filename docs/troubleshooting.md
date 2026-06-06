@@ -50,16 +50,17 @@
 
 **Cause:** Poor OCR quality on the original scanned pages.
 
-**Fix:** Re-ingest with a different OCR engine. `scripts/ingest_books.py` defaults to EasyOCR (GPU via torch+CUDA); override with `KREUZBERG_OCR_ENGINE=tesseract` for CPU, or try `paddleocr` if you have the paddlepaddle-gpu deps installed. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but fragile on multi-column layouts.
+**Fix:** Re-ingest with a different OCR engine. `scripts/ingest_books.py` defaults to tesseract (CPU); for sharper results on noisy scans opt into EasyOCR (GPU via torch+CUDA — see the bulk-ingestion section of [quickstart.md](./quickstart.md)), or try `paddleocr`. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but can struggle on multi-column layouts.
 
 ### `scripts/ingest_books.py` fails with `kreuzberg returned empty text`
 
 **Cause:** The selected OCR backend ran but extracted zero usable text. We've observed this specifically with `paddleocr` on heavily scanned older TSR-era PDFs; EasyOCR handles the same files fine.
 
-**Fix:** Switch to EasyOCR (the current default) or tesseract. Full command:
+**Fix:** Switch OCR engine. Tesseract is the default; for a stubborn scan, opt into EasyOCR (its deps are added for the run via `--with`):
 
 ```bash
 KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py <pdf-dir>
@@ -69,10 +70,11 @@ KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
 
 **Cause:** The default PyPI `torch==2.9.1` wheel is built against CUDA 12.8 libs with a minimum-driver check that rejects even fresh CUDA-12.8 drivers (`12080`). After this warning fires, torch silently falls back to CPU and EasyOCR runs without GPU — an hour per book instead of minutes.
 
-**Fix:** The script already pins `torch==2.9.1+cu126` in its PEP 723 deps, but uv only picks up the cu126 variant if you point at PyTorch's own index:
+**Fix:** Pin the CUDA build on the EasyOCR opt-in run (`--with 'torch==2.9.1+cu126'`); uv only picks up the cu126 variant if you also point at PyTorch's own index:
 
 ```bash
-uv run --no-project --python 3.12 \
+KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py <pdf-dir>
