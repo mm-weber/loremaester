@@ -399,6 +399,11 @@ Tesseract is the default because it's robust and dependency-light — no torch,
 no GPU. Install the binary first: `apt install tesseract-ocr tesseract-ocr-eng`
 (Debian/Ubuntu) or `brew install tesseract` (macOS).
 
+> **Re-running is safe (idempotent).** Books already in R2R come back as `already exists` and are
+> reported as **SKIPPED**, not failed. The final line counts `succeeded / skipped / failed`
+> separately, so a second run on a populated corpus shows everything skipped and **0 failed**. To
+> force a re-ingest (e.g. after switching OCR engine), delete the document(s) in R2R first.
+
 #### Higher-quality OCR: EasyOCR (opt-in, GPU)
 
 EasyOCR (torch+CUDA) is often sharper on noisy scans, but it's heavy and not in

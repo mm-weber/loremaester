@@ -72,6 +72,16 @@ OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
   scripts/ingest_books.py <pdf-dir>
 ```
 
+### Re-running ingest reports books as "skipped" (e.g. "0 succeeded, N skipped")
+**Cause:** Not an error — `scripts/ingest_books.py` is idempotent. R2R refuses to re-create a
+document that already exists, and the script reports those as **SKIPPED** (the summary counts
+`succeeded / skipped / failed` separately). A re-run on an already-populated corpus correctly shows
+everything skipped with **0 failed**.
+
+**Fix:** Nothing — this is expected. To genuinely re-ingest (e.g. after changing the OCR engine),
+delete the existing document(s) in R2R first (`r2r documents delete <id>`, or via the dashboard),
+then re-run.
+
 ### `torch` warns `CUDA initialization: driver too old (found version 12080)`
 
 **Cause:** The default PyPI `torch==2.9.1` wheel is built against CUDA 12.8 libs with a minimum-driver check that rejects even fresh CUDA-12.8 drivers (`12080`). After this warning fires, torch silently falls back to CPU and EasyOCR runs without GPU — an hour per book instead of minutes.
