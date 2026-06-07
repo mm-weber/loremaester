@@ -14,7 +14,7 @@ kreuzberg consumers, update tests and docs, and drop the dependency.
 | Phase | Status | Progress |
 | ----- | ------ | -------- |
 | Phase 1: Shared OCR module | [x] Complete | 100% |
-| Phase 2: Rewire ingest_books.py | [ ] Not started | 0% |
+| Phase 2: Rewire ingest_books.py | [x] Complete | 100% |
 | Phase 3: Rewire extract_text.py + tests | [ ] Not started | 0% |
 | Phase 4: Docs, licenses, cleanup | [ ] Not started | 0% |
 
@@ -27,7 +27,7 @@ Per-page by construction (never hands the whole document to one OCR call).
 - [x] 1.2 Per-page OCR: tesseract (`image_to_string` + dict-based confidence) and easyocr (one reused `Reader`, `readtext` per page). (RED/GREEN-2, -3)
 - [x] 1.3 `ocr_pdf` orchestration: per-page loop, `[Page N]` concat in order, confidence aggregation (mean + low-confidence pages). (RED/GREEN-1, -4)
 - [x] 1.4 Robustness: actionable `RuntimeError` for missing pypdfium2/tesseract/easyocr; document-identifying error when all pages OCR empty. (RED/GREEN-6, -7)
-- [ ] 1.5 (DEFERRED → Phase 2) Port `print_easyocr_diagnostics` / `describe_extraction` — they move with the `ingest_books.py` rewiring where the originals live.
+- [x] 1.5 (done in Phase 2) Diagnostics resolved: kept `print_easyocr_diagnostics` (torch/CUDA banner) in `ingest_books.py`; removed the kreuzberg-only `describe_extraction`.
 
 ### Verification
 - [x] `python3 -m pytest scripts/test_ocr_extract.py -q` → **7 passed**; per-page proven (ocr_image called once per page; easyocr `Reader` built once).
@@ -39,14 +39,13 @@ Per-page by construction (never hands the whole document to one OCR call).
 
 ## Phase 2: Rewire ingest_books.py
 ### Tasks
-- [ ] 2.1 Replace `ingest_via_kreuzberg` (~lines 171-211) with a call to `ocr_extract.ocr_pdf`;
-      keep `is_image_pdf`, SHA1 dedup, and the temp-`.txt` `file_path` ingest.
-- [ ] 2.2 PEP 723: drop `kreuzberg`; add `pypdfium2`, `pytesseract`; keep `easyocr`/`torch` as `--with` opt-ins.
-- [ ] 2.3 Rename `KREUZBERG_OCR_ENGINE`/`_LANGUAGE` → `OCR_ENGINE`/`OCR_LANGUAGE` (old names as
-      fallback); drop `KREUZBERG_OCR_MODEL_TIER`.
+- [x] 2.1 Replaced `ingest_via_kreuzberg` with `ingest_via_ocr` (calls `ocr_extract.ocr_pdf`); kept `is_image_pdf`, SHA1 dedup, temp-`.txt` `file_path` ingest; removed kreuzberg-only `describe_extraction`. (RED/GREEN P2-1 + cleanup)
+- [x] 2.2 PEP 723: dropped `kreuzberg`; added `pypdfium2`, `pytesseract`; `easyocr`/`torch` remain `--with` opt-ins.
+- [x] 2.3 Env: `OCR_ENGINE`/`OCR_LANGUAGE` canonical (legacy `KREUZBERG_*` honored as fallback); dropped `KREUZBERG_OCR_MODEL_TIER`.
 
 ### Verification
-- [ ] tesseract run ingests all 4 books including Vol III (image-only).
+- [x] `python3 -m pytest scripts/test_ingest_books.py scripts/test_ocr_extract.py -q` → 8 passed; `import kreuzberg` / `ingest_via_kreuzberg` / `describe_extraction` gone from `ingest_books.py` (only the legacy `KREUZBERG_*` env-fallback strings remain).
+- [ ] Owner end-to-end (deferred to track end): real `uv run` — tesseract ingests all 4 books incl. Vol III (image-only).
 
 ### Checkpoint
 `[remove-kreuzberg_20260606] checkpoint: phase 2 complete`
