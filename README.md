@@ -112,6 +112,7 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 - **[Design](docs/design.md)** — Architecture decisions, component map, workflow
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues, database resets, multi-instance debugging
 - **[Requirements](requirements/)** — v0.2 requirements and design-review notes (sourcebooks MCP review + OCR/licensing follow-ups)
+- **[Changelog](CHANGELOG.md)** — notable changes per release (Keep a Changelog + SemVer)
 
 ## Multi-Instance Deployment
 
