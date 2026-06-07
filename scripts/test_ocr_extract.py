@@ -131,3 +131,54 @@ class TestResolveEngine:
 
     def test_tesseract_passes_through(self):
         assert resolve_engine("tesseract") == "tesseract"
+
+
+class TestExtractPdfFigures:
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    @patch("ocr_extract.pdfplumber")
+    def test_figure_region_ocrd_and_appended(self, mock_pdfplumber, mock_render, mock_ocr_image):
+        page = MagicMock()
+        page.extract_text.return_value = "body text"
+        page.width = 600; page.height = 800
+        page.images = [{"x0": 100, "top": 200, "x1": 300, "bottom": 400}]  # a figure (not full-page)
+        mock_pdf = MagicMock(); mock_pdf.pages = [page]
+        mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
+        rendered = MagicMock(); rendered.width = 1200; rendered.height = 1600
+        mock_render.return_value = [rendered]
+        mock_ocr_image.return_value = PageOcrResult(1, "FIGURE LABEL", 0.9)
+        result = extract_pdf("/x.pdf", engine="tesseract")
+        assert result.content == "[Page 1]\nbody text\nFIGURE LABEL"
+        assert mock_ocr_image.call_count == 1
+
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    @patch("ocr_extract.pdfplumber")
+    def test_figure_crop_maps_points_to_pixels(self, mock_pdfplumber, mock_render, mock_ocr_image):
+        page = MagicMock()
+        page.extract_text.return_value = "body"
+        page.width = 600; page.height = 800
+        page.images = [{"x0": 100, "top": 200, "x1": 300, "bottom": 400}]
+        mock_pdf = MagicMock(); mock_pdf.pages = [page]
+        mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
+        rendered = MagicMock(); rendered.width = 1200; rendered.height = 1600  # scale x2
+        mock_render.return_value = [rendered]
+        mock_ocr_image.return_value = PageOcrResult(1, "X", 0.9)
+        extract_pdf("/x.pdf", engine="tesseract")
+        rendered.crop.assert_called_once_with((200, 400, 600, 800))  # bbox x (1200/600, 1600/800)
+
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    @patch("ocr_extract.pdfplumber")
+    def test_full_page_image_skipped_when_text_layer(self, mock_pdfplumber, mock_render, mock_ocr_image):
+        page = MagicMock()
+        page.extract_text.return_value = "body text"
+        page.width = 600; page.height = 800
+        page.images = [{"x0": 0, "top": 0, "x1": 600, "bottom": 800}]  # full-page image
+        mock_pdf = MagicMock(); mock_pdf.pages = [page]
+        mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
+        mock_render.return_value = [MagicMock(width=1200, height=1600)]
+        mock_ocr_image.return_value = PageOcrResult(1, "SHOULD NOT APPEAR", 0.9)
+        result = extract_pdf("/x.pdf", engine="tesseract")
+        assert result.content == "[Page 1]\nbody text"
+        assert mock_ocr_image.call_count == 0
