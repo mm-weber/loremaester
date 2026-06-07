@@ -1,6 +1,6 @@
 # Worldbuilding skill — evaluation workspace
 
-This directory holds an **A/B evaluation** of the [`worldbuilding` skill](../worldbuilding/SKILL.md).
+This directory holds an **A/B evaluation** of the [`worldbuilding` skill](../../skills/worldbuilding/SKILL.md).
 Each scenario was run twice against the same fixture vault — once **with** the skill active and once
 **without** it (baseline Claude Code) — so you can read the two outputs side by side and judge what
 the skill adds.
@@ -13,7 +13,8 @@ real campaign.
 ## Layout
 
 ```
-worldbuilding-workspace/
+evals/worldbuilding/
+├── evals.json                   # eval definitions (eval_id → prompt, assertions)
 └── iteration-1/
     ├── eval-create-faction/      # scenario 1
     │   ├── eval_metadata.json    # { eval_id, eval_name, prompt, assertions }
@@ -61,4 +62,4 @@ Across these runs, the skill-driven outputs consistently:
   "Decisions for GM Review" section (alignment, aliases, inferred governance model) flagging creative
   additions for confirmation; the baseline does not.
 
-See [`../worldbuilding/SKILL.md`](../worldbuilding/SKILL.md) for the skill definition these runs exercise.
+See [`../../skills/worldbuilding/SKILL.md`](../../skills/worldbuilding/SKILL.md) for the skill definition these runs exercise.
