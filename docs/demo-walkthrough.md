@@ -274,7 +274,7 @@ Then prompt:
 | Demo | Capability proven |
 |---|---|
 | A | Multi-book semantic search across the ingested corpus with citation metadata, via the `sourcebooks` MCP. |
-| B | OCR ingestion of image-only PDFs — scanned pages become searchable (client-side pypdfium2 + tesseract/easyocr by default; server-side Unstructured.io also supported). |
+| B | OCR ingestion of image-only and mixed PDFs — scanned pages become searchable (client-side per-page hybrid: pypdfium2 + tesseract/easyocr by default; server-side Unstructured.io also supported). |
 | C | The `worldbuilding` skill synthesizes vault canon + sourcebook research into a new note with correct frontmatter, asks before writing, refreshes the graph. |
 | D | The `session-creation` skill orchestrates the 8 Steps of the Lazy DM + Situations Checklist into a fully structured session folder. |
 | E | The `vault-scout` skill dispatches mechanical sweeps to Haiku, keeping main-agent context clean and token costs low. |

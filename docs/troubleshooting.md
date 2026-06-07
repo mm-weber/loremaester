@@ -42,15 +42,15 @@
 
 ### Search returns no results for an ingested book
 
-**Cause:** The PDF is an image-only scan and was ingested in Light Mode, which cannot extract text from images.
+**Cause:** The PDF is an image-only (or mixed) scan that was ingested **directly** (e.g. `r2r documents create` or the `r2r` MCP) in Light Mode, which has no server-side OCR — so its scanned pages produced no text.
 
-**Fix:** Use Docker Full Mode (Unstructured.io handles OCR automatically) or preprocess the PDF on the host with `scripts/ocr_preprocess.py` before ingesting.
+**Fix:** Ingest it with `scripts/ingest_books.py` instead, which OCRs scanned pages client-side in *any* mode (it auto-routes image-only and mixed PDFs to the per-page hybrid). Or use Docker Full Mode, where Unstructured.io OCRs server-side. (If you already ingested an empty copy, delete it in R2R first — see the idempotency note in [quickstart.md](./quickstart.md).)
 
 ### Search returns garbled or nonsensical text
 
 **Cause:** Poor OCR quality on the original scanned pages.
 
-**Fix:** Re-ingest with a different OCR engine. `scripts/ocr_extract.py` (driven via `scripts/ingest_books.py`) defaults to tesseract (CPU); for sharper results on noisy scans opt into EasyOCR (GPU via torch+CUDA — see the bulk-ingestion section of [quickstart.md](./quickstart.md)) by setting `OCR_ENGINE=easyocr`. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but can struggle on multi-column layouts. Set `OCR_LANGUAGE` to match the document (tesseract uses ISO 639-3, e.g. `eng`/`deu`; easyocr uses ISO 639-1, e.g. `en`/`de`).
+**Fix:** Re-ingest with a different OCR engine (delete the existing document in R2R first — otherwise the re-run is idempotent and the book is **SKIPPED**; see the idempotency note in [quickstart.md](./quickstart.md)). `scripts/ocr_extract.py` (driven via `scripts/ingest_books.py`) defaults to tesseract (CPU); for sharper results on noisy scans opt into EasyOCR (GPU via torch+CUDA — see the bulk-ingestion section of [quickstart.md](./quickstart.md)) by setting `OCR_ENGINE=easyocr`. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but can struggle on multi-column layouts. Set `OCR_LANGUAGE` to match the document (tesseract uses ISO 639-3, e.g. `eng`/`deu`; easyocr uses ISO 639-1, e.g. `en`/`de`).
 
 ### Image PDF ingested with no text / "easyocr produced no text"
 
@@ -120,9 +120,9 @@ Check your `~/.zshrc` / `~/.bashrc` if the variable keeps coming back — an old
 
 ### `detect_pdf_type.py` says "mixed"
 
-**Cause:** The PDF contains a mix of text-native pages and image-only pages.
+**Cause:** The PDF contains a mix of text-native pages and image-only (scanned) pages.
 
-**Fix:** Ingest in Docker Full Mode (Unstructured handles both types). Alternatively, preprocess just the image pages with `scripts/ocr_preprocess.py`.
+**Fix:** No special handling needed — `scripts/ingest_books.py` auto-routes mixed PDFs to the per-page **hybrid** extractor, which keeps each page's text layer where it has one and OCRs only the scanned pages (and embedded figure regions) client-side. Docker Full Mode (server-side Unstructured.io) also handles both types.
 
 ### "No books found" from `list_books`
 

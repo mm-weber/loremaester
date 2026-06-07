@@ -34,7 +34,7 @@ R2R handles **embedding and retrieval only** — all reasoning is done by Claude
 
 **Plus:**
 - Docker Compose deployment (single-stack or multi-instance)
-- PDF ingestion with OCR support (via Unstructured.io)
+- PDF ingestion with OCR — client-side per-page by default (any mode), or server-side via Unstructured.io in Full Mode
 - Vault wikilink graph builder
 - Worldbuilding skill that orchestrates the full workflow
 
@@ -77,7 +77,7 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 │   ├── build_vault_graph.py       # Parse [[wikilinks]] → .graph.json
 │   ├── extract_text.py            # OCR text extraction (pypdfium2 + tesseract/easyocr)
 │   ├── ocr_extract.py             # Shared OCR engine: pypdfium2 render + per-page tesseract/easyocr
-│   ├── detect_pdf_type.py         # Classify PDFs (text-native vs image)
+│   ├── detect_pdf_type.py         # Classify PDFs (text-native / image-only / mixed)
 │   ├── ingest_books.py            # Bulk PDF ingestion
 │   └── verify_ingestion.py        # Post-ingestion quality checks
 ├── plugins/

@@ -20,7 +20,7 @@ Claude Code's built-in `Read`, `Write`, `Grep`, and `Glob` tools operate directl
 
 ### 2. R2R Semantic Search → Scanned Source Books
 
-Source books are scanned/image-based PDFs that can't be read with file tools. They're ingested into R2R (a RAG pipeline) which handles OCR, chunking, and vector indexing. Claude queries them through MCP tools that wrap R2R's Python SDK, getting back relevant passages with book/chapter/page metadata.
+Source books are scanned/image-based PDFs that can't be read with file tools. They're ingested into R2R (a RAG pipeline) for chunking and vector indexing; scanned pages are OCR'd to text first — client-side per-page by default (`scripts/ingest_books.py`, which also captures the scanned pages and figures of *mixed* PDFs), or server-side via Unstructured.io in Full Mode. Claude queries them through MCP tools that wrap R2R's Python SDK, getting back relevant passages with book/chapter/page metadata.
 
 ### 3. MCP Servers → Integration Layer
 
@@ -133,7 +133,7 @@ R2R-ClaudeCode-integration/
 ├── scripts/
 │   ├── build_vault_graph.py   # D4: Parse [[wikilinks]] → .graph.json
 │   ├── detect_pdf_type.py     # Classify PDFs as text-native / image-only / mixed
-│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R, image→ocr_extract)
+│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R native, image-only|mixed→ocr_extract hybrid)
 │   ├── ocr_preprocess.py      # Standalone OCR via pytesseract/surya (non-ingesting)
 │   ├── extract_text.py        # Standalone OCR text extraction (pypdfium2 + tesseract/easyocr)
 │   ├── ocr_extract.py         # Shared OCR engine: pypdfium2 render + per-page tesseract/easyocr

@@ -319,7 +319,7 @@ Old_Campaign_Guide.pdf     mixed        (200 of 400 pages have extractable text)
 |--------|---------|----------------|
 | `text-native` | >= 90% of pages have extractable text | Direct ingestion (Step 4) |
 | `image-only` | >= 90% of pages have no extractable text | Needs OCR (see decision tree below) |
-| `mixed` | Some pages have text, some don't | Treat as image-only for best results |
+| `mixed` | Some pages have text, some don't | Auto-OCR'd per-page by `ingest_books.py` (Step 4) — text layer kept, scanned pages OCR'd |
 
 ### 3b. Choose Your Ingestion Path
 
@@ -330,7 +330,7 @@ Are your PDFs scanned (image-only or mixed)?
 +-- Yes -- pick an OCR path:
 |   +-- Server-side (Docker Full Mode): ingest the PDF *directly* so R2R/Unstructured.io OCRs it
 |   |       e.g. r2r documents create book.pdf --metadata '{"book_title":"..."}'   (no client OCR deps)
-|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image PDFs (pypdfium2 render + tesseract)
+|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image-only AND mixed PDFs per-page (pypdfium2 + tesseract)
 |           (tesseract by default, CPU; opt into EasyOCR for GPU — see "Bulk Ingestion Script")
 +-- No, they're text-native
     +-- Ingest directly, or via scripts/ingest_books.py (Step 4)
@@ -378,16 +378,20 @@ r2r documents create /path/to/book.pdf \
 ### Bulk Ingestion Script
 
 The repo ships `scripts/ingest_books.py`, a PEP 723-style single-file script
-that bulk-ingests a folder of PDFs with automatic image-vs-text routing,
-SHA1 content-hash deduplication, and client-side OCR for scanned books:
+that bulk-ingests a folder of PDFs with automatic content-based routing,
+SHA1 content-hash deduplication, and client-side OCR for scanned books. Each
+PDF is classified by `scripts/detect_pdf_type.py` (text-native if ≥90% of pages
+have a text layer, image-only if ≤10%, mixed in between) and routed accordingly:
 
 - **Text-native PDFs** → forwarded to R2R via `documents.create(file_path=…)`.
   In Docker Full Mode this means Unstructured.io parses them server-side.
-- **Image-only PDFs** (detected by pdfplumber: <10% of pages have extractable
-  text) → OCR'd client-side by `scripts/ocr_extract.py`, which renders each page
-  with **pypdfium2** and OCRs it per page with **tesseract** as the default
-  engine (CPU; needs only the system `tesseract` binary, no poppler), then pushed
-  to R2R.
+- **Image-only *and* mixed PDFs** → extracted client-side by
+  `scripts/ocr_extract.py`'s per-page **hybrid**: each page keeps its embedded
+  text layer where it has one, and only the pages — or the embedded figure
+  regions — that lack text are rendered with **pypdfium2** and OCR'd. So a mixed
+  book's scanned pages (and figures) are captured instead of being lost to native
+  parsing. The default OCR engine is **tesseract** (CPU; needs only the system
+  `tesseract` binary, no poppler); the extracted text is then pushed to R2R.
 
 Run it with `uv run` — the script declares its own dependencies inline:
 
@@ -427,6 +431,11 @@ legacy `KREUZBERG_OCR_ENGINE` is still honored as a fallback. Language codes
 differ by engine: tesseract takes ISO 639-3 three-letter codes
 (`OCR_LANGUAGE=eng`, `deu`); easyocr takes ISO 639-1 two-letter codes
 (`OCR_LANGUAGE=en`, `de`).
+
+> **Auto-fallback.** If you request `OCR_ENGINE=easyocr` but no usable CUDA GPU
+> is detected, `ingest_books.py` automatically falls back to **tesseract** (CPU)
+> and prints a notice — so a GPU-less run still completes instead of silently
+> producing empty text.
 
 ### Ingesting Image PDFs Without Docker Full Mode
 
