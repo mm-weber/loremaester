@@ -150,17 +150,25 @@ Check your `~/.zshrc` / `~/.bashrc` if the variable keeps coming back — an old
 
 ## R2R Service Issues
 
+> Commands below assume **Light Mode** (`docker/compose.yaml`, the recommended default). On Full Mode, substitute `-f docker/compose.full.yaml --profile postgres`.
+
 ### R2R container keeps restarting
 
-**Cause:** A dependency service (Postgres, Hatchet, RabbitMQ) is not healthy or has crashed.
+**Cause:** A dependency service (Postgres or MinIO — or, in Full Mode, Hatchet/RabbitMQ) is not healthy or has crashed.
 
-**Fix:** Check service status with `docker compose -f docker/compose.full.yaml --profile postgres ps -a`. Inspect logs for the failing service with `docker compose -f docker/compose.full.yaml --profile postgres logs <service>`.
+**Fix:** Check service status with `docker compose -f docker/compose.yaml --profile postgres --profile minio ps -a`. Inspect logs for the failing service with `docker compose -f docker/compose.yaml --profile postgres --profile minio logs <service>`.
+
+### `wait-for-hatchet-grpc` times out (Full Mode)
+
+**Cause:** In Full Mode, a short-lived `wait-for-hatchet-grpc` init container gates R2R startup on Hatchet's gRPC port (7077). If it exits with `TIMEOUT: hatchet gRPC not reachable after 300s`, hatchet-engine never bound the port in time — most often a stale `docker/env/hatchet.env` from before the `SERVER_GRPC_PORT=7077` fix landed.
+
+**Fix:** Re-copy the template (`cp docker/env/hatchet.env.example docker/env/hatchet.env`), reset volumes with `docker compose -f docker/compose.full.yaml --profile postgres down -v`, then `up -d` again. If it still times out, check `docker compose -f docker/compose.full.yaml logs hatchet-engine` for the engine's own crash output.
 
 ### R2R starts but embeddings fail
 
 **Cause:** The embedding model is not available, or the R2R config points at the wrong provider.
 
-**Fix:** If using Ollama, verify `ollama list` shows `mxbai-embed-large`. Check R2R logs with `docker compose -f docker/compose.full.yaml logs r2r` for specific error messages.
+**Fix:** If using Ollama, verify `ollama list` shows `mxbai-embed-large`. Check R2R logs with `docker compose -f docker/compose.yaml logs r2r` for specific error messages.
 
 ---
 
@@ -188,35 +196,36 @@ Check your `~/.zshrc` / `~/.bashrc` if the variable keeps coming back — an old
 
 ## Resetting the Database
 
+> Commands assume **Light Mode** (`docker/compose.yaml`). On Full Mode, substitute `-f docker/compose.full.yaml --profile postgres`.
+
 ### Full Reset (nuclear option)
 
 Stop all services and destroy all volumes:
 
 ```bash
-docker compose -f docker/compose.full.yaml --profile postgres down -v
+docker compose -f docker/compose.yaml --profile postgres --profile minio down -v
 ```
 
 The `-v` flag removes all named volumes. This deletes:
 - All ingested documents, chunks, and vector embeddings (postgres_data)
-- Hatchet job history and configuration
-- RabbitMQ message queues
 - MinIO object storage
+- (Full Mode only) Hatchet job history and RabbitMQ message queues
 
 After reset, start fresh:
 
 ```bash
-docker compose -f docker/compose.full.yaml --profile postgres up -d
+docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 ```
 
 You will need to re-ingest all documents.
 
 ### Partial Reset (documents only)
 
-To remove just the ingested documents without resetting Hatchet/orchestration:
+To remove just the ingested documents (in Full Mode, without resetting Hatchet/orchestration):
 
 ```bash
 # Delete the R2R postgres volume only
-docker compose -f docker/compose.full.yaml --profile postgres down
+docker compose -f docker/compose.yaml --profile postgres --profile minio down
 docker volume rm postgres_data
-docker compose -f docker/compose.full.yaml --profile postgres up -d
+docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 ```

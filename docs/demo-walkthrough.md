@@ -2,7 +2,7 @@
 
 A 30-minute hands-on tour. By the end you will have:
 
-- Booted the full R2R stack on the host, driven by Claude Code from the devcontainer.
+- Booted the R2R stack (Light Mode) on the host, driven by Claude Code from the devcontainer.
 - Ingested three bundled sourcebooks — two text-native, one image-only (OCR'd during ingest).
 - Watched all four bundled GM skills work against the empty `Grunvyr_Campaign` scaffold: search sourcebooks, draft an NPC, prep a session, run a mechanical vault sweep, and update a campaign chronicle from player notes.
 
@@ -73,26 +73,24 @@ If `curl` fails to reach Ollama, double-check it's running on the host and bound
 ### 4. Stage env files (on the host)
 ```bash
 cd docker/env
-cp postgres.env.example     postgres.env
-cp r2r-full.env.example     r2r-full.env
+cp r2r.env.example           r2r.env
+cp postgres.env.example      postgres.env
+cp minio.env.example         minio.env
 cp r2r-dashboard.env.example r2r-dashboard.env
-cp hatchet.env.example      hatchet.env
-cp minio.env.example        minio.env
 cd ../..
 ```
 The defaults are usable for the first launch. See [`quickstart.md`](./quickstart.md) for which values you'd customize for a production deployment.
 
 ### 5. Bring up the R2R stack (on the host)
 
-The compose project uses a `postgres` profile for the R2R database. Setting `COMPOSE_PROFILES` once means every subsequent compose command in the same shell picks it up without you having to pass `--profile postgres` each time:
+This demo runs R2R in **Light Mode** — Postgres + MinIO + R2R + dashboard, using R2R's built-in parser (config: `docker/user_configs/r2r-light.toml`). No Unstructured.io or Hatchet: the image-only sourcebook is OCR'd **client-side** (Step 6), so Light Mode loses nothing here. Postgres and MinIO sit behind compose profiles, so pass both:
 ```bash
-export COMPOSE_PROFILES=postgres
-docker compose -f docker/compose.full.yaml up -d
-docker compose -f docker/compose.full.yaml ps
+docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
+docker compose -f docker/compose.yaml --profile postgres --profile minio ps
 ```
-> **macOS/Docker Desktop:** before this step, delete the `172.17.0.1:7272:7272` line under the `r2r` service in `docker/compose.full.yaml` — that bind is Linux-only (it keeps R2R off the host LAN while still reachable from the devcontainer); on Docker Desktop the `127.0.0.1` line alone works.
+> **macOS/Docker Desktop:** before this step, delete the `172.17.0.1:7272:7272` line under the `r2r` service in `docker/compose.yaml` — that bind is Linux-only (it keeps R2R off the host LAN while still reachable from the devcontainer); on Docker Desktop the `127.0.0.1` line alone works.
 
-Expect 3-5 minutes on first start (Hatchet runs database migrations). A short-lived `wait-for-hatchet-grpc` init container runs in the middle to ensure Hatchet's gRPC port is bound before r2r tries to register its workflows — you'll see it as `Exited (0)` in `ps` after a few seconds, which is normal.
+First start pulls images and initializes Postgres — give it a minute or two before the health check passes.
 
 Health check:
 ```bash
@@ -297,9 +295,9 @@ To replace the Grunvyr_Campaign demo content with your own vault and sourcebooks
 ## When something doesn't work
 
 - **Port 7272 already in use when bringing up R2R (on the host)** — `docker compose up -d` fails with "port is already allocated" / "bind: address already in use" when another process on the host is already bound to 7272 (commonly a previous R2R run). Find it with `lsof -i :7272` (or `ss -ltnp | grep 7272`), stop it (or change R2R's published port), then retry.
-- **`docker compose … ps` says "depends on undefined service postgres: invalid compose project"** — the `postgres` service is scoped to the `postgres` profile in `compose.full.yaml`. Either run `export COMPOSE_PROFILES=postgres` once in your shell (recommended), or pass `--profile postgres` on every compose invocation (`ps`, `logs`, `down`, etc.).
-- **`wait-for-hatchet-grpc` exits with `TIMEOUT: hatchet gRPC not reachable after 300s`** — hatchet-engine never bound port 7077 in time. The most common cause is a stale `docker/env/hatchet.env` from before the `SERVER_GRPC_PORT=7077` fix landed — re-copy `hatchet.env.example` over your `hatchet.env` and `docker compose -f docker/compose.full.yaml down -v` to reset volumes, then `up -d` again. If it still times out, check `docker compose logs hatchet-engine` for the engine's own crash output.
-- **`curl http://localhost:7272/v3/health` returns `curl: (56) Recv failure: Connection reset by peer`** — r2r isn't actually ready. Run `docker compose -f docker/compose.full.yaml ps`: if r2r is `restarting`, `health: starting`, or has a much lower uptime than the rest of the stack, run `docker compose -f docker/compose.full.yaml logs r2r --tail 100` and look at the last error. Common remaining causes are Postgres auth misconfig (check `docker/env/r2r-full.env`), Ollama unreachable from inside the container (check `host.docker.internal:11434` is responding on the host), or an OCR-pipeline import failure.
+- **`docker compose … ps` says "depends on undefined service postgres: invalid compose project"** — the `postgres` and `minio` services are scoped to compose profiles in `compose.yaml`. Pass `--profile postgres --profile minio` on every compose invocation (`ps`, `logs`, `down`, etc.), or `export COMPOSE_PROFILES=postgres,minio` once in your shell so they're implied.
+- **Using Full Mode instead?** Full Mode adds Hatchet + Unstructured.io and has its own startup failure modes (e.g. `wait-for-hatchet-grpc` timing out). They don't apply to this Light-Mode demo — see [`troubleshooting.md`](./troubleshooting.md) and [`quickstart.md`](./quickstart.md)'s Full Mode section.
+- **`curl http://localhost:7272/v3/health` returns `curl: (56) Recv failure: Connection reset by peer`** — r2r isn't actually ready. Run `docker compose -f docker/compose.yaml --profile postgres --profile minio ps`: if r2r is `restarting`, `health: starting`, or has a much lower uptime than the rest of the stack, run `docker compose -f docker/compose.yaml logs r2r --tail 100` and look at the last error. Common remaining causes are Postgres auth misconfig (check `docker/env/r2r.env`), or Ollama unreachable from inside the container (check `host.docker.internal:11434` is responding on the host).
 - **Vol III ingest takes a few minutes** — `ingest_books.py` is OCRing 16 image pages client-side with the default tesseract backend (CPU); that's normal. For sharper/GPU OCR, opt into EasyOCR (see [`quickstart.md`](./quickstart.md)). The command blocks until OCR finishes and then ingests, so the two text-native books (which ingest near-instantly) will already show `ingestion: success` in `verify_ingestion.py --all`.
 - **Devcontainer build fails on pip install** — usually a network issue. Verify outbound HTTPS to pypi.org works from the host; try rebuilding (`Dev Containers: Rebuild Container`).
 - **R2R container can't reach Ollama** — verify the host can reach itself at `host.docker.internal:11434` from inside Docker. On Linux, the `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles this; on macOS, Docker Desktop maps it automatically.
@@ -312,5 +310,5 @@ For a fuller list of known failure modes and workarounds, see [`troubleshooting.
 ## Out of scope for v0.1
 
 - **Non-TTRPG domain adaptation** — the `sourcebooks` server's metadata schema (book/chapter/page) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic, etc.) is on the v0.2 roadmap.
-- **Multi-instance deployment** — the single-stack `compose.full.yaml` is the supported v0.1 path. The shared-infra + per-vault-instance variant (`compose.infra.yaml` + `compose.app.yaml`) ships but is not formally validated at v0.1.
+- **Multi-instance deployment** — single-stack (one R2R: `compose.yaml` for Light Mode, `compose.full.yaml` for Full) is the supported v0.1 path. The shared-infra + per-vault-instance variant (`compose.infra.yaml` + `compose.app.yaml`) ships but is not formally validated at v0.1.
 - **Windows hosts** — see the prerequisites table.

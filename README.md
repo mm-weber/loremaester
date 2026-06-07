@@ -44,8 +44,8 @@ R2R handles **embedding and retrieval only** — all reasoning is done by Claude
 # 1. Pull the embedding model
 ollama pull mxbai-embed-large && ollama serve
 
-# 2. Start R2R
-docker compose -f docker/compose.full.yaml --profile postgres up -d
+# 2. Start R2R (Light Mode — recommended; see docs/quickstart.md for Full Mode)
+docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 
 # 3. Build your vault graph
 uv run --no-project scripts/build_vault_graph.py /path/to/vault

@@ -189,8 +189,8 @@ Everything needed to run R2R lives under `docker/` — you don't need to clone R
 
 | Path | What it is |
 |------|------------|
-| `docker/compose.full.yaml` | Single-instance full-mode stack — **used by this guide** |
-| `docker/compose.yaml` | Light mode (R2R without Hatchet/Unstructured) — see the **Light Mode** section above |
+| `docker/compose.yaml` | Light mode (R2R + Postgres + MinIO, no Hatchet/Unstructured) — **recommended; the default path in this guide** |
+| `docker/compose.full.yaml` | Single-instance full-mode stack (+ Unstructured.io, Hatchet) — the advanced option (see the **Full Mode** section) |
 | `docker/compose.infra.yaml` + `docker/compose.app.yaml` | Multi-instance deployment path — see note at the end of this step |
 | `docker/env/` | Env files that compose loads via `env_file:` directives (bootstrapped in Step 2c) |
 | `docker/user_configs/` | R2R's TOML configuration, bind-mounted into the container at `/app/user_configs/` |
