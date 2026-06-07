@@ -44,7 +44,7 @@ from pathlib import Path
 from r2r import R2RClient
 
 from detect_pdf_type import analyze_pdf
-from ocr_extract import ocr_pdf, extract_pdf, resolve_engine
+from ocr_extract import extract_pdf, resolve_engine
 
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only
@@ -151,10 +151,12 @@ def print_easyocr_diagnostics():
 
 
 def ingest_via_ocr(client, pdf_path, metadata):
-    """OCR client-side with ocr_extract (pypdfium2 + per-page tesseract/easyocr);
+    """Extract client-side with ocr_extract's per-page hybrid extract_pdf (embedded
+    text layer where present, tesseract/easyocr where absent, plus figure-region OCR);
     ingest via a named temp .txt so R2R derives the title + default collection."""
-    print(f"  OCR ({OCR_ENGINE}): {pdf_path.name} — per-page; this takes a while for big scans...")
-    result = ocr_pdf(str(pdf_path), engine=OCR_ENGINE, language=OCR_LANGUAGE)
+    engine = resolve_engine(OCR_ENGINE)
+    print(f"  Hybrid extract ({engine}): {pdf_path.name} — per-page (text layer where present, OCR + figure-region OCR where absent); this takes a while for big scans...")
+    result = extract_pdf(str(pdf_path), engine=engine, language=OCR_LANGUAGE)
     with tempfile.TemporaryDirectory(prefix="ingest_books_") as tmp_dir:
         tmp_path = Path(tmp_dir) / f"{pdf_path.stem}.txt"
         tmp_path.write_text(result.content, encoding="utf-8")
