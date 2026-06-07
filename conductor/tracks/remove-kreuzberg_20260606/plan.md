@@ -15,7 +15,7 @@ kreuzberg consumers, update tests and docs, and drop the dependency.
 | ----- | ------ | -------- |
 | Phase 1: Shared OCR module | [x] Complete | 100% |
 | Phase 2: Rewire ingest_books.py | [x] Complete | 100% |
-| Phase 3: Rewire extract_text.py + tests | [ ] Not started | 0% |
+| Phase 3: Rewire extract_text.py + tests | [x] Complete | 100% |
 | Phase 4: Docs, licenses, cleanup | [ ] Not started | 0% |
 
 ## Phase 1: Shared OCR module
@@ -52,13 +52,13 @@ Per-page by construction (never hands the whole document to one OCR call).
 
 ## Phase 3: Rewire extract_text.py + tests
 ### Tasks
-- [ ] 3.1 Replace `_do_extract` (kreuzberg, ~lines 22-29, 53-57) with `ocr_extract.ocr_pdf`; update
-      PEP 723 deps; keep the argparse interface (`--engine`, `--language`, `--output`, `--ingest`, `--title`).
-- [ ] 3.2 `test_extract_text.py`: mock `ocr_extract`; replace `test_kreuzberg_not_installed` with a backend-missing test.
-- [ ] 3.3 Add `scripts/test_ocr_extract.py` mirroring `test_ocr_preprocess.py`.
+- [x] 3.1 `_do_extract` delegates to `ocr_extract.ocr_pdf`; removed the kreuzberg import block; PEP 723 deps kreuzberg → pypdfium2 + pytesseract; argparse `--engine` choices = tesseract|easyocr (dropped paddleocr); kept `--language`/`--output`/`--ingest`/`--title`. (RED/GREEN P3-1 + cleanup)
+- [x] 3.2 `test_extract_text.py`: replaced `test_kreuzberg_not_installed` with `test_missing_backend_reported` (asserts the actionable RuntimeError surfaces); the 11 other tests (which mock `_do_extract`) are unaffected.
+- [x] 3.3 `scripts/test_ocr_extract.py` — already created in Phase 1 (7 tests).
 
 ### Verification
-- [ ] `python -m pytest -q scripts/` green with `kreuzberg` NOT installed.
+- [x] `python3 -m pytest scripts/test_extract_text.py scripts/test_ingest_books.py scripts/test_ocr_extract.py -q` → **20 passed**; `kreuzberg` gone from `extract_text.py`. (Full `pytest scripts/` still errors collecting the pre-existing `test_ocr_preprocess.py`, which needs pandas — absent in this sandbox; unrelated to this track.)
+- [ ] Owner end-to-end (deferred to track end): real `uv run` OCR with tesseract (and the easyocr opt-in).
 
 ### Checkpoint
 `[remove-kreuzberg_20260606] checkpoint: phase 3 complete`
