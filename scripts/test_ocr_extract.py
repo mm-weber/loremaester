@@ -1,7 +1,7 @@
 """Tests for ocr_extract.py"""
 import pytest
 from unittest.mock import patch, MagicMock
-from ocr_extract import ocr_pdf, ocr_image, render_pages, PageOcrResult
+from ocr_extract import ocr_pdf, ocr_image, render_pages, resolve_engine, PageOcrResult
 
 
 class TestOcrPdf:
@@ -100,3 +100,16 @@ class TestEmptyText:
         ]
         with pytest.raises(RuntimeError, match="Grunvyr-Vol-III"):
             ocr_pdf("/books/Grunvyr-Vol-III.pdf", engine="tesseract")
+
+
+class TestResolveEngine:
+    @patch("ocr_extract._cuda_available", return_value=False)
+    def test_easyocr_downgrades_to_tesseract_without_gpu(self, _cuda):
+        assert resolve_engine("easyocr") == "tesseract"
+
+    @patch("ocr_extract._cuda_available", return_value=True)
+    def test_easyocr_kept_with_gpu(self, _cuda):
+        assert resolve_engine("easyocr") == "easyocr"
+
+    def test_tesseract_passes_through(self):
+        assert resolve_engine("tesseract") == "tesseract"

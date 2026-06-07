@@ -53,6 +53,14 @@ def _require(available, package, install_hint):
         raise RuntimeError(f"{package} is not installed. Install it with: {install_hint}")
 
 
+def _cuda_available():
+    return False
+
+
+def resolve_engine(requested):
+    return None
+
+
 @dataclass
 class PageOcrResult:
     page_number: int
