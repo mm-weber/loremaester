@@ -22,7 +22,7 @@ Central navigation for Conductor artifacts and development tracks.
 | Track | Status | Priority | Spec | Plan |
 | --- | --- | --- | --- | --- |
 | remove-kreuzberg | ✅ Complete | High | [spec](./tracks/remove-kreuzberg_20260606/spec.md) | [plan](./tracks/remove-kreuzberg_20260606/plan.md) |
-| idempotent-ingest | 🛠 In progress | Medium | [spec](./tracks/idempotent-ingest_20260607/spec.md) | [plan](./tracks/idempotent-ingest_20260607/plan.md) |
+| idempotent-ingest | ✅ Complete | Medium | [spec](./tracks/idempotent-ingest_20260607/spec.md) | [plan](./tracks/idempotent-ingest_20260607/plan.md) |
 
 ## Getting Started
 1. Review [Product Vision](./product.md).

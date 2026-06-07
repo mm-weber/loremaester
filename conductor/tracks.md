@@ -11,14 +11,15 @@ Registry of all development tracks. Each track is a distinct body of work with i
 
 ## Active Tracks
 
-### [~] idempotent-ingest_20260607: Idempotent ingest — skip already-ingested PDFs
-**Description:** Treat R2R "already exists" as SKIPPED (not FAILED) on re-runs; report succeeded/skipped/failed separately.
-**Priority:** Medium
-**Folder:** [./tracks/idempotent-ingest_20260607/](./tracks/idempotent-ingest_20260607/)
+_None._
 
 ---
 
 ## Completed Tracks
+
+### [x] idempotent-ingest_20260607: Idempotent ingest — skip already-ingested PDFs
+**Description:** R2R "already exists" is now reported as SKIPPED (not FAILED) on re-runs; summary counts succeeded/skipped/failed (TDD-built; 4 unit tests). **Completed 2026-06-07.**
+**Folder:** [./tracks/idempotent-ingest_20260607/](./tracks/idempotent-ingest_20260607/)
 
 ### [x] remove-kreuzberg_20260606: Remove kreuzberg — permissive, per-page OCR pipeline
 **Description:** Replaced kreuzberg with a direct `pypdfium2` + per-page `tesseract`/`easyocr` OCR pipeline (TDD-built; 20 unit tests). **Completed 2026-06-06.**
