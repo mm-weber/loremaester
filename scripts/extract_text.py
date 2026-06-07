@@ -19,6 +19,8 @@ import argparse
 import sys
 from pathlib import Path
 
+from ocr_extract import ocr_pdf
+
 try:
     from kreuzberg import ExtractionConfig, OcrConfig, extract_file_sync
 except ImportError:
@@ -52,9 +54,7 @@ def _get_r2r_client():
 
 def _do_extract(filepath, engine="tesseract", language="eng"):
     """Extract text from a single file. Returns content string or raises."""
-    config = ExtractionConfig(ocr=OcrConfig(backend=engine, language=language))
-    result = extract_file_sync(filepath, config=config)
-    return result.content
+    return None
 
 
 def main():

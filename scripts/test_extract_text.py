@@ -198,3 +198,15 @@ def test_kreuzberg_not_installed(monkeypatch, capsys, tmp_path):
     assert code == 1
     err = capsys.readouterr().err
     assert "kreuzberg" in err.lower()
+
+
+# ---------------------------------------------------------------------------
+# _do_extract delegates to ocr_pdf (kreuzberg-free)
+# ---------------------------------------------------------------------------
+
+def test_do_extract_delegates_to_ocr_pdf():
+    with patch("extract_text.ocr_pdf") as mock_ocr_pdf:
+        mock_ocr_pdf.return_value = MagicMock(content="OCR CONTENT")
+        result = extract_text._do_extract("/x/img.png", "tesseract", "eng")
+    assert result == "OCR CONTENT"
+    mock_ocr_pdf.assert_called_once_with("/x/img.png", engine="tesseract", language="eng")
