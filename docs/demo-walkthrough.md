@@ -108,7 +108,19 @@ uv run --no-project scripts/detect_pdf_type.py examples/ttrpg/sourcebooks/
 uv run --no-project scripts/ingest_books.py examples/ttrpg/sourcebooks/
 uv run --no-project scripts/verify_ingestion.py --all
 ```
-`detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (client-side via `ocr_extract` (pypdfium2 render + per-page tesseract), the default backend) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
+`detect_pdf_type.py` classifies Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` then routes by that classification (see the callout below): the two text-native books go straight to R2R, and the image-only Vol III is OCR'd **client-side** by the per-page hybrid extractor (`ocr_extract.py` — pypdfium2 render + tesseract by default) before ingesting — the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
+
+> **How the OCR routing works.** `ingest_books.py` classifies each PDF with `detect_pdf_type.py` and routes it by content:
+>
+> - **text-native** (≥ 90% of pages have a text layer) → **R2R native** parsing — fast and lossless; R2R does the chunking.
+> - **image-only or mixed** → a per-page **hybrid** in `ocr_extract.py`:
+>   - a page *with* a text layer → keep that text, no OCR;
+>   - a page *without* one → OCR the whole page;
+>   - an embedded **figure region** → OCR just that region and append its text to the page.
+>
+> So a *mixed* book's scanned pages (and figures) are captured client-side instead of being lost to native parsing. The engine is **tesseract** (CPU) by default; **easyocr** (GPU) **auto-falls back to tesseract** when no usable CUDA GPU is present (with a printed notice).
+>
+> This demo's **Vol III is image-only**, so every page goes through the whole-page OCR path — that's the slice of the pipeline you see here. The mixed-PDF hybrid and figure-region OCR show their value on your own books: point `ingest_books.py` at a mixed sourcebook and see [`quickstart.md`](./quickstart.md) for the full routing table and engine options.
 
 > **Choosing an OCR path.** The default is **tesseract** (CPU; needs only the host `tesseract` binary — see [`quickstart.md`](./quickstart.md)), and it handles the bundled scans fine. For sharper OCR on a GPU you can opt into **EasyOCR** via uv `--with` — see the bulk-ingestion section of [`quickstart.md`](./quickstart.md). Prefer **server-side** OCR? In Docker Full Mode, ingest an image PDF *directly* (`r2r documents create <pdf> --metadata '{"book_title":"…"}'`) and R2R/Unstructured.io will OCR it. Client-side OCR runs inside the `ingest_books.py` command, so Vol III is fully ingested by the time it returns; if a book is missing, re-run `verify_ingestion.py --all`.
 
@@ -200,9 +212,9 @@ Prompt:
 
 > Summarize what's in Volume III.
 
-**Expected**: Coherent text content comes back — chapter titles, topic descriptions, named entities. Volume III is the image-only PDF; the fact that any meaningful text returns at all means its scanned pages were OCR'd during ingest (client-side via `ocr_extract` (pypdfium2 render + per-page tesseract) in `ingest_books.py`) and R2R chunked and embedded the result.
+**Expected**: Coherent text content comes back — chapter titles, topic descriptions, named entities. Volume III is the image-only PDF; meaningful text returning at all means its scanned pages were OCR'd during ingest — every page through the per-page **hybrid** extractor's whole-page OCR path (`ocr_extract.py`; pypdfium2 render + tesseract by default), which R2R then chunked and embedded. (On a text-native or *mixed* book the same extractor keeps existing text layers and OCRs only what's missing — figures included; see *How the OCR routing works* in Step 6.)
 
-**Proves**: The image-PDF OCR ingestion path works end to end — scanned pages become searchable lore. (The same result is achievable server-side via R2R/Unstructured.io in Docker Full Mode by ingesting the PDF directly; see [`quickstart.md`](./quickstart.md) Steps 3b–4.)
+**Proves**: The OCR ingestion path works end to end — scanned pages become searchable lore. Vol III exercises the image-only slice; the mixed-PDF hybrid and figure-region OCR ride the same path on richer books. (The same result is achievable server-side via R2R/Unstructured.io in Docker Full Mode by ingesting the PDF directly; see [`quickstart.md`](./quickstart.md) Steps 3b–4.)
 
 #### Demo C — Worldbuilding skill drafts a new NPC
 
