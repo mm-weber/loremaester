@@ -172,7 +172,28 @@ def ingest_native(client, pdf_path, metadata):
 
 
 def process_pdf(client, pdf):
-    return None
+    """Ingest one PDF; return 'succeeded' | 'skipped' | 'failed'.
+
+    'skipped' = R2R already has this document (an idempotent re-run), detected
+    by the 'already exists' message in R2R's rejection — not a real failure.
+    """
+    book_title = pdf.stem.replace("_", " ").replace("-", " ").title()
+    metadata = {"book_title": book_title}
+    print(f"[{book_title}]")
+    try:
+        if is_image_pdf(pdf):
+            ingest_via_ocr(client, pdf, metadata)
+        else:
+            ingest_native(client, pdf, metadata)
+        return "succeeded"
+    except Exception as e:
+        if "already exists" in str(e):
+            print(f"  SKIPPED: {pdf.name} — already in R2R")
+            return "skipped"
+        print(f"  FAILED: {pdf.name} — {type(e).__name__}: {e}")
+        if os.environ.get("INGEST_DEBUG"):
+            traceback.print_exc()
+        return "failed"
 
 
 def main():
