@@ -234,30 +234,21 @@ def main():
 
     print_easyocr_diagnostics()
 
-    succeeded = []
-    failed = []
-
+    buckets = {"succeeded": [], "skipped": [], "failed": []}
     for pdf in pdfs:
-        book_title = pdf.stem.replace("_", " ").replace("-", " ").title()
-        metadata = {"book_title": book_title}
+        buckets[process_pdf(client, pdf)].append(pdf.name)
 
-        print(f"[{book_title}]")
-        try:
-            if is_image_pdf(pdf):
-                ingest_via_ocr(client, pdf, metadata)
-            else:
-                ingest_native(client, pdf, metadata)
-            succeeded.append(pdf.name)
-        except Exception as e:
-            print(f"  FAILED: {pdf.name} — {type(e).__name__}: {e}")
-            if os.environ.get("INGEST_DEBUG"):
-                traceback.print_exc()
-            failed.append(pdf.name)
-
-    print(f"\nDone. {len(succeeded)} succeeded, {len(failed)} failed.")
-    if failed:
+    print(
+        f"\nDone. {len(buckets['succeeded'])} succeeded, "
+        f"{len(buckets['skipped'])} skipped, {len(buckets['failed'])} failed."
+    )
+    if buckets["skipped"]:
+        print("Skipped (already in R2R — re-run is idempotent):")
+        for name in buckets["skipped"]:
+            print(f"  - {name}")
+    if buckets["failed"]:
         print("Failed files:")
-        for name in failed:
+        for name in buckets["failed"]:
             print(f"  - {name}")
 
     if OCR_ENGINE == "easyocr":
