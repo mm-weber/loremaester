@@ -18,22 +18,22 @@ class TestIngestViaOcr:
 
 class TestProcessPdf:
     @patch("ingest_books.ingest_native")
-    @patch("ingest_books.is_image_pdf", return_value=False)
-    def test_already_exists_is_skipped(self, mock_is_image, mock_native):
+    @patch("ingest_books.analyze_pdf", return_value=MagicMock(classification="text-native"))
+    def test_already_exists_is_skipped(self, mock_analyze, mock_native):
         mock_native.side_effect = RuntimeError(
             "{'message': 'Document abc already exists. Submit a DELETE request ...', 'error_type': 'R2RException'}"
         )
         assert ingest_books.process_pdf(MagicMock(), Path("/b/Vol-I.pdf")) == "skipped"
 
     @patch("ingest_books.ingest_native")
-    @patch("ingest_books.is_image_pdf", return_value=False)
-    def test_other_error_is_failed(self, mock_is_image, mock_native):
+    @patch("ingest_books.analyze_pdf", return_value=MagicMock(classification="text-native"))
+    def test_other_error_is_failed(self, mock_analyze, mock_native):
         mock_native.side_effect = RuntimeError("connection refused")
         assert ingest_books.process_pdf(MagicMock(), Path("/b/Vol-I.pdf")) == "failed"
 
     @patch("ingest_books.ingest_native")
-    @patch("ingest_books.is_image_pdf", return_value=False)
-    def test_success_is_succeeded(self, mock_is_image, mock_native):
+    @patch("ingest_books.analyze_pdf", return_value=MagicMock(classification="text-native"))
+    def test_success_is_succeeded(self, mock_analyze, mock_native):
         assert ingest_books.process_pdf(MagicMock(), Path("/b/Vol-I.pdf")) == "succeeded"
 
 

@@ -182,10 +182,10 @@ def process_pdf(client, pdf):
     metadata = {"book_title": book_title}
     print(f"[{book_title}]")
     try:
-        if is_image_pdf(pdf):
-            ingest_via_ocr(client, pdf, metadata)
-        else:
+        if analyze_pdf(str(pdf)).classification == "text-native":
             ingest_native(client, pdf, metadata)
+        else:
+            ingest_via_ocr(client, pdf, metadata)
         return "succeeded"
     except Exception as e:
         if "already exists" in str(e):
