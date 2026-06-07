@@ -11,7 +11,10 @@ Registry of all development tracks. Each track is a distinct body of work with i
 
 ## Active Tracks
 
-_None._
+### [~] ocr-hybrid-routing_20260607: OCR routing — per-page hybrid + region-targeted figure OCR
+**Description:** Per-page hybrid (text-layer + OCR) for image-only & mixed PDFs; region-targeted figure OCR; easyocr→tesseract fallback. text-native stays on R2R native.
+**Priority:** Medium
+**Folder:** [./tracks/ocr-hybrid-routing_20260607/](./tracks/ocr-hybrid-routing_20260607/)
 
 ---
 

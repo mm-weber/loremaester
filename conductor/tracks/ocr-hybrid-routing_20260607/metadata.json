@@ -1,0 +1,18 @@
+{
+  "id": "ocr-hybrid-routing_20260607",
+  "title": "OCR routing — per-page hybrid + region-targeted figure OCR",
+  "type": "feature",
+  "status": "in_progress",
+  "created": "2026-06-07T12:38:04Z",
+  "updated": "2026-06-07T12:38:04Z",
+  "current_phase": 1,
+  "current_task": "1.1",
+  "phases": {
+    "total": 4,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 5,
+    "completed": 0
+  }
+}
