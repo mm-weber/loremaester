@@ -185,19 +185,20 @@ def test_no_args(monkeypatch, capsys):
 
 
 # ---------------------------------------------------------------------------
-# kreuzberg not installed → graceful error
+# missing OCR backend → actionable error reported
 # ---------------------------------------------------------------------------
 
-def test_kreuzberg_not_installed(monkeypatch, capsys, tmp_path):
+def test_missing_backend_reported(monkeypatch, capsys, tmp_path):
     src = tmp_path / "img.jpeg"
     src.write_bytes(b"\xff\xd8dummy")
 
-    with patch("extract_text._do_extract", side_effect=ImportError("No module named 'kreuzberg'")):
+    err_msg = "pytesseract is not installed. Install it with: pip install pytesseract"
+    with patch("extract_text._do_extract", side_effect=RuntimeError(err_msg)):
         code = run_main([str(src)], monkeypatch)
 
     assert code == 1
     err = capsys.readouterr().err
-    assert "kreuzberg" in err.lower()
+    assert "pytesseract" in err.lower()
 
 
 # ---------------------------------------------------------------------------

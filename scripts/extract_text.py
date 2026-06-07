@@ -2,17 +2,20 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#   "kreuzberg",
+#   "pypdfium2",
+#   "pytesseract",
 #   "r2r",
 # ]
 # ///
-"""extract_text.py — Extract text from images/documents using kreuzberg OCR.
+"""extract_text.py — Extract text from PDFs/images via ocr_extract (pypdfium2 + per-page OCR).
+
+Backends: tesseract (default, CPU) and easyocr (GPU opt-in) — both Apache-2.0.
 
 Usage:
     python extract_text.py <file>...
     python extract_text.py --output result.txt <file>...
     python extract_text.py --ingest --title "Doc Name" <file>...
-    python extract_text.py --engine paddleocr --language deu <file>...
+    python extract_text.py --engine easyocr --language en <file>...
 """
 
 import argparse
@@ -21,29 +24,21 @@ from pathlib import Path
 
 from ocr_extract import ocr_pdf
 
-try:
-    from kreuzberg import ExtractionConfig, OcrConfig, extract_file_sync
-except ImportError:
-    # Allow the module to load so tests can mock extract_file_sync.
-    # Actual ImportError is raised at call time in _do_extract.
-    extract_file_sync = None
-    ExtractionConfig = None
-    OcrConfig = None
-
 
 def _build_parser():
     parser = argparse.ArgumentParser(
         prog="extract_text.py",
-        description="Extract text from images and documents using kreuzberg OCR.",
+        description="Extract text from PDFs/images via ocr_extract (tesseract/easyocr).",
     )
     parser.add_argument("files", nargs="*", help="File(s) to extract text from")
     parser.add_argument("--output", "-o", help="Write extracted text to FILE instead of stdout")
     parser.add_argument("--ingest", action="store_true", help="Push extracted text into R2R")
     parser.add_argument("--title", help="Document title for R2R metadata (default: filename stem)")
     parser.add_argument("--engine", default="tesseract",
-                        choices=["tesseract", "easyocr", "paddleocr"],
+                        choices=["tesseract", "easyocr"],
                         help="OCR backend (default: tesseract)")
-    parser.add_argument("--language", default="eng", help="OCR language (default: eng)")
+    parser.add_argument("--language", default="eng",
+                        help="OCR language (default: eng; easyocr uses ISO 639-1 like 'en')")
     return parser
 
 
@@ -78,12 +73,9 @@ def main():
 
         try:
             content = _do_extract(filepath, args.engine, args.language)
-        except ImportError:
-            print("Error: kreuzberg is not installed.", file=sys.stderr)
-            print("Install it with: pip install kreuzberg", file=sys.stderr)
-            had_error = True
-            continue
         except Exception as e:
+            # ocr_extract raises an actionable RuntimeError naming any missing
+            # backend/renderer (pypdfium2/tesseract/easyocr) + its install command.
             print(f"Error extracting {filepath}: {e}", file=sys.stderr)
             had_error = True
             continue
