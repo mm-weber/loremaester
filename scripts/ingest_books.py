@@ -4,32 +4,34 @@
 # dependencies = [
 #   "r2r",
 #   "pdfplumber",
-#   "kreuzberg>=4.5.0",
+#   "pypdfium2",
+#   "pytesseract",
 # ]
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
 
-Routes image-heavy PDFs through Kreuzberg (host-side OCR) to sidestep the
-single-instance Unstructured container bottleneck. Text-native PDFs still
-go through R2R's native parsing so chunking metadata stays consistent.
+Image-only PDFs are OCR'd client-side via `ocr_extract` (pypdfium2 render →
+per-page tesseract/easyocr) to sidestep the single-instance Unstructured
+container bottleneck. Text-native PDFs go through R2R's native parsing so
+chunking metadata stays consistent.
 
 OCR defaults to tesseract (CPU; needs only the system `tesseract` binary) —
-robust and dependency-light. Override the backend/language via env:
-    KREUZBERG_OCR_ENGINE    tesseract (default) | easyocr | paddleocr
-    KREUZBERG_OCR_LANGUAGE  en (default; "eng" also works for tesseract).
-                            ISO 639-1 (en, de) for easyocr/paddleocr;
-                            ISO 639-3 (eng, deu) for tesseract.
+robust, permissively licensed, dependency-light. Override via env:
+    OCR_ENGINE    tesseract (default) | easyocr   (legacy KREUZBERG_OCR_ENGINE still honored)
+    OCR_LANGUAGE  en (default). tesseract also accepts ISO 639-3 ("eng", "deu");
+                  easyocr uses ISO 639-1 ("en", "de").
 
 Set INGEST_DEBUG=1 to print a full traceback for each per-file failure
 (otherwise failures are summarized to one line). For easyocr, a torch/CUDA
 banner is printed up front so an empty-text result is diagnosable.
 
-The neural backends are heavier opt-ins and are NOT in this script's default
-deps — install them for the run with uv `--with`. EasyOCR (GPU via torch+CUDA,
-sharper on noisy scans): set KREUZBERG_OCR_ENGINE=easyocr and add
-`--with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126'` plus the
-PyTorch cu126 index flags (see docs/quickstart.md). PaddleOCR: add
-`--with 'kreuzberg[paddleocr]'` (+ paddlepaddle from its own index).
+EasyOCR (GPU via torch+CUDA, sharper on noisy scans) is a heavier opt-in NOT in
+this script's default deps — install it for the run with uv `--with` (it is
+Apache-2.0; per-page OCR keeps it reliable):
+    OCR_ENGINE=easyocr uv run --no-project --with easyocr --with 'torch==2.9.1+cu126' \\
+        --extra-index-url https://download.pytorch.org/whl/cu126 --index-strategy unsafe-best-match \\
+        scripts/ingest_books.py <folder>
+(see docs/quickstart.md).
 """
 
 import hashlib
@@ -46,11 +48,10 @@ from ocr_extract import ocr_pdf
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only
 IMAGE_ONLY_THRESHOLD = 0.1
-OCR_ENGINE = os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract")
-OCR_LANGUAGE = os.environ.get("KREUZBERG_OCR_LANGUAGE", "en")
-# Only consulted when OCR_ENGINE == "paddleocr". "server" = ~172 MB GPU-optimized;
-# "mobile" = ~21 MB CPU. Kreuzberg defaults to "mobile" otherwise.
-OCR_MODEL_TIER = os.environ.get("KREUZBERG_OCR_MODEL_TIER", "server")
+# OCR_ENGINE / OCR_LANGUAGE are canonical; the legacy KREUZBERG_* names are
+# still honored as a fallback so older commands keep working.
+OCR_ENGINE = os.environ.get("OCR_ENGINE", os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract"))
+OCR_LANGUAGE = os.environ.get("OCR_LANGUAGE", os.environ.get("KREUZBERG_OCR_LANGUAGE", "en"))
 
 
 def file_sha1(path, chunk_size=1024 * 1024):
@@ -148,28 +149,6 @@ def print_easyocr_diagnostics():
     print()
 
 
-def describe_extraction(result):
-    """Schema-tolerant one-line summary of a kreuzberg result, for diagnostics.
-
-    Used when OCR returns no text: report what the backend *did* see (raw
-    length, page/table/chunk counts, metadata) so 'empty result' is
-    distinguishable from 'never processed a page'. All lookups are defensive
-    so a result-schema change can't turn diagnostics into a second failure.
-    """
-    bits = [f"raw_len={len(getattr(result, 'content', '') or '')}"]
-    for attr in ("tables", "chunks", "images"):
-        value = getattr(result, attr, None)
-        if value is not None:
-            try:
-                bits.append(f"{attr}={len(value)}")
-            except TypeError:
-                bits.append(f"{attr}=present")
-    metadata = getattr(result, "metadata", None)
-    if metadata is not None:
-        bits.append((f"metadata={metadata!r}")[:200])
-    return "; ".join(bits)
-
-
 def ingest_via_ocr(client, pdf_path, metadata):
     """OCR client-side with ocr_extract (pypdfium2 + per-page tesseract/easyocr);
     ingest via a named temp .txt so R2R derives the title + default collection."""
@@ -181,49 +160,6 @@ def ingest_via_ocr(client, pdf_path, metadata):
         response = client.documents.create(file_path=str(tmp_path), metadata=metadata)
     doc_id = response.results.document_id
     print(f"  Ingested (OCR → {pdf_path.stem}.txt): {pdf_path.name} -> {doc_id}")
-    return doc_id
-
-
-def ingest_via_kreuzberg(client, pdf_path, metadata):
-    """OCR client-side with Kreuzberg; ingest via a named temp .txt.
-
-    We intentionally write the extracted text to a temp file and use
-    `file_path=` instead of `raw_text=`. R2R only derives the document
-    title from the filename and only auto-assigns the user's default
-    collection on the file-path code path — both are lost if we pass
-    raw_text directly.
-    """
-    from kreuzberg import ExtractionConfig, OcrConfig, extract_file_sync
-
-    ocr_kwargs = {"backend": OCR_ENGINE, "language": OCR_LANGUAGE}
-    if OCR_ENGINE == "paddleocr":
-        # PaddleOcrConfig isn't registered as a pyo3 class in kreuzberg 4.8.x
-        # despite the .pyi stub — the kwarg is serde-deserialized, so pass a dict.
-        ocr_kwargs["paddle_ocr_config"] = {"model_tier": OCR_MODEL_TIER}
-        tier_suffix = f", tier={OCR_MODEL_TIER}"
-    else:
-        tier_suffix = ""
-
-    print(f"  OCR (kreuzberg, {OCR_ENGINE}{tier_suffix}): {pdf_path.name} — this takes a while for big scans...")
-    config = ExtractionConfig(ocr=OcrConfig(**ocr_kwargs))
-    result = extract_file_sync(str(pdf_path), config=config)
-    if not result.content.strip():
-        raise RuntimeError(
-            f"kreuzberg ({OCR_ENGINE}) returned empty text for {pdf_path.name} "
-            f"[{describe_extraction(result)}] — the OCR backend ran without "
-            f"raising but produced no text. For easyocr this usually means a "
-            f"GPU/torch problem (see the diagnostics banner above); the same "
-            f"PDF will typically OCR with the default tesseract backend."
-        )
-
-    # Temp .txt named after the PDF stem so R2R stamps title="<stem>.txt"
-    # and assigns the doc to the user's default collection.
-    with tempfile.TemporaryDirectory(prefix="ingest_books_") as tmp_dir:
-        tmp_path = Path(tmp_dir) / f"{pdf_path.stem}.txt"
-        tmp_path.write_text(result.content, encoding="utf-8")
-        response = client.documents.create(file_path=str(tmp_path), metadata=metadata)
-    doc_id = response.results.document_id
-    print(f"  Ingested (kreuzberg → {pdf_path.stem}.txt): {pdf_path.name} -> {doc_id}")
     return doc_id
 
 
@@ -283,7 +219,7 @@ def main():
         print(f"[{book_title}]")
         try:
             if is_image_pdf(pdf):
-                ingest_via_kreuzberg(client, pdf, metadata)
+                ingest_via_ocr(client, pdf, metadata)
             else:
                 ingest_native(client, pdf, metadata)
             succeeded.append(pdf.name)
