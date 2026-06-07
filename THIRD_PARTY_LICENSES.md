@@ -7,7 +7,7 @@ components so users can comply with the relevant terms.
 
 > Any usage restriction noted below applies to **that component**, not to this project's own
 > MIT-licensed code. If you redistribute or host this project, review these terms — especially
-> the **kreuzberg (Elastic License 2.0)** and **MinIO (AGPL-3.0)** entries.
+> the **MinIO (AGPL-3.0)** entry.
 
 ## Core dependencies
 
@@ -17,22 +17,24 @@ components so users can comply with the relevant terms.
   Python SDK and the `sciphiai/r2r` Docker image.
 - Terms: MIT — permissive, no usage restrictions.
 
-### kreuzberg — Elastic License 2.0 (ELv2) — *optional dependency*
-- Upstream: <https://github.com/kreuzberg-dev/kreuzberg> (kreuzberg-dev)
-- Role: **optional** client-side OCR for image-only PDFs (default backend: EasyOCR). Used by
-  `scripts/ingest_books.py` and `scripts/extract_text.py`. It is **not** required for the core
-  product — image PDFs can instead be OCR'd server-side by R2R/Unstructured.io in Docker Full Mode.
-- Terms: **Elastic License 2.0 — source-available, NOT OSI open-source.** ELv2 notably forbids
-  providing the software to third parties as a hosted/managed service and forbids removing or
-  obscuring its licensing notices. See <https://www.elastic.co/licensing/elastic-license>.
-- Note: kreuzberg ≤ 4.5.x was MIT-licensed and relicensed to ELv2 in later 4.x releases. This
-  dependency is **flagged for re-evaluation/removal in v0.2** (see `requirements/v0.2/`): the OCR
-  path used here (EasyOCR) can be invoked directly without kreuzberg.
-
-### OCR backends (pulled via kreuzberg's extras / used by `ocr_preprocess.py`)
-- EasyOCR — Apache-2.0 — <https://github.com/JaidedAI/EasyOCR>
+### Client-side OCR — all permissive (MIT / Apache-2.0 / BSD)
+Image-only PDFs are OCR'd client-side by `scripts/ocr_extract.py` (used by `scripts/ingest_books.py`
+and `scripts/extract_text.py`): each page is rendered with **pypdfium2** and OCR'd per page with
+**tesseract** (default) or **easyocr** (GPU opt-in). None of this is required for the core product —
+image PDFs can instead be OCR'd server-side by R2R/Unstructured.io in Docker Full Mode.
+- pypdfium2 — Apache-2.0 / BSD-3 (pdfium) — <https://github.com/pypdfium2-team/pypdfium2>
 - Tesseract / pytesseract — Apache-2.0 — <https://github.com/tesseract-ocr/tesseract>
-- (surya, PaddleOCR are optional alternatives — consult their upstreams for terms.)
+- EasyOCR — Apache-2.0 (GPU opt-in) — <https://github.com/JaidedAI/EasyOCR>
+- PyTorch (`torch`, pulled by the EasyOCR opt-in) — BSD-3-Clause — <https://github.com/pytorch/pytorch>
+
+> **Removed during v0.1 prep:** the earlier `kreuzberg` OCR wrapper (Elastic License 2.0,
+> source-available) was dropped — it was both a functional liability (multi-page EasyOCR returned
+> empty text) and a non-permissive dependency. The OCR stack is now fully permissive. History:
+> `requirements/v0.2/requirements_v0.2.md` (R-1 / R-1E) and Conductor track `remove-kreuzberg_20260606`.
+
+The one-off `scripts/ocr_preprocess.py` helper (NOT on the default ingest path) instead uses
+`pdf2image` (MIT — requires the system **poppler** tool, GPL) with `pytesseract`/`surya`; surya is
+copyleft — consult its upstream if you use that helper.
 
 ### Other Python libraries
 Permissively-licensed libraries used directly: `mcp` (Model Context Protocol SDK), `pdfplumber`,
@@ -56,4 +58,4 @@ Each is governed by its own upstream license; consult the upstream for authorita
 
 ---
 *This attribution reflects the dependencies at the time of writing. If you change pinned versions
-(e.g. kreuzberg), re-check the corresponding license.*
+(e.g. `torch` for the EasyOCR opt-in), re-check the corresponding license.*

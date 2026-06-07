@@ -133,9 +133,10 @@ R2R-ClaudeCode-integration/
 ├── scripts/
 │   ├── build_vault_graph.py   # D4: Parse [[wikilinks]] → .graph.json
 │   ├── detect_pdf_type.py     # Classify PDFs as text-native / image-only / mixed
-│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R, image→kreuzberg)
+│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R, image→ocr_extract)
 │   ├── ocr_preprocess.py      # Standalone OCR via pytesseract/surya (non-ingesting)
-│   ├── extract_text.py        # Standalone kreuzberg text extraction (images + docs)
+│   ├── extract_text.py        # Standalone OCR text extraction (pypdfium2 + tesseract/easyocr)
+│   ├── ocr_extract.py         # Shared OCR engine: pypdfium2 render + per-page tesseract/easyocr
 │   └── verify_ingestion.py    # Post-ingestion quality checks against R2R
 ├── plugins/                   # D7: Worldbuilding skill
 ├── examples/                  # D1: Vault CLAUDE.md template

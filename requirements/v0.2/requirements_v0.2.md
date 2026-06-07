@@ -194,7 +194,14 @@ async def search_lore(
 
 ## OCR & Licensing Follow-ups (added during v0.1 release prep)
 
-### R-1 — Remove the kreuzberg dependency (functional liability + license footprint) — **ELEVATED**
+### R-1 — Remove the kreuzberg dependency (functional liability + license footprint) — ✅ DONE (v0.1)
+
+> **Status: Implemented during v0.1 release prep** via Conductor track `remove-kreuzberg_20260606`.
+> OCR now lives in `scripts/ocr_extract.py` (pypdfium2 render → per-page tesseract/easyocr, TDD-built);
+> `ingest_books.py` and `extract_text.py` no longer import kreuzberg; deps, docs, and
+> `THIRD_PARTY_LICENSES.md` are updated to the fully-permissive stack. The text below is retained as
+> the original rationale/record.
+
 `kreuzberg` powers the client-side OCR path in `scripts/ingest_books.py` and `scripts/extract_text.py`
 (image-only PDFs route through `kreuzberg.extract_file_sync`; default backend is **tesseract**, with
 **EasyOCR**/PaddleOCR as opt-ins). v0.1 release-prep testing found kreuzberg's OCR layer

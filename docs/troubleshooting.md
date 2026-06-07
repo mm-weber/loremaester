@@ -50,17 +50,23 @@
 
 **Cause:** Poor OCR quality on the original scanned pages.
 
-**Fix:** Re-ingest with a different OCR engine. `scripts/ingest_books.py` defaults to tesseract (CPU); for sharper results on noisy scans opt into EasyOCR (GPU via torch+CUDA — see the bulk-ingestion section of [quickstart.md](./quickstart.md)), or try `paddleocr`. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but can struggle on multi-column layouts.
+**Fix:** Re-ingest with a different OCR engine. `scripts/ocr_extract.py` (driven via `scripts/ingest_books.py`) defaults to tesseract (CPU); for sharper results on noisy scans opt into EasyOCR (GPU via torch+CUDA — see the bulk-ingestion section of [quickstart.md](./quickstart.md)) by setting `OCR_ENGINE=easyocr`. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but can struggle on multi-column layouts. Set `OCR_LANGUAGE` to match the document (tesseract uses ISO 639-3, e.g. `eng`/`deu`; easyocr uses ISO 639-1, e.g. `en`/`de`).
 
-### `scripts/ingest_books.py` fails with `kreuzberg returned empty text`
+### Image PDF ingested with no text / "easyocr produced no text"
 
-**Cause:** The selected OCR backend ran but extracted zero usable text. We've observed this specifically with `paddleocr` on heavily scanned older TSR-era PDFs; EasyOCR handles the same files fine.
+**Cause:** `scripts/ocr_extract.py` renders each page with pypdfium2 and OCRs it per page. It does *not* silently return empty text — if *every* page comes back blank it raises a clear, document-identifying error naming the offending PDF. When this happens on the easyocr path it is almost always a GPU/torch problem: torch failed to initialize CUDA and the run produced nothing usable. (Before easyocr runs, the script prints a torch/CUDA banner — check it to confirm whether the GPU was actually picked up.)
 
-**Fix:** Switch OCR engine. Tesseract is the default; for a stubborn scan, opt into EasyOCR (its deps are added for the run via `--with`):
+**Fix:** First, fall back to the default tesseract backend, which is CPU-only and has no GPU dependency:
 
 ```bash
-KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
-  --with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126' \
+OCR_ENGINE=tesseract uv run --no-project --python 3.12 scripts/ingest_books.py <pdf-dir>
+```
+
+If you specifically need EasyOCR, fix the GPU/torch setup instead (see the torch/CUDA section below) and re-run with EasyOCR's deps added for the run via `--with`:
+
+```bash
+OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with easyocr --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py <pdf-dir>
@@ -73,8 +79,8 @@ KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
 **Fix:** Pin the CUDA build on the EasyOCR opt-in run (`--with 'torch==2.9.1+cu126'`); uv only picks up the cu126 variant if you also point at PyTorch's own index:
 
 ```bash
-KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
-  --with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126' \
+OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with easyocr --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py <pdf-dir>
@@ -90,7 +96,7 @@ To confirm the GPU is actually engaged after the fix, run `nvidia-smi` in a seco
 
 ### `uv run` fails with `No solution found when resolving script dependencies`
 
-**Cause:** You have `UV_EXTRA_INDEX_URL` exported in your shell (typically pointing at PaddlePaddle's mirror from a previous paddleocr attempt). That mirror advertises stale `kreuzberg` / `easyocr` entries, and uv's default index strategy refuses to look past the first index that names a given package — so it fails to see the newer versions on PyPI.
+**Cause:** You have a stray `UV_EXTRA_INDEX_URL` exported in your shell. uv's default index strategy refuses to look past the first index that names a given package, so an extra index can shadow PyPI and the PyTorch index and break torch resolution for the EasyOCR opt-in run.
 
 **Fix:** Unset the env var (or use `env -u` for a one-shot):
 

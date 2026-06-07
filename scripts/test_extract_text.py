@@ -1,4 +1,4 @@
-"""Tests for extract_text.py — all kreuzberg calls are mocked (no tesseract needed)."""
+"""Tests for extract_text.py — OCR (ocr_extract.ocr_pdf) is mocked (no OCR backends needed)."""
 
 import sys
 from pathlib import Path
@@ -134,7 +134,7 @@ def test_title_override(monkeypatch, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# FR-7: --engine passes correct config to kreuzberg
+# FR-7: --engine is passed through to the OCR backend
 # ---------------------------------------------------------------------------
 
 def test_engine_selection(monkeypatch, capsys, tmp_path):
@@ -150,7 +150,7 @@ def test_engine_selection(monkeypatch, capsys, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# FR-8: --language passes correct config to kreuzberg
+# FR-8: --language is passed through to the OCR backend
 # ---------------------------------------------------------------------------
 
 def test_language_selection(monkeypatch, capsys, tmp_path):

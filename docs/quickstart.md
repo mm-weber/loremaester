@@ -62,25 +62,24 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 - [ ] PDF sourcebooks (optional — the system works with just the vault)
 - [ ] Docker + Docker Compose on the host (**required** to run R2R)
 - [ ] `pdfplumber` on the host for PDF type detection: `uv pip install pdfplumber`
-- [ ] (Optional) For client-side OCR without Docker Full Mode: `tesseract-ocr`, `poppler-utils`
+- [ ] (Optional) For client-side OCR without Docker Full Mode: the system `tesseract` binary (`tesseract-ocr`)
 
 ### System Requirements for OCR Tools (Optional)
 
-If you plan to use client-side OCR preprocessing (for users who can't use Docker Full Mode for image PDFs):
+If you plan to use client-side OCR (for users who can't use Docker Full Mode for image PDFs):
 
 ```bash
 # Debian/Ubuntu
-sudo apt install tesseract-ocr poppler-utils
+sudo apt install tesseract-ocr
 
 # macOS
-brew install tesseract poppler
+brew install tesseract
 
 # Python packages
-uv pip install pdfplumber pdf2image Pillow pytesseract
-# Optional: uv pip install surya-ocr  (Python-native OCR, no system deps)
+uv pip install pdfplumber
 ```
 
-> **Note:** With its default **tesseract** backend, `scripts/ingest_books.py` needs the system `tesseract` binary (above); the opt-in EasyOCR backend brings its own (torch-based) OCR instead. `scripts/ocr_preprocess.py` also uses these packages. Full Mode OCRs server-side via Unstructured.io.
+> **Note:** The default client-side OCR path renders pages with **pypdfium2** (a self-contained wheel pulled in by `uv run`, no poppler needed) and OCRs each page with the system `tesseract` binary (above). `scripts/ingest_books.py` and `scripts/extract_text.py` use this pypdfium2 path. The opt-in **EasyOCR** backend brings its own (torch-based) OCR instead (see Step 4). Full Mode OCRs server-side via Unstructured.io. (Note: the one-off `scripts/ocr_preprocess.py` helper still uses pdf2image, which needs `poppler-utils`/`brew install poppler` — but the ingestion path does not.)
 
 ---
 
@@ -331,13 +330,13 @@ Are your PDFs scanned (image-only or mixed)?
 +-- Yes -- pick an OCR path:
 |   +-- Server-side (Docker Full Mode): ingest the PDF *directly* so R2R/Unstructured.io OCRs it
 |   |       e.g. r2r documents create book.pdf --metadata '{"book_title":"..."}'   (no client OCR deps)
-|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image PDFs via Kreuzberg (tesseract by default)
+|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image PDFs (pypdfium2 render + tesseract)
 |           (tesseract by default, CPU; opt into EasyOCR for GPU — see "Bulk Ingestion Script")
 +-- No, they're text-native
     +-- Ingest directly, or via scripts/ingest_books.py (Step 4)
 ```
 
-> **Which tool does which OCR?** If you ingest an image PDF **directly** (single-PDF `r2r documents create`, or the `r2r` MCP `ingest_document`) in Docker Full Mode, R2R/Unstructured.io OCRs it server-side. The bulk helper `scripts/ingest_books.py` instead OCRs image PDFs **client-side** via Kreuzberg (Step 4), in any mode — so you choose the OCR path by choosing the tool.
+> **Which tool does which OCR?** If you ingest an image PDF **directly** (single-PDF `r2r documents create`, or the `r2r` MCP `ingest_document`) in Docker Full Mode, R2R/Unstructured.io OCRs it server-side. The bulk helper `scripts/ingest_books.py` instead OCRs image PDFs **client-side** via `scripts/ocr_extract.py` (Step 4), in any mode — so you choose the OCR path by choosing the tool.
 
 ---
 
@@ -385,9 +384,10 @@ SHA1 content-hash deduplication, and client-side OCR for scanned books:
 - **Text-native PDFs** → forwarded to R2R via `documents.create(file_path=…)`.
   In Docker Full Mode this means Unstructured.io parses them server-side.
 - **Image-only PDFs** (detected by pdfplumber: <10% of pages have extractable
-  text) → OCR'd client-side via [Kreuzberg](https://kreuzberg.dev/) with
-  **tesseract** as the default backend (CPU; needs only the system `tesseract`
-  binary), then pushed to R2R.
+  text) → OCR'd client-side by `scripts/ocr_extract.py`, which renders each page
+  with **pypdfium2** and OCRs it per page with **tesseract** as the default
+  engine (CPU; needs only the system `tesseract` binary, no poppler), then pushed
+  to R2R.
 
 Run it with `uv run` — the script declares its own dependencies inline:
 
@@ -402,11 +402,12 @@ no GPU. Install the binary first: `apt install tesseract-ocr tesseract-ocr-eng`
 #### Higher-quality OCR: EasyOCR (opt-in, GPU)
 
 EasyOCR (torch+CUDA) is often sharper on noisy scans, but it's heavy and not in
-the script's default deps. Add it for the run with uv `--with`:
+the script's default deps. Set `OCR_ENGINE=easyocr` and add it for the run with
+uv `--with`:
 
 ```bash
-KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
-  --with 'kreuzberg[easyocr]>=4.5.0' --with 'torch==2.9.1+cu126' \
+OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with easyocr --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py /path/to/sourcebooks/
@@ -414,18 +415,20 @@ KREUZBERG_OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
 
 The `--extra-index-url`/`--index-strategy` flags fetch `torch==2.9.1+cu126`, a
 local-version variant only published on PyTorch's own index (see Troubleshooting
-if you hit `driver too old` or resolution errors). PaddleOCR is analogous: add
-`--with 'kreuzberg[paddleocr]'` (+ paddlepaddle from its own index).
+if you hit `driver too old` or resolution errors).
 
-Language codes differ by engine: tesseract takes ISO 639-3 three-letter codes
-(`KREUZBERG_OCR_LANGUAGE=eng`, `deu`); easyocr/paddleocr take ISO 639-1
-two-letter codes (`en`, `de`).
+`OCR_ENGINE` selects the engine (`tesseract`, the default | `easyocr`); the
+legacy `KREUZBERG_OCR_ENGINE` is still honored as a fallback. Language codes
+differ by engine: tesseract takes ISO 639-3 three-letter codes
+(`OCR_LANGUAGE=eng`, `deu`); easyocr takes ISO 639-1 two-letter codes
+(`OCR_LANGUAGE=en`, `de`).
 
 ### Ingesting Image PDFs Without Docker Full Mode
 
-`scripts/ingest_books.py` OCRs scanned books **client-side** via Kreuzberg in
-any R2R mode, so it works even in Light Mode (no Unstructured.io needed). If you'd
-rather OCR server-side, ingest image PDFs directly in Docker Full Mode (see Step 3b).
+`scripts/ingest_books.py` OCRs scanned books **client-side** via
+`scripts/ocr_extract.py` (pypdfium2 render + tesseract) in any R2R mode, so it
+works even in Light Mode (no Unstructured.io needed). If you'd rather OCR
+server-side, ingest image PDFs directly in Docker Full Mode (see Step 3b).
 
 For one-off OCR experiments outside the ingestion flow (e.g., extracting
 text from a single image or PDF without pushing to R2R),

@@ -62,7 +62,7 @@ First build: 10-20 minutes (downloading the base image + apt packages + Python d
 Once the container opens, in its integrated terminal:
 ```bash
 python3 --version                                           # ≥ 3.10
-pip list | grep -E '^(mcp|r2r|pyyaml|kreuzberg|uv) '       # all 5 present
+pip list | grep -E '^(mcp|r2r|pyyaml|uv) '                 # all 4 present
 claude --version                                            # Claude Code CLI
 tesseract --version                                         # OCR backend
 curl -s http://host.docker.internal:11434/api/tags | head   # Ollama on host
@@ -108,7 +108,7 @@ uv run --no-project scripts/detect_pdf_type.py examples/ttrpg/sourcebooks/
 uv run --no-project scripts/ingest_books.py examples/ttrpg/sourcebooks/
 uv run --no-project scripts/verify_ingestion.py --all
 ```
-`detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (with tesseract via [Kreuzberg](https://kreuzberg.dev/), the default backend) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
+`detect_pdf_type.py` will classify Vol I and Vol II as `text-native` and Vol III as `image-only`. `ingest_books.py` sends the two text-native books straight to R2R and OCRs the image-only Vol III **client-side** before ingesting it (client-side via `ocr_extract` (pypdfium2 render + per-page tesseract), the default backend) — this is the slow step, a couple of minutes for 16 image pages. When `verify_ingestion.py --all` finishes you should see all three books with chunk counts > 0 and `Overall: PASS`.
 
 > **Choosing an OCR path.** The default is **tesseract** (CPU; needs only the host `tesseract` binary — see [`quickstart.md`](./quickstart.md)), and it handles the bundled scans fine. For sharper OCR on a GPU you can opt into **EasyOCR** via uv `--with` — see the bulk-ingestion section of [`quickstart.md`](./quickstart.md). Prefer **server-side** OCR? In Docker Full Mode, ingest an image PDF *directly* (`r2r documents create <pdf> --metadata '{"book_title":"…"}'`) and R2R/Unstructured.io will OCR it. Client-side OCR runs inside the `ingest_books.py` command, so Vol III is fully ingested by the time it returns; if a book is missing, re-run `verify_ingestion.py --all`.
 
@@ -200,7 +200,7 @@ Prompt:
 
 > Summarize what's in Volume III.
 
-**Expected**: Coherent text content comes back — chapter titles, topic descriptions, named entities. Volume III is the image-only PDF; the fact that any meaningful text returns at all means its scanned pages were OCR'd during ingest (client-side via Kreuzberg/tesseract in `ingest_books.py`) and R2R chunked and embedded the result.
+**Expected**: Coherent text content comes back — chapter titles, topic descriptions, named entities. Volume III is the image-only PDF; the fact that any meaningful text returns at all means its scanned pages were OCR'd during ingest (client-side via `ocr_extract` (pypdfium2 render + per-page tesseract) in `ingest_books.py`) and R2R chunked and embedded the result.
 
 **Proves**: The image-PDF OCR ingestion path works end to end — scanned pages become searchable lore. (The same result is achievable server-side via R2R/Unstructured.io in Docker Full Mode by ingesting the PDF directly; see [`quickstart.md`](./quickstart.md) Steps 3b–4.)
 
@@ -274,7 +274,7 @@ Then prompt:
 | Demo | Capability proven |
 |---|---|
 | A | Multi-book semantic search across the ingested corpus with citation metadata, via the `sourcebooks` MCP. |
-| B | OCR ingestion of image-only PDFs — scanned pages become searchable (client-side Kreuzberg/tesseract by default; server-side Unstructured.io also supported). |
+| B | OCR ingestion of image-only PDFs — scanned pages become searchable (client-side pypdfium2 + tesseract/easyocr by default; server-side Unstructured.io also supported). |
 | C | The `worldbuilding` skill synthesizes vault canon + sourcebook research into a new note with correct frontmatter, asks before writing, refreshes the graph. |
 | D | The `session-creation` skill orchestrates the 8 Steps of the Lazy DM + Situations Checklist into a fully structured session folder. |
 | E | The `vault-scout` skill dispatches mechanical sweeps to Haiku, keeping main-agent context clean and token costs low. |
