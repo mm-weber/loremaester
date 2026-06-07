@@ -10,10 +10,11 @@
 # ///
 """Bulk-ingest PDFs into R2R with sourcebook metadata.
 
-Image-only PDFs are OCR'd client-side via `ocr_extract` (pypdfium2 render →
-per-page tesseract/easyocr) to sidestep the single-instance Unstructured
-container bottleneck. Text-native PDFs go through R2R's native parsing so
-chunking metadata stays consistent.
+Image-only and mixed PDFs are extracted client-side via `ocr_extract`'s
+per-page hybrid (embedded text layer where present, pypdfium2-rendered
+tesseract/easyocr where absent, plus figure-region OCR) to sidestep the
+single-instance Unstructured container bottleneck. Text-native PDFs go
+through R2R's native parsing so chunking metadata stays consistent.
 
 OCR defaults to tesseract (CPU; needs only the system `tesseract` binary) —
 robust, permissively licensed, dependency-light. Override via env:
@@ -47,8 +48,6 @@ from detect_pdf_type import analyze_pdf
 from ocr_extract import extract_pdf, resolve_engine
 
 R2R_BASE = "http://localhost:7272"
-# <10% of pages with extractable text => treat as scanned/image-only
-IMAGE_ONLY_THRESHOLD = 0.1
 # OCR_ENGINE / OCR_LANGUAGE are canonical; the legacy KREUZBERG_* names are
 # still honored as a fallback so older commands keep working.
 OCR_ENGINE = os.environ.get("OCR_ENGINE", os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract"))
@@ -62,17 +61,6 @@ def file_sha1(path, chunk_size=1024 * 1024):
         while chunk := f.read(chunk_size):
             h.update(chunk)
     return h.hexdigest()
-
-
-def is_image_pdf(pdf_path):
-    """Return True if <10% of pages in the PDF have extractable text."""
-    import pdfplumber
-    with pdfplumber.open(pdf_path) as pdf:
-        total = len(pdf.pages)
-        if total == 0:
-            return False
-        with_text = sum(1 for p in pdf.pages if (p.extract_text() or "").strip())
-        return (with_text / total) < IMAGE_ONLY_THRESHOLD
 
 
 def print_easyocr_diagnostics():

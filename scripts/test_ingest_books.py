@@ -42,9 +42,8 @@ class TestProcessPdf:
 class TestProcessPdfRouting:
     @patch("ingest_books.ingest_via_ocr")
     @patch("ingest_books.ingest_native")
-    @patch("ingest_books.is_image_pdf", return_value=False)
     @patch("ingest_books.analyze_pdf")
-    def test_text_native_routes_to_native(self, mock_analyze, mock_is_image, mock_native, mock_ocr):
+    def test_text_native_routes_to_native(self, mock_analyze, mock_native, mock_ocr):
         mock_analyze.return_value = MagicMock(classification="text-native")
         ingest_books.process_pdf(MagicMock(), Path("/b/Book.pdf"))
         mock_native.assert_called_once()
@@ -52,9 +51,8 @@ class TestProcessPdfRouting:
 
     @patch("ingest_books.ingest_via_ocr")
     @patch("ingest_books.ingest_native")
-    @patch("ingest_books.is_image_pdf", return_value=False)
     @patch("ingest_books.analyze_pdf")
-    def test_mixed_routes_to_ocr(self, mock_analyze, mock_is_image, mock_native, mock_ocr):
+    def test_mixed_routes_to_ocr(self, mock_analyze, mock_native, mock_ocr):
         mock_analyze.return_value = MagicMock(classification="mixed")
         ingest_books.process_pdf(MagicMock(), Path("/b/Book.pdf"))
         mock_ocr.assert_called_once()
@@ -62,9 +60,8 @@ class TestProcessPdfRouting:
 
     @patch("ingest_books.ingest_via_ocr")
     @patch("ingest_books.ingest_native")
-    @patch("ingest_books.is_image_pdf", return_value=True)
     @patch("ingest_books.analyze_pdf")
-    def test_image_only_routes_to_ocr(self, mock_analyze, mock_is_image, mock_native, mock_ocr):
+    def test_image_only_routes_to_ocr(self, mock_analyze, mock_native, mock_ocr):
         mock_analyze.return_value = MagicMock(classification="image-only")
         ingest_books.process_pdf(MagicMock(), Path("/b/Book.pdf"))
         mock_ocr.assert_called_once()
