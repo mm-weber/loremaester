@@ -80,10 +80,15 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 │   ├── detect_pdf_type.py         # Classify PDFs (text-native / image-only / mixed)
 │   ├── ingest_books.py            # Bulk PDF ingestion
 │   └── verify_ingestion.py        # Post-ingestion quality checks
-├── plugins/
-│   └── worldbuilding/             # Claude Code worldbuilding skill
+├── skills/                        # Claude Code skills this project provides — copy into .claude/skills/
+│   ├── worldbuilding/             #   (worldbuilding, session-creation, chronik, vault-scout)
+│   ├── session-creation/
+│   ├── chronik/
+│   └── vault-scout/
+├── evals/                         # Skill evaluation harness (worldbuilding: with-skill vs without)
 ├── examples/
-│   └── vault-claude-md-template.md
+│   ├── vault-claude-md-template.md
+│   └── ttrpg/                     # Bundled demo: vault scaffold, sourcebooks, ready-to-use skills
 ├── docs/                          # Documentation
 │   ├── demo-walkthrough.md        # 30-min hands-on demo with bundled content
 │   ├── quickstart.md              # Full setup guide for your own vault

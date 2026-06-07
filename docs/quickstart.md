@@ -637,11 +637,13 @@ You should see 3 servers connected with 14 tools total:
 
 ## Step 7 — Install the Worldbuilding Skill
 
-Copy the skill into your Claude Code skills directory:
+Copy the skill into your Claude Code skills directory. This project's skills live in `skills/` (worldbuilding, session-creation, chronik, vault-scout):
 
 ```bash
-mkdir -p .claude/skills/worldbuilding
-cp plugins/worldbuilding/SKILL.md .claude/skills/worldbuilding/SKILL.md
+mkdir -p .claude/skills
+cp -r skills/worldbuilding .claude/skills/worldbuilding
+# (optional) install the others too:
+# cp -r skills/* .claude/skills/
 ```
 
 The skill auto-triggers on worldbuilding requests — creating NPCs, factions, locations, researching lore, or expanding your world. You don't need to invoke it manually.

@@ -138,8 +138,9 @@ R2R-ClaudeCode-integration/
 │   ├── extract_text.py        # Standalone OCR text extraction (pypdfium2 + tesseract/easyocr)
 │   ├── ocr_extract.py         # Shared OCR engine: pypdfium2 render + per-page tesseract/easyocr
 │   └── verify_ingestion.py    # Post-ingestion quality checks against R2R
-├── plugins/                   # D7: Worldbuilding skill
-├── examples/                  # D1: Vault CLAUDE.md template
+├── skills/                    # D7: Claude Code skills (worldbuilding, session-creation, chronik, vault-scout)
+├── evals/                     # D7: skill evaluation harness (with-skill vs without-skill)
+├── examples/                  # D1: Vault CLAUDE.md template + bundled TTRPG demo (examples/ttrpg/)
 ├── docs/                      # Documentation
 ├── requirements/              # EARS specifications
 └── .github/workflows/         # CI/CD
