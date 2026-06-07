@@ -8,7 +8,7 @@ First, what this project **is**: a self-hosted toolkit that turns Claude Code in
 
 - **Read before you write.** Match the conventions already in the file you're editing.
 - **Simplicity first.** Implement what's needed; don't add speculative abstraction without a real caller.
-- **Permissive licenses only on the shipped path.** This matters here: a core dependency (`kreuzberg`, Elastic-License-2.0) was removed in v0.1 precisely because it wasn't OSI-permissive. New runtime dependencies on the default path must be MIT / Apache-2.0 / BSD — no copyleft, no source-available. Copyleft is acceptable only for clearly-optional, off-by-default helpers, and must be flagged in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
+- **Permissive licenses only on the shipped path.** This matters here: a core dependency (`kreuzberg`, Elastic-License-2.0) was removed in v0.1 precisely because it wasn't OSI-permissive. New runtime dependencies on the default path must be MIT / Apache-2.0 / BSD — no copyleft, no source-available. Copyleft is acceptable only for clearly-optional, off-by-default helpers, and must be flagged in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 - **Handle failure explicitly.** Don't swallow errors or return empty results silently — the OCR pipeline raises a document-identifying error rather than ingesting nothing, and new code should be just as loud.
 
 ## Workflow

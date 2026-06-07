@@ -152,5 +152,5 @@ It orchestrates third-party components under their own licenses — notably
 [R2R](https://github.com/SciPhi-AI/R2R) (MIT). The client-side OCR stack is fully permissive:
 tesseract/pytesseract (Apache-2.0), pypdfium2 (Apache-2.0/BSD-3), and the optional GPU path
 easyocr (Apache-2.0) with torch (BSD-3).
-See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for full attribution and important usage
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for full attribution and important usage
 notes before redistributing or hosting this project.

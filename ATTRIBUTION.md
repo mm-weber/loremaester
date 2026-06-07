@@ -1,6 +1,6 @@
 # Attribution
 
-The **Worldbuilding Assistant for Claude Code** is released under the [MIT License](LICENSE). It **orchestrates** the software below rather than vendoring it. This file credits that work; for the exact license terms and redistribution notes (including the **MinIO AGPL-3.0** caveat), see [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
+The **Worldbuilding Assistant for Claude Code** is released under the [MIT License](LICENSE). It **orchestrates** the software below rather than vendoring it. This file credits that work; for the exact license terms and redistribution notes (including the **MinIO AGPL-3.0** caveat), see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Core software
 
@@ -18,7 +18,7 @@ The **Worldbuilding Assistant for Claude Code** is released under the [MIT Licen
 | [pytest](https://github.com/pytest-dev/pytest) / pytest-asyncio | pytest-dev | Test suite | MIT |
 | [Ollama](https://github.com/ollama/ollama) + `mxbai-embed-large` | Ollama; Mixedbread AI | Local embedding model server + model | MIT (Ollama); see model card |
 
-Runtime Docker images (Postgres/pgvector, MinIO, Hatchet, RabbitMQ, Unstructured.io) are pulled unchanged — see [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) for their licenses. The one-off `scripts/ocr_preprocess.py` helper (not on the default path) additionally uses [pdf2image](https://github.com/Belval/pdf2image) (MIT; needs the system **poppler**) and optionally [surya](https://github.com/VikParuchuri/surya) (copyleft — consult upstream).
+Runtime Docker images (Postgres/pgvector, MinIO, Hatchet, RabbitMQ, Unstructured.io) are pulled unchanged — see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for their licenses. The one-off `scripts/ocr_preprocess.py` helper (not on the default path) additionally uses [pdf2image](https://github.com/Belval/pdf2image) (MIT; needs the system **poppler**) and optionally [surya](https://github.com/VikParuchuri/surya) (copyleft — consult upstream).
 
 ## On the "LLM Wiki" pattern
 

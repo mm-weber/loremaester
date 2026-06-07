@@ -219,7 +219,7 @@ async def search_lore(
 > **Status: Implemented during v0.1 release prep** via Conductor track `remove-kreuzberg_20260606`.
 > OCR now lives in `scripts/ocr_extract.py` (pypdfium2 render → per-page tesseract/easyocr, TDD-built);
 > `ingest_books.py` and `extract_text.py` no longer import kreuzberg; deps, docs, and
-> `THIRD_PARTY_LICENSES.md` are updated to the fully-permissive stack. The text below is retained as
+> `THIRD_PARTY_NOTICES.md` are updated to the fully-permissive stack. The text below is retained as
 > the original rationale/record.
 
 `kreuzberg` powers the client-side OCR path in `scripts/ingest_books.py` and `scripts/extract_text.py`
@@ -242,7 +242,7 @@ evidence in R-1E):
    kreuzberg's multi-page EasyOCR execution, not EasyOCR, torch, CUDA, the GPU, or the documents.
 
 **License:** kreuzberg (≥ 4.6) is **Elastic License 2.0** — source-available, *not* OSI open-source
-(see [`THIRD_PARTY_LICENSES.md`](../../THIRD_PARTY_LICENSES.md)). Removing it returns the OCR stack
+(see [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md)). Removing it returns the OCR stack
 to a fully permissive (MIT/Apache) footprint.
 
 **Requirement:** Drop kreuzberg from `scripts/ingest_books.py`, `scripts/extract_text.py`, and

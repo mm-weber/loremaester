@@ -10,7 +10,7 @@ Conventions for this repo's Python (PEP 723 scripts + MCP servers).
 ## Dependencies
 - Prefer the stdlib; add third-party only when it earns its keep.
 - Permissive licenses only on the shipped path (MIT / Apache / BSD). No Elastic-2.0 / AGPL / GPL in
-  defaults — flag anything copyleft in `THIRD_PARTY_LICENSES.md`.
+  defaults — flag anything copyleft in `THIRD_PARTY_NOTICES.md`.
 
 ## Defensive, honest code
 - Use `getattr(obj, "attr", default)` against external SDK / result objects whose schema may drift.

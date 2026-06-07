@@ -39,7 +39,7 @@ These are targets, not guarantees — this is a small, maintainer-driven project
 **Out of scope:**
 
 - Your own vault content and the documents you ingest.
-- Third-party components we orchestrate but do not vendor — R2R, Ollama and its models, the Docker images (Postgres/pgvector, MinIO, Hatchet, RabbitMQ, Unstructured.io), and Obsidian. Report those to their respective projects (see [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md)).
+- Third-party components we orchestrate but do not vendor — R2R, Ollama and its models, the Docker images (Postgres/pgvector, MinIO, Hatchet, RabbitMQ, Unstructured.io), and Obsidian. Report those to their respective projects (see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 - Issues that require pre-existing privileged access to the host machine.
 
 ## Design Assumptions

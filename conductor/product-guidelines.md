@@ -24,7 +24,7 @@ Make every change as small as possible; touch the minimum code.
 
 ### Principle 2: Permissive by default
 Prefer MIT/Apache/BSD dependencies; flag and avoid copyleft / source-available deps on the shipped path.
-- **Do:** document the third-party license footprint (`THIRD_PARTY_LICENSES.md`).
+- **Do:** document the third-party license footprint (`THIRD_PARTY_NOTICES.md`).
 - **Don't:** ship Elastic-2.0 / AGPL on the default path silently.
 
 ### Principle 3: Reproducible & self-hosted

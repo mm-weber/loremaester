@@ -1,4 +1,4 @@
-# Third-Party Licenses & Attribution
+# Third-Party Notices
 
 The **Worldbuilding Assistant for Claude Code** is released under the MIT License (see
 [`LICENSE`](LICENSE)). It does **not** vendor third-party source code — it *orchestrates and

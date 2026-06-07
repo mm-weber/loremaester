@@ -56,7 +56,7 @@ calling it directly per page is permissive **and** fixes the bug.
 - [ ] THE OCR test suite SHALL pass without `kreuzberg`, `tesseract`, `easyocr`, or `poppler` installed (backends + renderer mocked).
 - [ ] THE repository documentation SHALL NOT instruct users to install `kreuzberg`.
 - [ ] WHEN OCR is documented THE documentation SHALL describe only the `pypdfium2` + `tesseract`/`easyocr` pipeline.
-- [ ] THE `THIRD_PARTY_LICENSES.md` file SHALL NOT list `kreuzberg`.
+- [ ] THE `THIRD_PARTY_NOTICES.md` file SHALL NOT list `kreuzberg`.
 
 ## Dependencies
 - **Add:** `pypdfium2` (Apache/BSD). **Reuse (already in repo):** `pytesseract`, `Pillow`, `pdfplumber`.
