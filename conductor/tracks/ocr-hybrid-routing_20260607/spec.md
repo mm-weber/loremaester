@@ -4,7 +4,7 @@
 **Type:** Feature
 **Priority:** Medium
 **Created:** 2026-06-07
-**Status:** Draft
+**Status:** Complete
 
 ## Summary
 Replace `ingest_books.py`'s binary OCR routing (image-only → OCR; everything else → R2R native) with a
@@ -19,14 +19,14 @@ image-only pages get **no client-side OCR** (lost in Light Mode). The GPU should
 or a figure on a page — actually lacks a text layer, not re-OCR perfect text.
 
 ## Acceptance Criteria (EARS)
-- [ ] THE ingest router SHALL send pure text-native PDFs to R2R-native ingestion (unchanged).
-- [ ] WHEN a PDF is image-only OR mixed THE ingest router SHALL extract it via the per-page hybrid and ingest the result as text (temp `.txt`, preserving title + default collection).
-- [ ] WHEN a page has a usable embedded text layer THE hybrid SHALL use that text and SHALL NOT OCR the page body.
-- [ ] WHEN a page has no usable text layer THE hybrid SHALL OCR the whole page.
-- [ ] WHERE a page has an embedded image region that is not a full-page scan duplicating an existing text layer THE hybrid SHALL OCR that region and append its text to the page's text.
-- [ ] WHERE the requested engine is easyocr AND no usable CUDA GPU is present THE OCR SHALL fall back to tesseract (with a printed notice).
-- [ ] IF a document yields no text on any page THEN THE hybrid SHALL raise a document-identifying error (no empty ingest).
-- [ ] THE hybrid SHALL depend only on permissively-licensed components (pypdfium2, pdfplumber, pytesseract, easyocr/torch).
+- [x] THE ingest router SHALL send pure text-native PDFs to R2R-native ingestion (unchanged).
+- [x] WHEN a PDF is image-only OR mixed THE ingest router SHALL extract it via the per-page hybrid and ingest the result as text (temp `.txt`, preserving title + default collection).
+- [x] WHEN a page has a usable embedded text layer THE hybrid SHALL use that text and SHALL NOT OCR the page body.
+- [x] WHEN a page has no usable text layer THE hybrid SHALL OCR the whole page.
+- [x] WHERE a page has an embedded image region that is not a full-page scan duplicating an existing text layer THE hybrid SHALL OCR that region and append its text to the page's text.
+- [x] WHERE the requested engine is easyocr AND no usable CUDA GPU is present THE OCR SHALL fall back to tesseract (with a printed notice).
+- [x] IF a document yields no text on any page THEN THE hybrid SHALL raise a document-identifying error (no empty ingest).
+- [x] THE hybrid SHALL depend only on permissively-licensed components (pypdfium2, pdfplumber, pytesseract, easyocr/torch).
 
 ## Dependencies
 Builds on `remove-kreuzberg_20260606` (ocr_extract) and `idempotent-ingest_20260607`. Adds `pdfplumber`

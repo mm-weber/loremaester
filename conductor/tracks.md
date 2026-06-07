@@ -11,14 +11,15 @@ Registry of all development tracks. Each track is a distinct body of work with i
 
 ## Active Tracks
 
-### [~] ocr-hybrid-routing_20260607: OCR routing — per-page hybrid + region-targeted figure OCR
-**Description:** Per-page hybrid (text-layer + OCR) for image-only & mixed PDFs; region-targeted figure OCR; easyocr→tesseract fallback. text-native stays on R2R native.
-**Priority:** Medium
-**Folder:** [./tracks/ocr-hybrid-routing_20260607/](./tracks/ocr-hybrid-routing_20260607/)
+_None currently in progress._
 
 ---
 
 ## Completed Tracks
+
+### [x] ocr-hybrid-routing_20260607: OCR routing — per-page hybrid + region-targeted figure OCR
+**Description:** Per-page hybrid (text-layer + OCR) for image-only & mixed PDFs; region-targeted figure OCR; easyocr→tesseract fallback. text-native stays on R2R native. TDD-built (routing rewired to the 3-tier classifier, dead `is_image_pdf` removed; 88 unit tests green). **Completed 2026-06-07.**
+**Folder:** [./tracks/ocr-hybrid-routing_20260607/](./tracks/ocr-hybrid-routing_20260607/)
 
 ### [x] idempotent-ingest_20260607: Idempotent ingest — skip already-ingested PDFs
 **Description:** R2R "already exists" is now reported as SKIPPED (not FAILED) on re-runs; summary counts succeeded/skipped/failed (TDD-built; 4 unit tests). **Completed 2026-06-07.**

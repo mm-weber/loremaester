@@ -23,7 +23,7 @@ Central navigation for Conductor artifacts and development tracks.
 | --- | --- | --- | --- | --- |
 | remove-kreuzberg | ✅ Complete | High | [spec](./tracks/remove-kreuzberg_20260606/spec.md) | [plan](./tracks/remove-kreuzberg_20260606/plan.md) |
 | idempotent-ingest | ✅ Complete | Medium | [spec](./tracks/idempotent-ingest_20260607/spec.md) | [plan](./tracks/idempotent-ingest_20260607/plan.md) |
-| ocr-hybrid-routing | 🛠 In progress | Medium | [spec](./tracks/ocr-hybrid-routing_20260607/spec.md) | [plan](./tracks/ocr-hybrid-routing_20260607/plan.md) |
+| ocr-hybrid-routing | ✅ Complete | Medium | [spec](./tracks/ocr-hybrid-routing_20260607/spec.md) | [plan](./tracks/ocr-hybrid-routing_20260607/plan.md) |
 
 ## Getting Started
 1. Review [Product Vision](./product.md).
@@ -32,4 +32,4 @@ Central navigation for Conductor artifacts and development tracks.
 4. Open the track: [remove-kreuzberg](./tracks/remove-kreuzberg_20260606/index.md).
 
 ---
-**Last Updated:** 2026-06-06
+**Last Updated:** 2026-06-07
