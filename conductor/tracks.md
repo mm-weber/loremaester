@@ -11,7 +11,10 @@ Registry of all development tracks. Each track is a distinct body of work with i
 
 ## Active Tracks
 
-_None._
+### [~] idempotent-ingest_20260607: Idempotent ingest — skip already-ingested PDFs
+**Description:** Treat R2R "already exists" as SKIPPED (not FAILED) on re-runs; report succeeded/skipped/failed separately.
+**Priority:** Medium
+**Folder:** [./tracks/idempotent-ingest_20260607/](./tracks/idempotent-ingest_20260607/)
 
 ---
 
