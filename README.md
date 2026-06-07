@@ -1,5 +1,11 @@
 # Worldbuilding Assistant for Claude Code
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-skills-8B5CF6)](https://code.claude.com/docs/en/skills)
+[![MCP](https://img.shields.io/badge/MCP-3_servers-0a7ea4)](https://modelcontextprotocol.io)
+[![Obsidian](https://img.shields.io/badge/Obsidian-vault-7c3aed?logo=obsidian&logoColor=white)](https://obsidian.md)
+[![CI](https://github.com/mm-weber/R2R-ClaudeCode-integration/actions/workflows/tests.yml/badge.svg)](https://github.com/mm-weber/R2R-ClaudeCode-integration/actions/workflows/tests.yml)
+
 Turn Claude Code into a worldbuilding collaborator that knows your Obsidian vault AND your TTRPG sourcebooks. Claude reads and writes vault notes natively while querying scanned sourcebooks via R2R semantic search — generating new content that's consistent with your canon and published lore.
 
 ## Architecture
