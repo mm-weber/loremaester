@@ -41,6 +41,8 @@ from pathlib import Path
 
 from r2r import R2RClient
 
+from ocr_extract import ocr_pdf
+
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only
 IMAGE_ONLY_THRESHOLD = 0.1
@@ -166,6 +168,10 @@ def describe_extraction(result):
     if metadata is not None:
         bits.append((f"metadata={metadata!r}")[:200])
     return "; ".join(bits)
+
+
+def ingest_via_ocr(client, pdf_path, metadata):
+    pass
 
 
 def ingest_via_kreuzberg(client, pdf_path, metadata):
