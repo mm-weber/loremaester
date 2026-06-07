@@ -44,7 +44,7 @@ from pathlib import Path
 from r2r import R2RClient
 
 from detect_pdf_type import analyze_pdf
-from ocr_extract import ocr_pdf
+from ocr_extract import ocr_pdf, extract_pdf, resolve_engine
 
 R2R_BASE = "http://localhost:7272"
 # <10% of pages with extractable text => treat as scanned/image-only

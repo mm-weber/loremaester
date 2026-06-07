@@ -5,14 +5,21 @@ import ingest_books
 
 class TestIngestViaOcr:
     @patch("ingest_books.ocr_pdf")
-    def test_ingest_via_ocr_ocrs_then_ingests_text(self, mock_ocr_pdf):
+    @patch("ingest_books.extract_pdf")
+    @patch("ingest_books.resolve_engine", return_value="tesseract")
+    def test_ingest_via_ocr_uses_resolve_engine_and_extract_pdf(self, mock_resolve, mock_extract, mock_ocr_pdf):
+        mock_extract.return_value = MagicMock(content="HYBRID TEXT")
+        # ocr_pdf is mocked only so the *current* code path doesn't crash on the
+        # fake path; give it a str content too so we reach the real assertions
+        # (about resolve_engine/extract_pdf) instead of a TypeError in write_text.
         mock_ocr_pdf.return_value = MagicMock(content="OCR TEXT")
         client = MagicMock()
         client.documents.create.return_value.results.document_id = "doc-1"
         ingest_books.ingest_via_ocr(client, Path("/books/Vol-III.pdf"), {"book_title": "Vol III"})
-        mock_ocr_pdf.assert_called_once()                       # OCR done via ocr_extract
+        mock_resolve.assert_called_once()
+        mock_extract.assert_called_once()
         _, kwargs = client.documents.create.call_args
-        assert kwargs["file_path"].endswith("Vol-III.txt")     # temp .txt named after the PDF stem
+        assert kwargs["file_path"].endswith("Vol-III.txt")
         assert kwargs["metadata"] == {"book_title": "Vol III"}
 
 
