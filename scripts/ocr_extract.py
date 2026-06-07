@@ -54,11 +54,18 @@ def _require(available, package, install_hint):
 
 
 def _cuda_available():
-    return False
+    try:
+        import torch
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
 
 
 def resolve_engine(requested):
-    return None
+    if requested == "easyocr" and not _cuda_available():
+        print("  OCR: easyocr requested but no usable CUDA GPU — falling back to tesseract (CPU).")
+        return "tesseract"
+    return requested
 
 
 @dataclass
