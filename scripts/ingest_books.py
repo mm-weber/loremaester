@@ -171,7 +171,17 @@ def describe_extraction(result):
 
 
 def ingest_via_ocr(client, pdf_path, metadata):
-    pass
+    """OCR client-side with ocr_extract (pypdfium2 + per-page tesseract/easyocr);
+    ingest via a named temp .txt so R2R derives the title + default collection."""
+    print(f"  OCR ({OCR_ENGINE}): {pdf_path.name} — per-page; this takes a while for big scans...")
+    result = ocr_pdf(str(pdf_path), engine=OCR_ENGINE, language=OCR_LANGUAGE)
+    with tempfile.TemporaryDirectory(prefix="ingest_books_") as tmp_dir:
+        tmp_path = Path(tmp_dir) / f"{pdf_path.stem}.txt"
+        tmp_path.write_text(result.content, encoding="utf-8")
+        response = client.documents.create(file_path=str(tmp_path), metadata=metadata)
+    doc_id = response.results.document_id
+    print(f"  Ingested (OCR → {pdf_path.stem}.txt): {pdf_path.name} -> {doc_id}")
+    return doc_id
 
 
 def ingest_via_kreuzberg(client, pdf_path, metadata):
