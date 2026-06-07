@@ -53,8 +53,8 @@ def _get_r2r_client():
 
 
 def _do_extract(filepath, engine="tesseract", language="eng"):
-    """Extract text from a single file. Returns content string or raises."""
-    return None
+    """Extract text from a single file via ocr_extract (pypdfium2 + per-page OCR). Returns content or raises."""
+    return ocr_pdf(filepath, engine=engine, language=language).content
 
 
 def main():
