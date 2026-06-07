@@ -21,7 +21,7 @@ Central navigation for Conductor artifacts and development tracks.
 ## Active Tracks
 | Track | Status | Priority | Spec | Plan |
 | --- | --- | --- | --- | --- |
-| remove-kreuzberg | Pending | High | [spec](./tracks/remove-kreuzberg_20260606/spec.md) | [plan](./tracks/remove-kreuzberg_20260606/plan.md) |
+| remove-kreuzberg | ✅ Complete | High | [spec](./tracks/remove-kreuzberg_20260606/spec.md) | [plan](./tracks/remove-kreuzberg_20260606/plan.md) |
 
 ## Getting Started
 1. Review [Product Vision](./product.md).
