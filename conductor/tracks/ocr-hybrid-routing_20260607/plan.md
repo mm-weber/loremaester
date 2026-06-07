@@ -15,7 +15,7 @@ hybrid. Then update docs.
 | Phase | Status | Progress |
 | ----- | ------ | -------- |
 | Phase 1: extract_pdf hybrid + engine resolution | [x] Complete | 100% |
-| Phase 2: region-targeted figure OCR | [ ] Not started | 0% |
+| Phase 2: region-targeted figure OCR | [x] Complete | 100% |
 | Phase 3: rewire ingest routing | [ ] Not started | 0% |
 | Phase 4: docs | [ ] Not started | 0% |
 
@@ -34,11 +34,13 @@ hybrid. Then update docs.
 
 ## Phase 2: region-targeted figure OCR  [TDD]
 ### Tasks
-- [ ] 2.1 In `extract_pdf`, also OCR each `pdfplumber` `page.images` bbox: map `(x0, top, x1, bottom) *
-      RENDER_SCALE` → crop the pypdfium2-rendered page → `ocr_image` → append to the page text. **Guard:**
-      skip an image covering ~the whole page (≥~95% w&h) when the page has a text layer (scanned-with-text).
+- [x] 2.1 `extract_pdf` now OCRs each `pdfplumber` `page.images` bbox on text pages: maps `(x0, top, x1,
+      bottom)` × (rendered/page size ratio) → crops the pypdfium2-rendered page → `ocr_image` → appends to
+      the page text. **Guard:** skips an image covering ≥95% of page w&h when the page has a text layer
+      (scanned-with-text). Refactored shared `_finalize()` out of `ocr_pdf`/`extract_pdf`.
 ### Verification
-- [ ] `pytest scripts/test_ocr_extract.py` — mixed page (text layer + figure-region OCR appended); full-page-scan-with-text-layer guard (no figure OCR); coordinate crop validated on a known page.
+- [x] `pytest scripts/test_ocr_extract.py` — figure-region appended; full-page-image guard; coordinate
+      mapping unit-tested (bbox×scale → crop box). 14 passed. (Real-PDF crop accuracy = owner end-to-end.)
 
 ## Phase 3: rewire ingest routing  [TDD]
 ### Tasks
