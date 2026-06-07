@@ -43,6 +43,7 @@ from pathlib import Path
 
 from r2r import R2RClient
 
+from detect_pdf_type import analyze_pdf
 from ocr_extract import ocr_pdf
 
 R2R_BASE = "http://localhost:7272"
