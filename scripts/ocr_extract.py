@@ -3,6 +3,7 @@
 # dependencies = [
 #   "pypdfium2",
 #   "pytesseract",
+#   "pdfplumber",
 #   "Pillow",
 #   "r2r",
 # ]
@@ -46,6 +47,13 @@ try:
 except ModuleNotFoundError:
     easyocr = types.ModuleType("easyocr")
     _HAS_EASYOCR = False
+
+try:
+    import pdfplumber
+    _HAS_PDFPLUMBER = True
+except ModuleNotFoundError:
+    pdfplumber = types.ModuleType("pdfplumber")
+    _HAS_PDFPLUMBER = False
 
 
 def _require(available, package, install_hint):
@@ -142,3 +150,8 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
     mean_confidence = (sum(p.confidence for p in pages) / len(pages)) if pages else 0.0
     low_confidence_pages = [p.page_number for p in pages if p.confidence < LOW_CONFIDENCE_THRESHOLD]
     return OcrExtraction(content=content, pages=pages, mean_confidence=mean_confidence, low_confidence_pages=low_confidence_pages)
+
+
+def extract_pdf(pdf_path, engine="tesseract", language="eng"):
+    # STUB: per-page hybrid (text layer when present, OCR only image-only pages).
+    return OcrExtraction(content="", pages=[], mean_confidence=0.0, low_confidence_pages=[])

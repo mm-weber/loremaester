@@ -1,7 +1,7 @@
 """Tests for ocr_extract.py"""
 import pytest
 from unittest.mock import patch, MagicMock
-from ocr_extract import ocr_pdf, ocr_image, render_pages, resolve_engine, PageOcrResult
+from ocr_extract import ocr_pdf, ocr_image, render_pages, resolve_engine, PageOcrResult, extract_pdf
 
 
 class TestOcrPdf:
@@ -100,6 +100,24 @@ class TestEmptyText:
         ]
         with pytest.raises(RuntimeError, match="Grunvyr-Vol-III"):
             ocr_pdf("/books/Grunvyr-Vol-III.pdf", engine="tesseract")
+
+
+class TestExtractPdfHybrid:
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    @patch("ocr_extract.pdfplumber")
+    def test_uses_text_layer_and_ocrs_only_image_pages(self, mock_pdfplumber, mock_render, mock_ocr_image):
+        page0 = MagicMock(); page0.extract_text.return_value = "real text"   # text page
+        page1 = MagicMock(); page1.extract_text.return_value = ""            # image page
+        mock_pdf = MagicMock(); mock_pdf.pages = [page0, page1]
+        mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
+        mock_render.return_value = ["img0", "img1"]
+        mock_ocr_image.return_value = PageOcrResult(2, "ocr text", 0.9)
+
+        result = extract_pdf("/x.pdf", engine="tesseract")
+
+        assert result.content == "[Page 1]\nreal text\n\n[Page 2]\nocr text"
+        assert mock_ocr_image.call_count == 1   # only the image page is OCR'd
 
 
 class TestResolveEngine:
