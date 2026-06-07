@@ -137,6 +137,13 @@ uv run --no-project scripts/detect_pdf_type.py /path/to/pdfs/
 
 > **Running the scripts.** The `scripts/` are standalone [PEP 723](https://peps.python.org/pep-0723/) scripts — each declares its own dependencies inline, so `uv run --no-project scripts/<name>.py` fetches them into a throwaway environment automatically. The `--no-project` flag is required: `pyproject.toml` here configures pytest only (no `[project]` table), so a bare `uv run scripts/<name>.py` errors with *"No `project` table found"*. (If the dependencies are already installed in your environment, plain `python scripts/<name>.py` works too.) The OCR path (`ingest_books.py` / `extract_text.py`, via `ocr_extract.py`) renders pages with `pypdfium2` (a self-contained wheel — no system binary) and defaults to **tesseract**, which needs the system `tesseract` binary; EasyOCR/GPU is an opt-in (see [docs/quickstart.md](docs/quickstart.md)). The one-off `ocr_preprocess.py` helper instead uses `pdf2image`, which needs the system `poppler` binary.
 
+## Contributing & Community
+
+- **[Contributing guide](CONTRIBUTING.md)** — workflow, testing standards, and what we will / won't merge.
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** — Contributor Covenant v2.1.
+- **[Security policy](SECURITY.md)** — how to report a vulnerability privately.
+- **[Attribution](ATTRIBUTION.md)** — credits for the software this project builds on.
+
 ## License
 
 This project's own code is released under the **MIT License** — see [LICENSE](LICENSE).

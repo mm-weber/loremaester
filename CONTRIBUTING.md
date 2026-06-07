@@ -16,7 +16,7 @@ First, what this project **is**: a self-hosted toolkit that turns Claude Code in
 1. **Open an issue** for anything non-trivial, so we can agree on the approach before you build.
 2. **Fork** and branch from `main`.
 3. **Set up** the devcontainer (VS Code "Reopen in Container", or `devcontainer up`). The `scripts/` are [PEP 723](https://peps.python.org/pep-0723/) single-file scripts run with `uv run --no-project`; the MCP servers need `pip install mcp r2r pyyaml`.
-4. **Make the change**, following existing patterns and the notes in [`CLAUDE.md`](CLAUDE.md) and `conductor/`.
+4. **Make the change**, following existing patterns and the conventions in [`conductor/workflow.md`](conductor/workflow.md) and [`conductor/code_styleguides/python.md`](conductor/code_styleguides/python.md).
 5. **Add or update tests** (see below) and keep the suite green.
 6. **Commit** with [Conventional Commits](https://www.conventionalcommits.org/) prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`) — the history uses them.
 7. **Open a PR** describing the change and how you verified it.
