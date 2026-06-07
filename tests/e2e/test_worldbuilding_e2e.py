@@ -21,7 +21,9 @@ import yaml
 # Path setup — make scripts/ and mcp-servers/ importable
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+# This file lives at tests/e2e/, so the repo root is three directories up. It's
+# used below to locate the MCP server entry points under mcp-servers/.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from build_vault_graph import build_graph  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
