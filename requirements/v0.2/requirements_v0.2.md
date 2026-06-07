@@ -4,7 +4,27 @@
 > design review of the sourcebooks MCP server (the original v0.1-development seed); the **OCR &
 > licensing follow-ups** identified during the v0.1 public-release prep are appended at the end.
 
+## v0.1 Release-Prep Status
+
+The OCR & licensing follow-ups (R-1, R-2 below) were the active v0.1 release-prep work and are **done**.
+The sourcebooks design review is the open v0.2 backlog.
+
+| Item | Status |
+| ---- | ------ |
+| **R-1** — Remove kreuzberg (functional + license liability) | ✅ Done (`remove-kreuzberg_20260606`) |
+| **R-2** — Consolidate the overlapping OCR code paths | ✅ Done — `ingest_books.py` + `extract_text.py` share `scripts/ocr_extract.py`; `ocr_preprocess.py` stays standalone by design |
+| **R-3** — End-to-end collection support | ⬜ Open (v0.2) |
+| **Sourcebooks MCP design review** (issues 1–7) | ⬜ Open (v0.2) — not addressed in v0.1 |
+
+**Also delivered in v0.1 release prep** (beyond the original requirements):
+- `idempotent-ingest_20260607` — re-ingest skips already-present documents (reported SKIPPED, not FAILED).
+- `ocr-hybrid-routing_20260607` — per-page hybrid extraction for image-only **and mixed** PDFs, region-targeted figure OCR, and easyocr→tesseract auto-fallback.
+
+---
+
 ## Sourcebooks MCP Server — Design Review
+
+> **Status: open** — these design-review issues were **not** addressed in v0.1; they carry into v0.2.
 
 ## Overview
 
@@ -270,14 +290,20 @@ Minimal upstream repro (kreuzberg 4.9.9): `extract_file_sync(<1-page image PDF>,
 ExtractionConfig(ocr=OcrConfig(backend="easyocr")))` returns text; the identical call on an 8- or
 16-page image PDF returns empty. File against `kreuzberg-dev/kreuzberg`.
 
-### R-2 — Consolidate the three overlapping OCR code paths
+### R-2 — Consolidate the three overlapping OCR code paths — ✅ DONE (v0.1)
+
+> **Status: Done during v0.1 release prep.** `ingest_books.py` and `extract_text.py` now both extract
+> via the shared `scripts/ocr_extract.py` (the R-1 kreuzberg-free engine; `ocr-hybrid-routing_20260607`
+> unified routing into `extract_pdf`). `scripts/ocr_preprocess.py` is intentionally kept as the
+> standalone, non-ingesting one-off helper (pdf2image/surya). Original rationale retained below.
+
 There are three OCR entry points with overlapping responsibility: `ingest_books.py` (kreuzberg,
 tesseract default, bulk-ingest), `extract_text.py` (kreuzberg, tesseract default, standalone), and
 `ocr_preprocess.py` (pytesseract/surya, no kreuzberg). v0.2 should consolidate these behind a
 single OCR module with a pluggable backend — the kreuzberg-free direct-OCR helper from **R-1** is
 the natural consolidation target.
 
-### R-3 — End-to-end collection support (optional)
+### R-3 — End-to-end collection support (optional) — ⬜ OPEN (v0.2)
 The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` MCP server and the
 `ingest_books.py` / `verify_ingestion.py` CLIs do not scope by collection. If per-corpus isolation
 is desired, add a `--collection` option to the ingest/verify scripts **and** collection filtering
