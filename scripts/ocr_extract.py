@@ -153,5 +153,30 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
 
 
 def extract_pdf(pdf_path, engine="tesseract", language="eng"):
-    # STUB: per-page hybrid (text layer when present, OCR only image-only pages).
-    return OcrExtraction(content="", pages=[], mean_confidence=0.0, low_confidence_pages=[])
+    """Per-page hybrid: embedded text layer where present, OCR where absent.
+
+    Renders (pypdfium2) only when a page lacks a text layer; OCR uses one reused
+    easyocr Reader when engine == 'easyocr'. Text-layer pages get confidence 1.0.
+    """
+    _require(_HAS_PDFPLUMBER, "pdfplumber", "pip install pdfplumber")
+    reader = make_reader(language) if engine == "easyocr" else None
+    rendered = None
+    pages = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for i, page in enumerate(pdf.pages):
+            text = (page.extract_text() or "").strip()
+            if text:
+                pages.append(PageOcrResult(page_number=i + 1, text=text, confidence=1.0))
+            else:
+                if rendered is None:
+                    rendered = render_pages(pdf_path)
+                pages.append(ocr_image(rendered[i], page_number=i + 1, engine=engine, language=language, reader=reader))
+    if not any(p.text.strip() for p in pages):
+        raise RuntimeError(
+            f"No text extracted from {os.path.basename(str(pdf_path))} — "
+            f"all {len(pages)} page(s) were empty (no text layer and OCR found nothing)."
+        )
+    content = "\n\n".join(f"[Page {p.page_number}]\n{p.text}" for p in pages)
+    mean_confidence = (sum(p.confidence for p in pages) / len(pages)) if pages else 0.0
+    low_confidence_pages = [p.page_number for p in pages if p.confidence < LOW_CONFIDENCE_THRESHOLD]
+    return OcrExtraction(content=content, pages=pages, mean_confidence=mean_confidence, low_confidence_pages=low_confidence_pages)
