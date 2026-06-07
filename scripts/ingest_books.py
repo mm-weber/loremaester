@@ -171,6 +171,10 @@ def ingest_native(client, pdf_path, metadata):
     return doc_id
 
 
+def process_pdf(client, pdf):
+    return None
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python ingest_books.py <folder_of_pdfs>")

@@ -14,3 +14,24 @@ class TestIngestViaOcr:
         _, kwargs = client.documents.create.call_args
         assert kwargs["file_path"].endswith("Vol-III.txt")     # temp .txt named after the PDF stem
         assert kwargs["metadata"] == {"book_title": "Vol III"}
+
+
+class TestProcessPdf:
+    @patch("ingest_books.ingest_native")
+    @patch("ingest_books.is_image_pdf", return_value=False)
+    def test_already_exists_is_skipped(self, mock_is_image, mock_native):
+        mock_native.side_effect = RuntimeError(
+            "{'message': 'Document abc already exists. Submit a DELETE request ...', 'error_type': 'R2RException'}"
+        )
+        assert ingest_books.process_pdf(MagicMock(), Path("/b/Vol-I.pdf")) == "skipped"
+
+    @patch("ingest_books.ingest_native")
+    @patch("ingest_books.is_image_pdf", return_value=False)
+    def test_other_error_is_failed(self, mock_is_image, mock_native):
+        mock_native.side_effect = RuntimeError("connection refused")
+        assert ingest_books.process_pdf(MagicMock(), Path("/b/Vol-I.pdf")) == "failed"
+
+    @patch("ingest_books.ingest_native")
+    @patch("ingest_books.is_image_pdf", return_value=False)
+    def test_success_is_succeeded(self, mock_is_image, mock_native):
+        assert ingest_books.process_pdf(MagicMock(), Path("/b/Vol-I.pdf")) == "succeeded"
