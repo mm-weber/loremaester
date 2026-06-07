@@ -16,7 +16,7 @@ hybrid. Then update docs.
 | ----- | ------ | -------- |
 | Phase 1: extract_pdf hybrid + engine resolution | [x] Complete | 100% |
 | Phase 2: region-targeted figure OCR | [x] Complete | 100% |
-| Phase 3: rewire ingest routing | [ ] Not started | 0% |
+| Phase 3: rewire ingest routing | [x] Complete | 100% |
 | Phase 4: docs | [ ] Not started | 0% |
 
 ## Phase 1: extract_pdf hybrid (whole-page text-or-OCR) + engine resolution  [TDD]
@@ -44,11 +44,14 @@ hybrid. Then update docs.
 
 ## Phase 3: rewire ingest routing  [TDD]
 ### Tasks
-- [ ] 3.1 In `ingest_books.process_pdf`, replace `is_image_pdf` binary routing with the 3-tier classify
+- [x] 3.1 In `ingest_books.process_pdf`, replace `is_image_pdf` binary routing with the 3-tier classify
       (reuse `detect_pdf_type`): **text-native → `ingest_native`**; **image-only | mixed → `ingest_via_ocr`**
-      (now calling `extract_pdf`, engine via `resolve_engine(OCR_ENGINE)`).
+      (now calling `extract_pdf`, engine via `resolve_engine(OCR_ENGINE)`). Done as two TDD slices —
+      3a: `process_pdf` routes by `analyze_pdf(...).classification`; 3b: `ingest_via_ocr` resolves the
+      engine + extracts via the hybrid `extract_pdf`. REFACTOR removed the now-dead `is_image_pdf` /
+      `IMAGE_ONLY_THRESHOLD` and refreshed the module docstring.
 ### Verification
-- [ ] `pytest scripts/test_ingest_books.py` — text-native→native, image-only|mixed→extract_pdf; existing skip/fail/succeed tests unaffected.
+- [x] `pytest scripts/` — text-native→native, image-only|mixed→extract_pdf; skip/fail/succeed unaffected; vestigial `is_image_pdf` patches removed. 88 passed (excl. pandas-only `test_ocr_preprocess.py`).
 
 ## Phase 4: docs
 ### Tasks
