@@ -26,6 +26,7 @@ import types
 
 LOW_CONFIDENCE_THRESHOLD = 0.7
 RENDER_SCALE = 2.78  # pdfium scale 1.0 = 72 dpi; 2.78 ≈ 200 dpi
+FULL_PAGE_IMAGE_FRAC = 0.95
 
 try:
     import pypdfium2
@@ -152,6 +153,12 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
     return OcrExtraction(content=content, pages=pages, mean_confidence=mean_confidence, low_confidence_pages=low_confidence_pages)
 
 
+def _is_full_page_image(img, page):
+    w = (img["x1"] - img["x0"]) / page.width
+    h = (img["bottom"] - img["top"]) / page.height
+    return w >= FULL_PAGE_IMAGE_FRAC and h >= FULL_PAGE_IMAGE_FRAC
+
+
 def extract_pdf(pdf_path, engine="tesseract", language="eng"):
     """Per-page hybrid: embedded text layer where present, OCR where absent.
 
@@ -166,7 +173,21 @@ def extract_pdf(pdf_path, engine="tesseract", language="eng"):
         for i, page in enumerate(pdf.pages):
             text = (page.extract_text() or "").strip()
             if text:
-                pages.append(PageOcrResult(page_number=i + 1, text=text, confidence=1.0))
+                figure_texts = []
+                for img in page.images:
+                    if _is_full_page_image(img, page):
+                        continue  # scanned-with-text page → trust the text layer
+                    if rendered is None:
+                        rendered = render_pages(pdf_path)
+                    page_img = rendered[i]
+                    sx = page_img.width / page.width
+                    sy = page_img.height / page.height
+                    box = (int(img["x0"] * sx), int(img["top"] * sy), int(img["x1"] * sx), int(img["bottom"] * sy))
+                    res = ocr_image(page_img.crop(box), page_number=i + 1, engine=engine, language=language, reader=reader)
+                    if res.text.strip():
+                        figure_texts.append(res.text.strip())
+                page_text = text if not figure_texts else text + "\n" + "\n".join(figure_texts)
+                pages.append(PageOcrResult(page_number=i + 1, text=page_text, confidence=1.0))
             else:
                 if rendered is None:
                     rendered = render_pages(pdf_path)

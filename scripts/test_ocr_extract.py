@@ -108,7 +108,9 @@ class TestExtractPdfHybrid:
     @patch("ocr_extract.pdfplumber")
     def test_uses_text_layer_and_ocrs_only_image_pages(self, mock_pdfplumber, mock_render, mock_ocr_image):
         page0 = MagicMock(); page0.extract_text.return_value = "real text"   # text page
+        page0.images = []
         page1 = MagicMock(); page1.extract_text.return_value = ""            # image page
+        page1.images = []
         mock_pdf = MagicMock(); mock_pdf.pages = [page0, page1]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
         mock_render.return_value = ["img0", "img1"]
