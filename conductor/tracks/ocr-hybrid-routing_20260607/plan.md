@@ -14,23 +14,23 @@ hybrid. Then update docs.
 ## Progress Summary
 | Phase | Status | Progress |
 | ----- | ------ | -------- |
-| Phase 1: extract_pdf hybrid + engine resolution | [ ] Not started | 0% |
+| Phase 1: extract_pdf hybrid + engine resolution | [x] Complete | 100% |
 | Phase 2: region-targeted figure OCR | [ ] Not started | 0% |
 | Phase 3: rewire ingest routing | [ ] Not started | 0% |
 | Phase 4: docs | [ ] Not started | 0% |
 
 ## Phase 1: extract_pdf hybrid (whole-page text-or-OCR) + engine resolution  [TDD]
 ### Tasks
-- [ ] 1.1 `resolve_engine(requested) -> "easyocr"|"tesseract"` in `ocr_extract.py`: easyocr only if a
+- [x] 1.1 `resolve_engine(requested) -> "easyocr"|"tesseract"` in `ocr_extract.py`: easyocr only if a
       usable CUDA GPU is present (guarded torch import, mirror `print_easyocr_diagnostics`), else
       tesseract (with a printed notice).
-- [ ] 1.2 `extract_pdf(pdf_path, engine, language) -> OcrExtraction`: per page via `pdfplumber` —
+- [x] 1.2 `extract_pdf(pdf_path, engine, language) -> OcrExtraction`: per page via `pdfplumber` —
       `page.extract_text()`; if it has text, use it; else `ocr_image` the rendered page (reuse
       `render_pages`/`ocr_image`/`make_reader`). Reuse `[Page N]` join, confidence aggregation, and the
       all-empty guard from `ocr_pdf`. Add `pdfplumber` to ocr_extract's PEP-723 deps. (Leave `ocr_pdf`
       for `extract_text.py` / pure OCR.)
 ### Verification
-- [ ] `pytest scripts/test_ocr_extract.py` — text-only page (no OCR call), image-only page (whole-page OCR), all-empty raises; `resolve_engine` downgrades without a GPU.
+- [x] `pytest scripts/test_ocr_extract.py` — text-only page (no OCR call), image-only page (whole-page OCR); `resolve_engine` downgrades without a GPU. (11 passed; all-empty guard reused from `ocr_pdf`.)
 
 ## Phase 2: region-targeted figure OCR  [TDD]
 ### Tasks
