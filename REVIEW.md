@@ -139,8 +139,20 @@ barrier (the quickstart's own macOS/Docker-Desktop friction, documented below,
 proves it). A marketplace-installable plugin that registers the 3 MCP servers + the
 skill in one step would 10× who can actually use this.
 
-**If I could only pick three:** R1 (unlocks R2/R5/R8), R8 (earns weekly use), and
-R11 (lets the author evolve retrieval without fear).
+**Suggested build order** (all eight are worth doing — this just sequences them by
+dependency and payoff):
+
+1. **R11** first — stand up the eval-in-CI harness so every later change is measured,
+   not guessed. Cheap insurance that makes everything else safe to ship.
+2. **R1** next — semantic vault search is the foundation; R2 and R5 build directly on
+   it, and it's the single biggest capability gap.
+3. **R5 + R4** — quick wins riding on the existing graph / R1 (low effort, immediate
+   value).
+4. **R2** — contradiction detection, once R1's canon index exists.
+5. **R8** — session-prep mode, the feature that earns weekly use (leans on R1 + the
+   graph).
+6. **R9 + R12** — spoiler tiers and one-command install; ship these as the
+   product-polish pass that makes it shareable.
 
 ---
 
