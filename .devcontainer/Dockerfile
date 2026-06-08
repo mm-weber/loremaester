@@ -61,7 +61,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # MCP server runtime deps + uv (PEP 723 inline scripts) — baked in for reliability
-RUN pip install --break-system-packages mcp r2r pyyaml kreuzberg pytest uv
+RUN pip install --break-system-packages mcp r2r pyyaml pytest uv
 
 # ============================================================
 # Standard devcontainer plumbing
