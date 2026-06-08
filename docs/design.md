@@ -95,6 +95,37 @@ Parsing `[[wikilinks]]` from every `.md` file on every query would be slow for l
 - **Simple MCP server** — D5 just reads JSON, no filesystem parsing
 - **Explicit rebuild cycle** — the GM (or Claude) triggers a rebuild after vault changes via `vault_rebuild_graph` (re-parses vault + reloads cache); `vault_reload_cache` is the cheaper "re-read JSON only" variant that flags staleness when the on-disk graph is behind the vault
 
+### Why retrieval-only (R2R), not classic RAG?
+
+Classic RAG is a pipeline that owns both halves — retrieve *and* generate — with an LLM wired inside it (R2R's `/rag` endpoint, had we set a `[completion]` provider). We deliberately split them: **R2R retrieves; Claude Code reasons.** Retrieval is one tool in an agent loop that also reads/writes the vault and walks the wikilink graph.
+
+```
+Classic RAG:  query → [ embed → search → stuff prompt → GENERATOR LLM ] → answer   (LLM lives inside R2R)
+
+Ours:         Claude Code (planner + reasoner + writer)
+                 ├─ search_lore ─► R2R /retrieval/search ─► ranked chunks + book/ch/page
+                 ├─ Read / Grep ─► vault files (the GM's canon)
+                 ├─ vault_graph ─► wikilink graph (human-authored)
+                 └─ synthesize → ask user → Write note → rebuild graph
+              (R2R is a leaf tool; Claude is the brain, above and outside it)
+```
+
+| | Classic RAG | Ours (retrieval-only + agent) |
+|---|---|---|
+| Synthesis | an LLM inside R2R | Claude Code (the host agent) |
+| LLMs to run | ≥1 generator in R2R (+ maybe a reranker) | none in R2R; one reasoner (Claude) |
+| Sources fused | one corpus | sourcebooks + vault canon + wikilink graph |
+| Output | an answer string (+citations) | new content written back to the vault |
+| Query expansion / rerank | pipeline stages (HyDE, RAG-fusion, rerank) | the agent re-queries and filters itself |
+| Cost / latency | per-query generation; low, predictable | embeddings free; higher, variable (tool loop) |
+| Best for | scalable, cited Q&A over a corpus | single-user, multi-source, write-back reasoning |
+
+Two things make the split decisive here:
+1. **Multi-source fusion with a priority rule** — vault canon outranks sourcebook lore. Weighing two sources by precedence is per-request reasoning the agent does; a single-corpus retrieve→generate has nowhere to put that rule.
+2. **Action, not Q&A** — the deliverable is a frontmatter-correct note saved to the right folder and a refreshed graph. A RAG pipeline returns text; it can't *do* the work.
+
+Trade-offs we accept: more tokens/latency per task than one tight generate, less determinism, and no turnkey `/rag` endpoint — citation discipline lives in the skills, not a tuned pipeline. If the goal were scalable, low-latency, multi-tenant *"chat with your sourcebooks,"* classic RAG (enable R2R's `[completion]` + `/rag`, add a reranker) would be the better tool. Skipping GraphRAG follows the same logic — the human-authored vault graph already supplies relationship-aware context without LLM extraction.
+
 ### Why hybrid search as the default for lore queries?
 
 Source books contain both natural-language lore and proper nouns (place names, character names, spell names). Pure semantic search misses exact keyword matches for proper nouns; pure keyword search misses conceptual relationships. Hybrid search (combining vector similarity and full-text matching) balances both, which is critical for TTRPG content where a query like "dwarven death rites" needs to match both the concept and specific named rituals.
