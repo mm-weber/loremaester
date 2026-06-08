@@ -8,7 +8,8 @@
 #   - [orchestration] provider = "simple"  -> in-process; no Hatchet/RabbitMQ
 #   - [ingestion]     provider = "r2r"      -> built-in parser; no Unstructured
 # Image-only/scanned PDFs are OCR'd client-side by scripts/ingest_books.py
-# (EasyOCR via Kreuzberg) and uploaded as text, so server-side OCR isn't needed.
+# (pypdfium2 render + per-page tesseract/easyocr) and uploaded as text, so
+# server-side OCR isn't needed.
 
 [embedding]
 provider = "ollama"
