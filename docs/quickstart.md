@@ -415,16 +415,22 @@ the script's default deps. Set `OCR_ENGINE=easyocr` and add it for the run with
 uv `--with`:
 
 ```bash
-OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+UV_HTTP_TIMEOUT=600 OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
   --with easyocr --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py /path/to/sourcebooks/
 ```
 
+(To smoke-test the GPU path against the bundled demo books, swap the final
+argument for `examples/ttrpg/sourcebooks/`.)
+
 The `--extra-index-url`/`--index-strategy` flags fetch `torch==2.9.1+cu126`, a
 local-version variant only published on PyTorch's own index (see Troubleshooting
-if you hit `driver too old` or resolution errors).
+if you hit `driver too old` or resolution errors). **`UV_HTTP_TIMEOUT=600` matters:**
+the CUDA `torch` wheel is multiple GB, and uv's default 30-second per-request HTTP
+timeout aborts the download on most connections — 600 s (10 min) gives it room (raise
+it further on a slow link). Without it, the GPU run fails before it can ingest anything.
 
 `OCR_ENGINE` selects the engine (`tesseract`, the default | `easyocr`); the
 legacy `KREUZBERG_OCR_ENGINE` is still honored as a fallback. Language codes
