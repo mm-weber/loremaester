@@ -130,6 +130,16 @@ echo "Host gateway detected as: $HOST_IP"
 # whole-/24 carve-out; see .devcontainer/SecurityReview.md.
 iptables -A OUTPUT -d "$HOST_IP" -p tcp -m multiport --dports 7272,11434 -j ACCEPT
 
+# Docker Desktop (macOS/Windows): host.docker.internal is a dedicated host
+# address (e.g. 192.168.65.254), NOT the default-route gateway detected above.
+# Allow whatever host.docker.internal currently resolves to (IPv4), on the same
+# host-service ports, so the MCP servers can reach R2R/Ollama on Docker Desktop.
+HDI_IP=$(getent ahostsv4 host.docker.internal | awk '{print $1}' | head -1)
+if [ -n "$HDI_IP" ] && [ "$HDI_IP" != "$HOST_IP" ]; then
+    echo "Allowing host.docker.internal at $HDI_IP on 7272,11434 (Docker Desktop)"
+    iptables -A OUTPUT -d "$HDI_IP" -p tcp -m multiport --dports 7272,11434 -j ACCEPT
+fi
+
 # Set default policies to DROP
 iptables -P INPUT DROP
 iptables -P FORWARD DROP

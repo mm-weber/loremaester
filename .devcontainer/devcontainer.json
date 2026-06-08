@@ -53,7 +53,7 @@
     // SSH agent forwarding from host (for git push/pull via SSH).
     // If the host has no SSH agent (e.g. Windows without ssh-agent),
     // remove this mount and use HTTPS+PAT for git auth instead.
-    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
+    "source=/run/host-services/ssh-auth.sock,target=/ssh-agent,type=bind,consistency=cached"
   ],
 
   // --- Environment ---

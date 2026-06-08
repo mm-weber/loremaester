@@ -63,7 +63,6 @@ services:
       # there; 127.0.0.1 suffices). Verify the gateway from inside the
       # container with `getent hosts host.docker.internal`.
       - "127.0.0.1:7272:7272"
-      - "172.17.0.1:7272:7272"
     env_file:
       - ./env/r2r.env
     healthcheck:
