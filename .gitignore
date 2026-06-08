@@ -212,3 +212,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Generated vault graph index (regenerable from any vault via build_vault_graph.py)
+**/.graph.json
+
+# Local Claude Code run-state inside the example vault
+examples/ttrpg/.claude/

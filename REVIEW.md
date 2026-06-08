@@ -203,6 +203,9 @@ session; see the preceding commit):
    `host.docker.internal` (IPv4) and allow it on the same two ports.
    **Recommend upstreaming this one unconditionally** — it's a no-op on Linux.
 
+Also added `examples/ttrpg/.mcp.json` (the demo MCP server config per
+`docs/demo-walkthrough.md`) so the bundled example is runnable out of the box.
+
 ### Doc nits found while validating
 
 - Health check returns `{"results":{"message":"ok"}}`, but quickstart §2e and
