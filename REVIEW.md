@@ -75,6 +75,75 @@ Don't let cleanup tempt you into re-architecting — the bones are good.
 
 ---
 
+## Feature roadmap — bigger swings (beyond cleanup)
+
+These go past hygiene into new capability. Roughly ordered by leverage. ⭐ = the
+two I'd build first.
+
+### Close the biggest gap
+
+**R1. ⭐ Make the GM's own vault semantically searchable.** *(high value, medium
+effort)* Today vault access is native file tools + the wikilink graph — so finding
+canon relies on `grep` for exact strings and following explicit `[[links]]`. But
+the GM's canon is exactly what you most need to search *by meaning*: "have I
+established anything about how magic works in the north?" misses the note titled
+"The Frostbinding" that never says those literal words. **Fix:** ingest the vault
+into R2R as a *second collection* and add a `vault_semantic_search` tool. This turns
+the system from "searchable sourcebooks + navigable vault" into "semantically
+searchable everything," and it unlocks R2 and R5 below. Build this first.
+
+### Enforce the principles the project already states
+
+**R2. Automated contradiction detection.** *(medium)* The skill's #1 rule is "never
+contradict canon" — but it's enforced by hope, not tooling. Add a tool that takes
+draft content, semantically retrieves the most-related canon (needs R1), and asks
+Claude to flag conflicts before writing: "You describe Lord Aldric as alive, but
+`Session-14.md` records his death." Makes the canon-hierarchy principle *real*.
+
+**R4. Provenance back-links.** *(low–medium)* When Claude generates content
+"inspired by" a sourcebook, record the book + page in the new note's frontmatter
+(`inspired_by: "Lost Omens p.124"`). Verifiable lineage, and it makes the
+"adapt, don't copy" rule auditable.
+
+### Cheap wins over the existing graph
+
+**R5. Orphan & dead-link detection.** *(low)* Surface notes nobody links to
+(forgotten lore) and `[[wikilinks]]` pointing at notes that don't exist (stubs the
+GM meant to write). Trivial over the existing `.graph.json`, immediately useful.
+
+### Killer GM-experience features
+
+**R8. ⭐ Session-prep mode.** *(medium)* "I'm running tonight, the party is heading
+to Ironhold." → assembles a one-page briefing: NPCs they'll likely meet (with
+current state), open plot threads touching that location, relevant rules/lore,
+recent session callbacks. This is the feature a GM would open the tool for *every
+week* — most everything else is plumbing that serves it.
+
+**R9. Spoiler / knowledge-tier separation.** *(medium)* Tag content as GM-secret vs
+player-known. Then "generate a handout for my players about the Ironhold Council"
+produces something safe to share — no hidden agendas leaked. A genuine
+differentiator; no Obsidian plugin does this well.
+
+### Engineering investments that de-risk everything above
+
+**R11. Turn the existing eval harness into a CI retrieval regression test.**
+*(medium)* There's already a `with_skill` / `without_skill` eval structure sitting
+unused in `plugins/worldbuilding-workspace/`. Promote it: a small golden set of
+queries with expected-relevant chunks, run recall@k in CI. Then "I changed chunking
+/ swapped the embedding model — did retrieval get worse?" becomes a number, not a
+vibe. This is what makes R1 and any embedding change *safe to ship*.
+
+**R12. Ship it as a one-command Claude Code plugin.** *(medium)* It's already
+structured under `plugins/`. The 8-step manual setup is the single biggest adoption
+barrier (the quickstart's own macOS/Docker-Desktop friction, documented below,
+proves it). A marketplace-installable plugin that registers the 3 MCP servers + the
+skill in one step would 10× who can actually use this.
+
+**If I could only pick three:** R1 (unlocks R2/R5/R8), R8 (earns weekly use), and
+R11 (lets the author evolve retrieval without fear).
+
+---
+
 ## Implementation notes — setup validation (2026-06-08)
 
 Stood the whole system up from scratch on **macOS / Docker Desktop**, following
