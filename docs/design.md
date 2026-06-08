@@ -101,7 +101,16 @@ Source books contain both natural-language lore and proper nouns (place names, c
 
 **What R2R offers vs. what we use.** R2R can search by semantic (pgvector) similarity, full-text (Postgres `tsvector`) matching, **hybrid** (both, fused via Reciprocal Rank Fusion), or a knowledge graph; and it can run retrieval-only (`/retrieval/search`), retrieval + LLM (`/retrieval/rag`), or agentic RAG. We use **retrieval-only, chunk-level search**: the `sourcebooks` server defaults to **hybrid** (`search_lore`, `get_chapter`); the generic `r2r-wrapper` does **semantic** by default. R2R never runs an LLM here — no completion provider is configured, so Claude Code is the sole reasoner. Knowledge-graph search is off (`automatic_extraction = false`, and extraction would itself need an LLM); HyDE / RAG-fusion query strategies and rerankers are likewise unused.
 
-**Lexical leg: Postgres full-text, not Okapi BM25.** R2R's hybrid full-text side runs on Postgres' built-in full-text search (`tsvector` + `ts_rank`/`ts_rank_cd`), not a dedicated **BM25** engine. The practical gap: BM25 adds IDF (rare, discriminative terms — unique NPC/place names — count for more) and document-length normalization, which `ts_rank` lacks. For a single-user, modest corpus this is largely absorbed by RRF (which fuses on *rank*, not absolute lexical score) and by the fact that the lexical leg's main job here — exact proper-noun matches — is already served by `tsvector`. A true BM25 leg (ParadeDB's `pg_search` extension to stay in-Postgres, or an external OpenSearch) is a **v0.2 option**, worth it only if the corpus grows large/heterogeneous or keyword-heavy queries start to dominate.
+**Lexical leg: Postgres full-text, not Okapi BM25.** R2R's hybrid keyword side runs on Postgres' built-in full-text search (`tsvector` + `ts_rank`/`ts_rank_cd`), not a dedicated **BM25** engine. The dense leg is identical to a "BM25 hybrid" (pgvector + mxbai-embed-large), so only the keyword leg differs:
+
+| | Our hybrid | "BM25 hybrid" |
+|---|---|---|
+| Keyword leg | Postgres `tsvector` + `ts_rank`/`ts_rank_cd` | Okapi BM25 (OpenSearch, or ParadeDB `pg_search`) |
+| Term-rarity weighting (IDF) | none | yes — rare names count for more |
+| TF saturation / length norm | optional, coarse | built-in (`k1`, `b`) |
+| Infrastructure | reuses the Postgres already running for pgvector | extra service, or a Postgres extension |
+
+For a single-user, modest, proper-noun-heavy corpus the Postgres-FTS hybrid is the right trade-off. RRF fuses on *rank*, not absolute lexical score, so `ts_rank`'s missing IDF rarely changes the final order; and the keyword leg's main job here — exact name matches like "Stonecrown" — is served by `tsvector` regardless. BM25's advantages (IDF on mixed queries, length normalization, multi-keyword precision) widen with corpus size, so BM25 is worth adopting only once the library grows large/heterogeneous or keyword-heavy queries dominate. Because R2R's hybrid is wired to native Postgres full-text, that switch is an **architectural change** (R2R support, or a custom retrieval path via `pg_search`) — not a config flag — and is tracked as a **v0.2 option**. The first-order win is adding *any* keyword leg to pure-vector search, which is already captured; BM25 would be a second-order refinement.
 
 ### Why the GM brings their own vault?
 
