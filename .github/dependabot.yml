@@ -1,0 +1,37 @@
+# Dependabot keeps our pinned digests from going stale: it opens reviewable PRs to bump
+# image digests/tags and GitHub Actions when upstreams publish updates. (Pinning stops
+# silent drift; Dependabot restores patching on top of the pins.)
+#
+# Enable "Dependabot version updates" in repo Settings → Code security if it isn't already.
+version: 2
+updates:
+  # Devcontainer base image — FROM node:20@sha256:... in .devcontainer/Dockerfile
+  - package-ecosystem: docker
+    directory: /.devcontainer
+    schedule:
+      interval: weekly
+    groups:
+      devcontainer:
+        patterns: ["*"]
+
+  # R2R stack images. Dependabot auto-detects the standard-named compose.yaml here.
+  # NOTE: compose.full.yaml / compose.app.yaml / compose.infra.yaml use NON-standard
+  # filenames and are likely NOT auto-tracked — re-pin those manually (resolve with
+  # `docker buildx imagetools inspect <ref>` and update the image: lines). Verify
+  # coverage in the first Dependabot run.
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    groups:
+      r2r-stack:
+        patterns: ["*"]
+
+  # GitHub Actions referenced by .github/workflows/
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
