@@ -15,6 +15,7 @@ The sourcebooks design review is the open v0.2 backlog.
 | **R-2** — Consolidate the overlapping OCR code paths | ✅ Done — `ingest_books.py` + `extract_text.py` share `scripts/ocr_extract.py`; `ocr_preprocess.py` stays standalone by design |
 | **R-3** — End-to-end collection support | ⬜ Open (v0.2) |
 | **R-4** — Migrate dependency declarations to `pyproject.toml` `[project]` | ⬜ Open (v0.2) |
+| **R-5** — Supply-chain auto-updates: Dependabot (digest-pinned images + GitHub Actions) | ⬜ Open (v0.2) — config staged + commented out in `.github/dependabot.yml` |
 | **Sourcebooks MCP design review** (issues 1–7) | ⬜ Open (v0.2) — not addressed in v0.1 |
 
 **Also delivered in v0.1 release prep** (beyond the original requirements):
@@ -350,3 +351,34 @@ trivial.
 
 **Out of scope:** Migrating script-level PEP 723 inline deps into pyproject. Those stay
 self-contained intentionally.
+
+### R-5 — Supply-chain auto-updates: Dependabot — ⬜ OPEN (v0.2)
+
+**Context:** v0.1 pins every container image by `sha256` digest (the compose stacks and the
+devcontainer base) and the GitHub Actions by tag, but ships **without** an automated updater — so the
+pins are reproducible yet frozen until someone re-pins by hand. A `.github/dependabot.yml` is **staged
+but commented out** in the release branch; activating it is deferred here to keep v0.1's scope small.
+
+**Motivation:**
+
+- Pins without an updater drift from "hardened" to "stale" — frozen digests stop receiving CVE patches.
+- Dependabot restores patching as **reviewable** PRs (image digest/tag bumps + Action bumps) — the
+  natural complement to digest pinning.
+
+**Requirement (EARS):**
+
+- THE repository SHALL ship an active `.github/dependabot.yml` covering the `docker` ecosystem
+  (`/.devcontainer` for the Dockerfile, `/docker` for `compose.yaml`) and `github-actions` (`/`).
+- THE config SHALL group updates per ecosystem on a weekly schedule to limit PR noise.
+- Dependabot version updates SHALL be enabled in repo **Settings → Code security**, and the config
+  SHALL live on the **default branch** (Dependabot reads it only there).
+
+**Effort:** Low. The config already exists, commented out, in `.github/dependabot.yml` — picking it up
+is: uncomment the `version:`/`updates:` block, enable in settings, and have it on the default branch.
+
+**Out of scope / caveats:** Dependabot's `docker` ecosystem auto-detects the Dockerfile and the
+**standard-named** `docker/compose.yaml` only — `compose.full.yaml` / `compose.app.yaml` /
+`compose.infra.yaml` (non-standard filenames) will NOT be auto-tracked; re-pin those manually
+(`docker buildx imagetools inspect <ref>`) or add a small `docker/pin-images.sh` re-pinner. Add a
+`pip` ecosystem to track the Python manifest too — `requirements*.txt` (this branch) or the
+`pyproject.toml [project]` from **R-4** once it lands.
