@@ -1,11 +1,11 @@
 """Tests for the vault graph builder (scripts/build_vault_graph.py)."""
+
 import json
 import os
 import sys
 from pathlib import Path
 
 import pytest
-
 from build_vault_graph import build_graph, extract_wikilinks, main, parse_frontmatter
 
 # Smoke-test target for TestRealVault. Defaults to the bundled example vault;
@@ -28,6 +28,7 @@ def _create_vault(tmp_path, files: dict) -> Path:
 # ---------------------------------------------------------------------------
 # Test Class 1: TestExtractWikilinks
 # ---------------------------------------------------------------------------
+
 
 class TestExtractWikilinks:
     def test_basic_wikilink(self):
@@ -55,6 +56,7 @@ class TestExtractWikilinks:
 # ---------------------------------------------------------------------------
 # Test Class 2: TestParseFrontmatter
 # ---------------------------------------------------------------------------
+
 
 class TestParseFrontmatter:
     def test_basic_frontmatter(self):
@@ -87,12 +89,16 @@ class TestParseFrontmatter:
 # Test Class 3: TestBuildGraph
 # ---------------------------------------------------------------------------
 
+
 class TestBuildGraph:
     def test_basic_graph(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "NoteA.md": "Hello [[NoteB]]",
-            "NoteB.md": "Back to [[NoteA]]",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "NoteA.md": "Hello [[NoteB]]",
+                "NoteB.md": "Back to [[NoteA]]",
+            },
+        )
         graph = build_graph(str(vault))
         assert "NoteA" in graph["nodes"]
         assert "NoteB" in graph["nodes"]
@@ -101,40 +107,53 @@ class TestBuildGraph:
         assert len(graph["edges"]) == 2
 
     def test_recursive_md_discovery(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "World/Overview.md": "See [[Hero]]",
-            "NPCs/Hero.md": "Lives in [[Overview]]",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "World/Overview.md": "See [[Hero]]",
+                "NPCs/Hero.md": "Lives in [[Overview]]",
+            },
+        )
         graph = build_graph(str(vault))
         assert "Overview" in graph["nodes"]
         assert "Hero" in graph["nodes"]
 
     def test_nonexistent_link_target(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "NoteA.md": "Link to [[Ghost]]",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "NoteA.md": "Link to [[Ghost]]",
+            },
+        )
         graph = build_graph(str(vault))
         assert "Ghost" in graph["nodes"]["NoteA"]["links_to"]
         assert "Ghost" not in graph["nodes"]
 
     def test_metadata_fields(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "NoteA.md": "[[NoteB]]",
-            "NoteB.md": "Hello",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "NoteA.md": "[[NoteB]]",
+                "NoteB.md": "Hello",
+            },
+        )
         graph = build_graph(str(vault))
         meta = graph["metadata"]
         assert meta["note_count"] == 2
         assert meta["edge_count"] == 1
         # built_at should be parseable ISO format
         from datetime import datetime
+
         datetime.fromisoformat(meta["built_at"])
         assert isinstance(meta["vault_path"], str)
 
     def test_frontmatter_in_nodes(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "Ironhold.md": "---\ntype: location\ntags: [city]\n---\n# Ironhold",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "Ironhold.md": "---\ntype: location\ntags: [city]\n---\n# Ironhold",
+            },
+        )
         graph = build_graph(str(vault))
         node = graph["nodes"]["Ironhold"]
         assert node["type"] == "location"
@@ -154,9 +173,12 @@ class TestBuildGraph:
         assert graph["metadata"]["edge_count"] == 0
 
     def test_node_path_is_relative(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "World/Overview.md": "# Overview",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "World/Overview.md": "# Overview",
+            },
+        )
         graph = build_graph(str(vault))
         assert graph["nodes"]["Overview"]["path"] == "World/Overview.md"
 
@@ -164,6 +186,7 @@ class TestBuildGraph:
 # ---------------------------------------------------------------------------
 # Test Class 4: TestCLI
 # ---------------------------------------------------------------------------
+
 
 class TestCLI:
     def test_cli_creates_graph_json(self, tmp_path, monkeypatch):
@@ -193,6 +216,7 @@ class TestCLI:
 # ---------------------------------------------------------------------------
 # Test Class 5: TestRealVault
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(
     not Path(REAL_VAULT).exists(),

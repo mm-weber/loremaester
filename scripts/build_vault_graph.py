@@ -5,12 +5,16 @@
 # ]
 # ///
 """Vault Graph Builder — parse Obsidian vault into .graph.json."""
-import sys, json, re
-from pathlib import Path
+
+import json
+import re
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
 import yaml
 
-WIKILINK_RE = re.compile(r'\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]+)?\]\]')
+WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]+)?\]\]")
 
 
 def extract_wikilinks(content: str) -> list[str]:

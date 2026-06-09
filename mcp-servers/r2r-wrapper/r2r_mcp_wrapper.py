@@ -3,7 +3,6 @@
 import os
 
 from mcp.server.fastmcp import FastMCP
-
 from r2r import R2RClient
 
 mcp = FastMCP("R2R")
@@ -112,11 +111,7 @@ async def ingest_document(
         doc_id = result.results.document_id
         message = result.results.message
 
-        display_title = (
-            (metadata or {}).get("title")
-            or title
-            or "Untitled"
-        )
+        display_title = (metadata or {}).get("title") or title or "Untitled"
 
         return (
             f"Document ingested successfully.\n"
@@ -173,7 +168,9 @@ async def list_documents(
             lines.append(f"   - ID: `{doc_id}`")
             lines.append("")
 
-        lines.append(f"Showing {len(docs)} document(s) (offset: {offset}, limit: {limit})")
+        lines.append(
+            f"Showing {len(docs)} document(s) (offset: {offset}, limit: {limit})"
+        )
         return "\n".join(lines)
 
     except Exception as e:

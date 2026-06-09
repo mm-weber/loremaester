@@ -11,14 +11,12 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-import server  # noqa: E402
-from server import search_lore, list_books, get_chapter, _get_client  # noqa: E402
-
+from server import _get_client, get_chapter, list_books, search_lore
 
 # ---------------------------------------------------------------------------
 # Mock helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_chunk(score=0.95, text="chunk text", metadata=None):
     """Create a mock search chunk with worldbuilding metadata."""
@@ -80,21 +78,42 @@ class TestSmokeFlow:
 
         # -- 1. list_books: 2 books (3 docs) --
         docs = [
-            _make_doc(doc_id="d1", title="Ch1", metadata={
-                "book_title": "Dwarf Kingdoms", "system": "D&D 5e",
-                "publisher": "WotC", "content_type": "lore",
-                "chapter": "Ch 1", "page_range": "pp. 1-20",
-            }),
-            _make_doc(doc_id="d2", title="Ch2", metadata={
-                "book_title": "Dwarf Kingdoms", "system": "D&D 5e",
-                "publisher": "WotC", "content_type": "lore",
-                "chapter": "Ch 2", "page_range": "pp. 21-40",
-            }),
-            _make_doc(doc_id="d3", title="ElvenLore", metadata={
-                "book_title": "Elven Lore", "system": "Pathfinder",
-                "publisher": "Paizo", "content_type": "bestiary",
-                "chapter": "Ch 1", "page_range": "pp. 1-15",
-            }),
+            _make_doc(
+                doc_id="d1",
+                title="Ch1",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "system": "D&D 5e",
+                    "publisher": "WotC",
+                    "content_type": "lore",
+                    "chapter": "Ch 1",
+                    "page_range": "pp. 1-20",
+                },
+            ),
+            _make_doc(
+                doc_id="d2",
+                title="Ch2",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "system": "D&D 5e",
+                    "publisher": "WotC",
+                    "content_type": "lore",
+                    "chapter": "Ch 2",
+                    "page_range": "pp. 21-40",
+                },
+            ),
+            _make_doc(
+                doc_id="d3",
+                title="ElvenLore",
+                metadata={
+                    "book_title": "Elven Lore",
+                    "system": "Pathfinder",
+                    "publisher": "Paizo",
+                    "content_type": "bestiary",
+                    "chapter": "Ch 1",
+                    "page_range": "pp. 1-15",
+                },
+            ),
         ]
         client.documents.list = MagicMock(return_value=_make_docs_response(docs))
 
@@ -107,18 +126,26 @@ class TestSmokeFlow:
 
         # -- 2. search_lore("dwarven customs") — 2 chunks --
         chunks = [
-            _make_chunk(score=0.93, text="Dwarven customs dictate a strict hierarchy.", metadata={
-                "book_title": "Dwarf Kingdoms",
-                "chapter": "Chapter 5: Society",
-                "page_range": "pp. 70-78",
-                "content_type": "lore",
-            }),
-            _make_chunk(score=0.81, text="Clan elders adjudicate disputes by ancient law.", metadata={
-                "book_title": "Dwarf Kingdoms",
-                "chapter": "Chapter 6: Law",
-                "page_range": "pp. 79-85",
-                "content_type": "lore",
-            }),
+            _make_chunk(
+                score=0.93,
+                text="Dwarven customs dictate a strict hierarchy.",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "chapter": "Chapter 5: Society",
+                    "page_range": "pp. 70-78",
+                    "content_type": "lore",
+                },
+            ),
+            _make_chunk(
+                score=0.81,
+                text="Clan elders adjudicate disputes by ancient law.",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "chapter": "Chapter 6: Law",
+                    "page_range": "pp. 79-85",
+                    "content_type": "lore",
+                },
+            ),
         ]
         client.retrieval.search = MagicMock(return_value=_make_search_result(chunks))
 
@@ -138,7 +165,9 @@ class TestSmokeFlow:
 
         # Verify the book filter was set
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
         # Output still formatted correctly
@@ -152,7 +181,9 @@ class TestSmokeFlow:
             _make_chunk(text="Miners carved tunnels for generations."),
             _make_chunk(text="Today the roads serve as trade routes."),
         ]
-        client.retrieval.search = MagicMock(return_value=_make_search_result(chapter_chunks))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result(chapter_chunks)
+        )
 
         output = await get_chapter(book="Dwarf Kingdoms", chapter="Chapter 3")
         assert "The Deep Roads stretch" in output
@@ -207,10 +238,14 @@ class TestEdgeCases:
     async def test_search_lore_missing_metadata_fields(self, mock_client_cls):
         """Chunk with partial metadata (no page_range, no chapter) → graceful 'Unknown' fallback."""
         client = mock_client_cls.return_value
-        chunk = _make_chunk(score=0.88, text="Some lore text.", metadata={
-            "book_title": "Dwarf Kingdoms",
-            # no chapter, no page_range
-        })
+        chunk = _make_chunk(
+            score=0.88,
+            text="Some lore text.",
+            metadata={
+                "book_title": "Dwarf Kingdoms",
+                # no chapter, no page_range
+            },
+        )
         client.retrieval.search = MagicMock(return_value=_make_search_result([chunk]))
 
         output = await search_lore(query="test")
@@ -222,12 +257,16 @@ class TestEdgeCases:
     async def test_list_books_missing_metadata(self, mock_client_cls):
         """Doc with no book_title in metadata → groups under 'Unknown', doesn't crash."""
         client = mock_client_cls.return_value
-        doc = _make_doc(doc_id="d1", title="Mystery", metadata={
-            "system": "Generic",
-            "publisher": "Indie",
-            "content_type": "lore",
-            # no book_title
-        })
+        doc = _make_doc(
+            doc_id="d1",
+            title="Mystery",
+            metadata={
+                "system": "Generic",
+                "publisher": "Indie",
+                "content_type": "lore",
+                # no book_title
+            },
+        )
         client.documents.list = MagicMock(return_value=_make_docs_response([doc]))
 
         output = await list_books()
@@ -246,7 +285,9 @@ class TestEnvironmentConfig:
     @patch("server.R2RClient")
     def test_get_client_reads_R2R_API_BASE(self, mock_client_cls):
         """Set R2R_API_BASE env → client gets custom URL."""
-        with patch.dict(os.environ, {"R2R_API_BASE": "http://custom-host:9999"}, clear=False):
+        with patch.dict(
+            os.environ, {"R2R_API_BASE": "http://custom-host:9999"}, clear=False
+        ):
             _get_client()
         mock_client_cls.assert_called_once_with("http://custom-host:9999")
 

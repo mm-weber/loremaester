@@ -31,19 +31,32 @@ def _build_parser():
         description="Extract text from PDFs/images via ocr_extract (tesseract/easyocr).",
     )
     parser.add_argument("files", nargs="*", help="File(s) to extract text from")
-    parser.add_argument("--output", "-o", help="Write extracted text to FILE instead of stdout")
-    parser.add_argument("--ingest", action="store_true", help="Push extracted text into R2R")
-    parser.add_argument("--title", help="Document title for R2R metadata (default: filename stem)")
-    parser.add_argument("--engine", default="tesseract",
-                        choices=["tesseract", "easyocr"],
-                        help="OCR backend (default: tesseract)")
-    parser.add_argument("--language", default="eng",
-                        help="OCR language (default: eng; easyocr uses ISO 639-1 like 'en')")
+    parser.add_argument(
+        "--output", "-o", help="Write extracted text to FILE instead of stdout"
+    )
+    parser.add_argument(
+        "--ingest", action="store_true", help="Push extracted text into R2R"
+    )
+    parser.add_argument(
+        "--title", help="Document title for R2R metadata (default: filename stem)"
+    )
+    parser.add_argument(
+        "--engine",
+        default="tesseract",
+        choices=["tesseract", "easyocr"],
+        help="OCR backend (default: tesseract)",
+    )
+    parser.add_argument(
+        "--language",
+        default="eng",
+        help="OCR language (default: eng; easyocr uses ISO 639-1 like 'en')",
+    )
     return parser
 
 
 def _get_r2r_client():
     from r2r import R2RClient
+
     return R2RClient()
 
 

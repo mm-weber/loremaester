@@ -131,7 +131,7 @@ Each instance gets its own Postgres schema (`R2R_PROJECT_NAME`), port range, and
 
 ## Development
 
-Install dev dependencies once (pytest, pytest-asyncio, pydantic, pandas, pdfplumber, all listed in `requirements-dev.txt`):
+Install dev dependencies once (pytest, pytest-asyncio, pydantic, pandas, pdfplumber, ruff, all listed in `requirements-dev.txt`):
 
 ```bash
 pip install --break-system-packages -r requirements-dev.txt
@@ -140,6 +140,11 @@ pip install --break-system-packages -r requirements-dev.txt
 Then:
 
 ```bash
+# Lint + format check (CI runs these as a merge gate)
+ruff check . && ruff format --check .
+# Auto-fix the easy stuff before pushing:
+ruff check --fix . && ruff format .
+
 # Run tests
 pytest -v --tb=short
 
