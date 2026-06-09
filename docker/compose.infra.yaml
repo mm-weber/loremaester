@@ -110,7 +110,7 @@ services:
         condition: service_healthy
 
   hatchet-migration:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.53.15@sha256:e5d3857e4fe5111f569cfc9c44bba0ad3de7ee14414dd10a59e05c56eb1cdadb
     env_file:
       - ./env/hatchet.env
     networks: [r2r-infra]
@@ -119,7 +119,7 @@ services:
         condition: service_completed_successfully
 
   hatchet-setup-config:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15@sha256:cd3155e5d0ea852f689354c87c484af8547a740d464f76e801dc92a7b9d6d210
     command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
     env_file:
       - ./env/hatchet.env
@@ -134,7 +134,7 @@ services:
         condition: service_healthy
 
   hatchet-engine:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15@sha256:7698a5bfe987940c338090d6b9894de3c61a699c67861afdc876fcf18645afb9
     command: /hatchet/hatchet-engine --config /hatchet/config
     restart: on-failure
     depends_on:
@@ -155,7 +155,7 @@ services:
       retries: 5
 
   hatchet-dashboard:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15@sha256:0a36505cc0c12dee56a504dddb6c3f5038fc08be3d8e1ff275b2ea2b66cd4003
     command: sh ./entrypoint.sh --config /hatchet/config
     restart: on-failure
     depends_on:
@@ -171,7 +171,7 @@ services:
     networks: [r2r-infra]
 
   setup-token:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15@sha256:cd3155e5d0ea852f689354c87c484af8547a740d464f76e801dc92a7b9d6d210
     command: sh /scripts/setup-token.sh
     volumes:
       - ./scripts:/scripts
