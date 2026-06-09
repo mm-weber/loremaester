@@ -9,6 +9,19 @@ may still change between minor versions.
 ## [Unreleased]
 
 ### Added
+- **`requirements.txt`** and **`requirements-dev.txt`** (new files): single
+  source of truth for Python runtime and test dependencies. `mcp` and `r2r`
+  are pinned exactly (the volatile ones REVIEW.md item 6 called out); test
+  deps mix exact and floor pins. The Dockerfile, CI workflow, README,
+  quickstart, troubleshooting, and CONTRIBUTING docs now all install via
+  `pip install -r requirements*.txt`, replacing six divergent inline
+  `pip install <bare list>` lines. The follow-up migration to a
+  `pyproject.toml` `[project]` table is recorded as R-4 in
+  `specs/v0.2/specs_v0.2.md`.
+- **`.dockerignore`** (new file): pairs with the devcontainer build-context
+  expansion below. Excludes `.git/`, `.pnpm-store/`, `node_modules/`,
+  bundled-PDF fixtures, and `__pycache__` from the build context tarball so
+  image builds stay quick.
 - **`docker/compose.linux.yaml`** (new file): Linux-only port override that
   adds a second binding for the `r2r` service on the docker0 bridge gateway
   (typically `172.17.0.1:7272:7272`). Compose merges `ports` arrays by
@@ -40,6 +53,19 @@ may still change between minor versions.
   `docs/design.md`, `THIRD_PARTY_NOTICES.md`, and the four conductor
   artifacts that cite the v0.2 spec as evidence. `REVIEW.md` is left
   untouched as a frozen review snapshot.
+- **`.devcontainer/Dockerfile`** and **`.devcontainer/devcontainer.json`**:
+  build context expanded to the repo root via `"context": ".."` so the
+  Dockerfile can `COPY requirements.txt requirements-dev.txt /tmp/` at
+  image-build time. The two existing context-relative `COPY` directives
+  (`init-firewall.sh`, `entrypoint.sh`) are now prefixed with
+  `.devcontainer/`. The pip-install step at line 64 reads from
+  `requirements-dev.txt` instead of an inline package list; `uv` is
+  installed as a separate step (it is a tool, not a runtime dep).
+- **`docs/quickstart.md`**: removed the `uv pip install pdfplumber` host
+  prereq and the matching install line in the OCR System Requirements
+  block. The PEP 723 scripts that need `pdfplumber` declare it inline and
+  `uv run --no-project` resolves it per invocation, so the manual host
+  install was redundant.
 
 ## [0.1.0] - 2026-06-08
 

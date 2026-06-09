@@ -1,0 +1,19 @@
+# Dev / test dependencies. Used by CI (.github/workflows/tests.yml) and by
+# the devcontainer image (.devcontainer/Dockerfile) so a fresh clone can run
+# the test suite without further setup.
+#
+# Includes everything in requirements.txt plus test harness packages and
+# pdfplumber (pytest imports scripts/detect_pdf_type.py which has
+# `import pdfplumber` at module top level — PEP 723 metadata only applies
+# to `uv run`, not to pytest's normal module import).
+#
+# pytest and pydantic are pinned to the versions validated in the current
+# devcontainer build; pytest-asyncio, pandas, and pdfplumber are floor-pinned.
+
+-r requirements.txt
+
+pytest==9.0.3
+pytest-asyncio>=0.21
+pydantic==2.13.4
+pandas>=2.0
+pdfplumber>=0.10

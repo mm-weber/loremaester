@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio mcp pydantic pyyaml pandas r2r pdfplumber
+          pip install -r requirements-dev.txt
 
       - name: Run tests
         run: |

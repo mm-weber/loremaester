@@ -56,8 +56,8 @@ docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 # 3. Build your vault graph
 uv run --no-project scripts/build_vault_graph.py /path/to/vault
 
-# 4. Install MCP dependencies
-pip install mcp r2r pyyaml
+# 4. Install MCP dependencies (single source of truth: requirements.txt)
+pip install -r requirements.txt
 
 # 5. Configure MCP servers in .claude/settings.json (see docs/quickstart.md)
 ```
@@ -130,6 +130,14 @@ docker/scripts/r2r-instance.sh coding up
 Each instance gets its own Postgres schema (`R2R_PROJECT_NAME`), port range, and R2R config. See `docker/instances/` for examples.
 
 ## Development
+
+Install dev dependencies once (pytest, pytest-asyncio, pydantic, pandas, pdfplumber, all listed in `requirements-dev.txt`):
+
+```bash
+pip install --break-system-packages -r requirements-dev.txt
+```
+
+Then:
 
 ```bash
 # Run tests

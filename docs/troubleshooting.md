@@ -80,7 +80,7 @@ code .                      # launch from this same shell
 
 **Cause:** The R2R SDK is not installed inside the devcontainer.
 
-**Fix:** Install it with `uv pip install r2r` (or `pip install r2r --break-system-packages` if uv is unavailable).
+**Fix:** Install via the project's runtime deps file with `uv pip install -r requirements.txt` (or `pip install -r requirements.txt --break-system-packages` if uv is unavailable).
 
 ---
 

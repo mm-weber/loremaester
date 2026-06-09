@@ -2,6 +2,10 @@
   "name": "R2R-ClaudeCode-integration",
   "build": {
     "dockerfile": "Dockerfile",
+    // Build context is the repo root (not .devcontainer/) so the Dockerfile
+    // can COPY requirements.txt / requirements-dev.txt from the repo root.
+    // See .dockerignore for the trees excluded from the context tarball.
+    "context": "..",
     "options": ["--network=host"],
     "args": {
       "TZ": "${localEnv:TZ:America/Los_Angeles}",
