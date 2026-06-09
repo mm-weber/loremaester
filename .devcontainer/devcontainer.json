@@ -34,6 +34,11 @@
       "settings": {
         "editor.formatOnSave": false,
         "terminal.integrated.defaultProfile.linux": "bash",
+        // Stops VS Code Server's periodic POSTs to
+        // mobile.events.data.microsoft.com — which were continuously failing
+        // against the egress firewall and generating ongoing log noise.
+        // Aligned with the firewall-narrowing posture in init-firewall.sh.
+        "telemetry.telemetryLevel": "off",
         "files.watcherExclude": {
           "**/node_modules/**": true,
           "**/.git/objects/**": true

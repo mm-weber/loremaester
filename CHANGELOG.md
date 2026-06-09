@@ -10,13 +10,17 @@ may still change between minor versions.
 
 ### Security
 - **`.devcontainer/init-firewall.sh`**: dropped `vscode.blob.core.windows.net`
-  from the egress allowlist. The standard VS Code Desktop + Reopen-in-Container
-  flow installs the VS Code Server via a client-side tunnel, so the container
-  itself never needs direct access to the Azure CDN. Narrowing the trust
-  surface; re-add if an extension fails to fetch assets at runtime
-  (symptom: denied iptables hits to `*.blob.core.windows.net`).
-  `update.code.visualstudio.com` is retained for now since auto-update
-  checks are a small, frequent, low-risk surface.
+  and `update.code.visualstudio.com` from the egress allowlist. The standard
+  VS Code Desktop + Reopen-in-Container flow installs the VS Code Server via
+  a client-side tunnel and handles version coordination, so the container
+  itself needs neither direct CDN access nor an update-check endpoint.
+  Narrowing the trust surface; re-add if an extension fails to fetch assets
+  at runtime (symptom: denied iptables hits to the respective domain).
+- **`.devcontainer/devcontainer.json`**: added
+  `"telemetry.telemetryLevel": "off"` to `customizations.vscode.settings`.
+  Stops VS Code Server's periodic POSTs to `mobile.events.data.microsoft.com`
+  (which were continuously failing against the egress firewall and generating
+  ongoing log noise). Aligned with the trust-narrowing posture above.
 
 ### Added
 - **`requirements.txt`** and **`requirements-dev.txt`** (new files): single
