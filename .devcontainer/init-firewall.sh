@@ -78,8 +78,14 @@ done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[] | select(test(":") | 
 
 # ============================================================
 # Allowed domains
-# Stock:     npm, Anthropic, Sentry, Statsig, VS Code
+# Stock:     npm, Anthropic, Sentry, Statsig, VS Code (partial; see REMOVED)
 # ADDED:     Python (PyPI + uv via astral.sh)
+# REMOVED:   vscode.blob.core.windows.net — opaque Azure CDN; the standard
+#            VS Code Desktop + Reopen-in-Container flow tunnels the server
+#            install via the client, so the container never needs direct
+#            CDN access. Re-add if an extension fails to fetch assets at
+#            runtime (symptom: silent extension load failure with denied
+#            iptables hits to *.blob.core.windows.net).
 # To extend: just add more domains to this list
 # ============================================================
 for domain in \
@@ -91,7 +97,6 @@ for domain in \
     "statsig.anthropic.com" \
     "statsig.com" \
     "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
     "update.code.visualstudio.com" \
     "pypi.org" \
     "files.pythonhosted.org" \

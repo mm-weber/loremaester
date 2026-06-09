@@ -8,6 +8,16 @@ may still change between minor versions.
 
 ## [Unreleased]
 
+### Security
+- **`.devcontainer/init-firewall.sh`**: dropped `vscode.blob.core.windows.net`
+  from the egress allowlist. The standard VS Code Desktop + Reopen-in-Container
+  flow installs the VS Code Server via a client-side tunnel, so the container
+  itself never needs direct access to the Azure CDN. Narrowing the trust
+  surface; re-add if an extension fails to fetch assets at runtime
+  (symptom: denied iptables hits to `*.blob.core.windows.net`).
+  `update.code.visualstudio.com` is retained for now since auto-update
+  checks are a small, frequent, low-risk surface.
+
 ### Added
 - **`requirements.txt`** and **`requirements-dev.txt`** (new files): single
   source of truth for Python runtime and test dependencies. `mcp` and `r2r`
