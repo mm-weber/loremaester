@@ -6,7 +6,7 @@ volumes:
 
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:00ba258a66dac104fd5171074a0084462a64a1369d8513f3d0a634e2f24d15bc
     profiles: [postgres]
     env_file:
       - ./env/postgres.env
@@ -27,7 +27,7 @@ services:
       -c max_connections=1024
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     profiles: [minio]
     env_file:
       - ./env/minio.env
@@ -45,7 +45,7 @@ services:
     command: server /data --console-address ":9001"
 
   graph_clustering:
-    image: ragtoriches/cluster-prod
+    image: ragtoriches/cluster-prod:latest@sha256:53bcbcc114fe08906b6df6b4d3863644145b1efa240fd6643ef65986593938b6
     ports:
       - "127.0.0.1:7276:7276"
     healthcheck:
@@ -55,7 +55,7 @@ services:
       retries: 5
 
   r2r:
-    image: sciphiai/r2r:latest
+    image: sciphiai/r2r:latest@sha256:f7f7ee5ef3aa0945895320eb7424cb7e2f89e455b6a6a20ec5aff6de3024b88c
     ports:
       # loopback (host localhost) + docker-bridge gateway (the devcontainer,
       # via host.docker.internal) — NOT 0.0.0.0, so the host's LAN interface is
@@ -84,7 +84,7 @@ services:
         condition: service_healthy
 
   r2r-dashboard:
-    image: sciphiai/r2r-dashboard:1.0.3
+    image: sciphiai/r2r-dashboard:1.0.3@sha256:ba9bcb43c5e7d7d4eb9fe38970f976f6a0842297f3da078cb6223d1f078741d1
     env_file:
       - ./env/r2r-dashboard.env
     ports:
