@@ -188,13 +188,24 @@ session; see the preceding commit):
 1. **`compose.yaml` `172.17.0.1:7272:7272` bind** errors on Docker Desktop
    ("cannot assign requested address" — that bridge IP doesn't exist on the
    Mac host). The demo-walkthrough mentions deleting it; the quickstart doesn't.
-   *Fix:* drop the line on macOS. *Recommend:* a `compose.override.yaml` or a
-   documented one-liner so it isn't a manual edit to a tracked file.
+   *Fix landed:* the base `compose.yaml` and `compose.full.yaml` now bind r2r
+   to host loopback only (mac-safe by default). Linux users layer on a new
+   `docker/compose.linux.yaml` to add the bridge-gateway binding back via
+   compose's additive `-f` merge (`ports:` arrays concatenate, so the merged
+   result is both bindings). Documented in `docs/quickstart.md` Step 2 and
+   `docs/demo-walkthrough.md` Step 5 with both invocations side-by-side, plus
+   a new `docs/troubleshooting.md` entry covering the silent-refused symptom
+   when Linux users skip the override.
 2. **`devcontainer.json` SSH mount** uses `${localEnv:SSH_AUTH_SOCK}`, which on
    macOS is a launchd socket Docker Desktop **cannot bind-mount** → the
-   container fails to start before you ever reach a terminal. *Fix:* mount
-   Docker Desktop's `/run/host-services/ssh-auth.sock` instead. *Recommend:*
-   make the SSH mount OS-conditional (or document the swap).
+   container fails to start before you ever reach a terminal. *Fix landed
+   (docs-based, single source of truth):* keep `${localEnv:SSH_AUTH_SOCK}` in
+   `devcontainer.json` (works on Linux out of the box) and document the macOS
+   preflight `export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock` in
+   `docs/quickstart.md` + `docs/demo-walkthrough.md` + `docs/troubleshooting.md`.
+   Hardcoding the Docker-Desktop in-VM path was tried first but broke Linux
+   (same symptom in reverse, since that path does not exist outside Docker
+   Desktop's VM).
 3. **`init-firewall.sh` allowlists only the default-route gateway** on
    7272/11434. On Docker Desktop `host.docker.internal` is a *separate* address
    (`192.168.65.254`), not the gateway — so the egress firewall silently drops

@@ -8,6 +8,32 @@ may still change between minor versions.
 
 ## [Unreleased]
 
+### Added
+- **`docker/compose.linux.yaml`** (new file): Linux-only port override that
+  adds a second binding for the `r2r` service on the docker0 bridge gateway
+  (typically `172.17.0.1:7272:7272`). Compose merges `ports` arrays by
+  concatenation, so layering this file on top of either `compose.yaml` or
+  `compose.full.yaml` produces a dual binding. Documented in
+  `docs/quickstart.md` Step 2 (both Light and Full Mode invocations),
+  `docs/demo-walkthrough.md` Step 5, and a new `docs/troubleshooting.md`
+  entry covering the silent-refused symptom on Linux when the override is
+  skipped.
+
+### Changed
+- **`.devcontainer/devcontainer.json`**: SSH-agent mount source restored to
+  `${localEnv:SSH_AUTH_SOCK}`. The macOS-validation pass had hardcoded it to
+  Docker Desktop's `/run/host-services/ssh-auth.sock`, which made the devcontainer
+  fail to start on Linux hosts (`bind source path does not exist`). macOS users
+  now run a one-time shell-init `export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock`
+  and launch VS Code from a terminal, documented in `docs/quickstart.md`,
+  `docs/demo-walkthrough.md`, and `docs/troubleshooting.md`.
+- **`docker/compose.yaml`** and **`docker/compose.full.yaml`**: the r2r
+  service's Linux-only `172.17.0.1:7272:7272` binding has moved out of the
+  base files into the new `docker/compose.linux.yaml` override. Both compose
+  entry points are now cross-platform safe by default (loopback-only).
+  Replaces the previous "delete the 172.17.0.1 line manually on macOS"
+  callout in the docs.
+
 ## [0.1.0] - 2026-06-08
 
 First public release.

@@ -50,10 +50,18 @@
   "mounts": [
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
-    // SSH agent forwarding from host (for git push/pull via SSH).
-    // If the host has no SSH agent (e.g. Windows without ssh-agent),
-    // remove this mount and use HTTPS+PAT for git auth instead.
-    "source=/run/host-services/ssh-auth.sock,target=/ssh-agent,type=bind,consistency=cached"
+    // SSH agent forwarding from host (for git push/pull via SSH). The
+    // devcontainer CLI resolves ${localEnv:SSH_AUTH_SOCK} from the shell
+    // that launched VS Code / `devcontainer up`. macOS / Docker Desktop:
+    // the default launchd ssh-agent socket cannot be bind-mounted into
+    // Docker Desktop's VM, so set
+    //   export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+    // in your shell init and launch VS Code from that shell (`code .`).
+    // See docs/quickstart.md "macOS / Docker Desktop: one-time preflight".
+    // If the host has no SSH agent (Windows, headless), remove this mount
+    // and the matching containerEnv SSH_AUTH_SOCK line below, then use
+    // HTTPS + a personal access token for git auth instead.
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
   ],
 
   // --- Environment ---

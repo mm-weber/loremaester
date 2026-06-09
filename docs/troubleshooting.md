@@ -1,12 +1,58 @@
 # Troubleshooting
 
+## Devcontainer Issues
+
+### Devcontainer fails to start: `bind source path does not exist: /run/host-services/ssh-auth.sock` (macOS)
+
+**Cause:** The macOS / Docker Desktop default `SSH_AUTH_SOCK` is a launchd socket that Docker Desktop's VM cannot bind-mount, so the devcontainer's SSH-agent forwarding mount fails. The fix is a one-time shell-init export that points the env var at the stable in-VM path Docker Desktop manufactures.
+
+**Fix:** add the export to `~/.zshrc` (or your shell init) and launch VS Code from a terminal rather than the Dock / Spotlight, so the export is actually inherited:
+
+```bash
+# Add to ~/.zshrc on macOS
+export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+# Then, in a fresh terminal:
+source ~/.zshrc && code .
+```
+
+See [the macOS preflight in quickstart.md](./quickstart.md#macos--docker-desktop-one-time-preflight) for the longer explanation.
+
+### Devcontainer fails to start: empty or invalid mount source for SSH agent (Linux)
+
+**Cause:** `${localEnv:SSH_AUTH_SOCK}` resolved to empty because no `ssh-agent` was running in the shell that launched the editor, so the devcontainer's SSH-agent mount has no source path.
+
+**Fix (recommended):** start an ssh-agent before launching VS Code:
+
+```bash
+eval "$(ssh-agent)"
+ssh-add ~/.ssh/id_ed25519   # or whichever key
+code .                      # launch from this same shell
+```
+
+**Fix (no SSH at all):** if the host genuinely has no ssh-agent (Windows without one, fully headless boxes), delete the `"source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,..."` line from `.devcontainer/devcontainer.json`'s `mounts` array AND the matching `"SSH_AUTH_SOCK": "/ssh-agent"` line from `containerEnv`. Use HTTPS plus a personal access token for git instead.
+
+---
+
 ## Connection Issues
 
 ### "Connection refused" on `search_lore`
 
-**Cause:** R2R is not running, or the MCP server is configured with the wrong URL (e.g., `localhost` instead of `host.docker.internal`).
+**Causes (three common):**
 
-**Fix:** Verify R2R is healthy on the host with `curl http://localhost:7272/v3/health`. Then confirm that `R2R_API_BASE` in your MCP settings uses `host.docker.internal`, not `localhost` — the devcontainer cannot reach the host's loopback interface.
+1. R2R is not running.
+2. The MCP server is configured with the wrong URL (e.g., `localhost` instead of `host.docker.internal`).
+3. **Linux only:** the R2R stack was started without `docker/compose.linux.yaml` layered in, so R2R is bound only on host loopback (`127.0.0.1`). The devcontainer reaches the host via the docker0 bridge gateway (typically `172.17.0.1`), which the loopback binding does not cover, so the connection from inside the devcontainer is refused.
+
+**Fix:**
+
+- Verify R2R is healthy on the host with `curl http://localhost:7272/v3/health`.
+- Confirm `R2R_API_BASE` in your MCP settings uses `host.docker.internal`, not `localhost`. The devcontainer cannot reach the host's loopback interface directly.
+- On Linux, restart the stack with the override layered in:
+  ```bash
+  docker compose -f docker/compose.yaml -f docker/compose.linux.yaml \
+    --profile postgres --profile minio up -d
+  ```
+  Then, from inside the devcontainer, `curl http://host.docker.internal:7272/v3/health` should succeed. If it does not, you have hit cause #3. See [`quickstart.md`](./quickstart.md) Step 2 for the full explanation of the override pattern.
 
 ### `host.docker.internal` doesn't resolve
 

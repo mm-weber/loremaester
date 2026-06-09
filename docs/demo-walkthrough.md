@@ -35,6 +35,17 @@ On the machine where you'll run the devcontainer:
 
 **Windows is not currently supported** — the Ollama install path and `host.docker.internal` networking differ from the configurations validated here. Linux and macOS hosts are the supported platforms for v0.1.
 
+## macOS / Docker Desktop: one-time preflight
+
+On macOS, before opening the devcontainer, point `SSH_AUTH_SOCK` at the path Docker Desktop manufactures inside its VM:
+
+```bash
+# Add to ~/.zshrc on macOS (one-time setup)
+export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+```
+
+Then launch VS Code from a terminal (`source ~/.zshrc && code .`), not from the Dock or Spotlight, so the devcontainer CLI inherits the export. macOS's default `SSH_AUTH_SOCK` is a launchd socket Docker Desktop cannot bind-mount, so without this the devcontainer fails to start with `bind source path does not exist`. Linux hosts work out of the box (assuming an ssh-agent is running). See [`quickstart.md`](./quickstart.md) for the longer explanation.
+
 ## How this demo runs
 
 You'll use **two terminals**:
@@ -85,10 +96,16 @@ The defaults are usable for the first launch. See [`quickstart.md`](./quickstart
 
 This demo runs R2R in **Light Mode** — Postgres + MinIO + R2R + dashboard, using R2R's built-in parser (config: `docker/user_configs/r2r-light.toml`). No Unstructured.io or Hatchet: the image-only sourcebook is OCR'd **client-side** (Step 6), so Light Mode loses nothing here. Postgres and MinIO sit behind compose profiles, so pass both:
 ```bash
+# macOS / Docker Desktop
 docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 docker compose -f docker/compose.yaml --profile postgres --profile minio ps
+
+# Linux: same commands, but layer in docker/compose.linux.yaml so the
+# devcontainer can reach R2R via the docker0 bridge gateway
+docker compose -f docker/compose.yaml -f docker/compose.linux.yaml --profile postgres --profile minio up -d
+docker compose -f docker/compose.yaml -f docker/compose.linux.yaml --profile postgres --profile minio ps
 ```
-> **macOS/Docker Desktop:** before this step, delete the `172.17.0.1:7272:7272` line under the `r2r` service in `docker/compose.yaml` — that bind is Linux-only (it keeps R2R off the host LAN while still reachable from the devcontainer); on Docker Desktop the `127.0.0.1` line alone works.
+> The base `compose.yaml` binds R2R only to host loopback (off the LAN). macOS routes the devcontainer's `host.docker.internal:7272` to that binding via Docker Desktop's NAT, so the base file alone works. On Linux, `host.docker.internal` resolves to the docker0 bridge gateway (typically `172.17.0.1`), so the additive override `docker/compose.linux.yaml` adds a second binding on that IP. See [`quickstart.md`](./quickstart.md) Step 2 for the full explanation; set `COMPOSE_FILE=docker/compose.yaml:docker/compose.linux.yaml` once in your shell init if you prefer not to repeat `-f` on every invocation.
 
 First start pulls images and initializes Postgres — give it a minute or two before the health check passes.
 

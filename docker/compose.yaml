@@ -57,11 +57,15 @@ services:
   r2r:
     image: sciphiai/r2r:latest
     ports:
-      # loopback (host localhost) + docker-bridge gateway (the devcontainer,
-      # via host.docker.internal) — NOT 0.0.0.0, so the host's LAN interface is
-      # not exposed. macOS/Docker Desktop: drop the 172.17.0.1 line (it errors
-      # there; 127.0.0.1 suffices). Verify the gateway from inside the
-      # container with `getent hosts host.docker.internal`.
+      # Bind to host loopback only, keeping r2r off the host's LAN. The
+      # devcontainer talks to r2r via host.docker.internal: on macOS that
+      # resolves through Docker Desktop's NAT and routes to this binding;
+      # on Linux it resolves to the docker0 bridge gateway (typically
+      # 172.17.0.1) which 127.0.0.1 alone does not cover, so Linux users
+      # layer on docker/compose.linux.yaml to add a second binding on
+      # that IP. See docs/quickstart.md Step 2 for the invocation. Verify
+      # the gateway from inside the container with `getent hosts
+      # host.docker.internal`.
       - "127.0.0.1:7272:7272"
     env_file:
       - ./env/r2r.env
