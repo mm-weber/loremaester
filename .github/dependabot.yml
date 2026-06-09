@@ -1,37 +1,49 @@
-# Dependabot keeps our pinned digests from going stale: it opens reviewable PRs to bump
-# image digests/tags and GitHub Actions when upstreams publish updates. (Pinning stops
-# silent drift; Dependabot restores patching on top of the pins.)
+# ─────────────────────────────────────────────────────────────────────────────
+# DEFERRED TO v0.2 — intentionally inactive for the v0.1 release.
 #
-# Enable "Dependabot version updates" in repo Settings → Code security if it isn't already.
-version: 2
-updates:
-  # Devcontainer base image — FROM node:20@sha256:... in .devcontainer/Dockerfile
-  - package-ecosystem: docker
-    directory: /.devcontainer
-    schedule:
-      interval: weekly
-    groups:
-      devcontainer:
-        patterns: ["*"]
+# v0.1 ships container images pinned by sha256 digest (the compose stacks + the
+# devcontainer base) but WITHOUT automated updates. Dependabot — which would open
+# reviewable PRs to bump those digests/tags and the GitHub Actions — is parked
+# until v0.2 to keep the first release's scope small.
+#
+# Tracked as "R-5 — Supply-chain auto-updates (Dependabot)" in the v0.2 roadmap.
+#
+# TO PICK IT UP (v0.2):
+#   1. Uncomment the version:/updates: block below.
+#   2. Ensure this file is on the DEFAULT branch — Dependabot only reads it there.
+#   3. Repo → Settings → Code security → enable "Dependabot version updates"
+#      (and ideally "Dependabot alerts" + "security updates").
+#   Caveat: the docker ecosystem auto-tracks the Dockerfile + the standard-named
+#   docker/compose.yaml only. compose.full.yaml / compose.app.yaml /
+#   compose.infra.yaml use non-standard filenames and need a manual re-pin
+#   (`docker buildx imagetools inspect <ref>` → update the image: line).
+# ─────────────────────────────────────────────────────────────────────────────
 
-  # R2R stack images. Dependabot auto-detects the standard-named compose.yaml here.
-  # NOTE: compose.full.yaml / compose.app.yaml / compose.infra.yaml use NON-standard
-  # filenames and are likely NOT auto-tracked — re-pin those manually (resolve with
-  # `docker buildx imagetools inspect <ref>` and update the image: lines). Verify
-  # coverage in the first Dependabot run.
-  - package-ecosystem: docker
-    directory: /docker
-    schedule:
-      interval: weekly
-    groups:
-      r2r-stack:
-        patterns: ["*"]
-
-  # GitHub Actions referenced by .github/workflows/
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-    groups:
-      actions:
-        patterns: ["*"]
+# version: 2
+# updates:
+#   # Devcontainer base image — FROM node:20@sha256:... in .devcontainer/Dockerfile
+#   - package-ecosystem: docker
+#     directory: /.devcontainer
+#     schedule:
+#       interval: weekly
+#     groups:
+#       devcontainer:
+#         patterns: ["*"]
+#
+#   # R2R stack images (standard-named docker/compose.yaml; see caveat above)
+#   - package-ecosystem: docker
+#     directory: /docker
+#     schedule:
+#       interval: weekly
+#     groups:
+#       r2r-stack:
+#         patterns: ["*"]
+#
+#   # GitHub Actions referenced by .github/workflows/
+#   - package-ecosystem: github-actions
+#     directory: /
+#     schedule:
+#       interval: weekly
+#     groups:
+#       actions:
+#         patterns: ["*"]

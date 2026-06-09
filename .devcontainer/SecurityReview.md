@@ -43,10 +43,9 @@ container). DinD was removed because:
   interactive/agent shell runs as the unprivileged `node` user.
 - **Pinned images** — the devcontainer base (`FROM node:20@sha256:…`) and every image in
   the host compose stacks are pinned by **`sha256` digest**, not a floating tag, so builds
-  are reproducible and an upstream tag can't be silently repointed. Digest/version bumps
-  arrive as reviewable **Dependabot** PRs (`.github/dependabot.yml`) — which also restores
-  CVE patching on top of the pins. (Dependabot auto-tracks the Dockerfile + the
-  standard-named `docker/compose.yaml`; `compose.full/app/infra.yaml` are re-pinned manually.)
+  are reproducible and an upstream tag can't be silently repointed. Automated bumps via
+  **Dependabot** are **staged for v0.2** (`.github/dependabot.yml` ships commented out); for
+  v0.1, re-pin manually when updating.
 
 ## Original findings — status
 - **C-1 — `seccomp=unconfined`:** **Resolved.** The override is gone; Docker's default
