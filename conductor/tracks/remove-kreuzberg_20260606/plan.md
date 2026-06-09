@@ -67,7 +67,7 @@ Per-page by construction (never hands the whole document to one OCR call).
 ### Tasks
 - [x] 4.1 OCR sections rewritten across `docs/quickstart.md`, `docs/troubleshooting.md`, `docs/demo-walkthrough.md`, `README.md`, `docs/design.md` → ocr_extract (pypdfium2 + per-page tesseract/easyocr); easyocr opt-in `--with easyocr`; `OCR_ENGINE` env (legacy `KREUZBERG_*` honored); paddleocr dropped. (3 parallel doc agents)
 - [x] 4.2 `THIRD_PARTY_NOTICES.md`: removed the kreuzberg (Elastic-2.0) entry; OCR stack now listed as direct permissive deps (pypdfium2 / tesseract / pytesseract / easyocr / torch) + a "removed" note.
-- [x] 4.3 Cross-referenced the track from `requirements/v0.2` R-1 (marked ✅ DONE); `Grunvyr-Vol-III-fixedcover.pdf` is not in the repo (was a local scratch file) — nothing to delete. Added `ocr_extract.py` to the README/design file-trees.
+- [x] 4.3 Cross-referenced the track from `specs/v0.2` R-1 (marked ✅ DONE); `Grunvyr-Vol-III-fixedcover.pdf` is not in the repo (was a local scratch file) — nothing to delete. Added `ocr_extract.py` to the README/design file-trees.
 
 ### Verification
 - [x] `git grep -niE kreuzberg -- scripts/ docs/` → only intentional refs remain (legacy `KREUZBERG_*` env fallback + `ocr_extract`'s "kreuzberg-free" explanatory comments); no imports, install commands, or "via kreuzberg" framing.

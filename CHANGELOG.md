@@ -33,6 +33,13 @@ may still change between minor versions.
   entry points are now cross-platform safe by default (loopback-only).
   Replaces the previous "delete the 172.17.0.1 line manually on macOS"
   callout in the docs.
+- **Renamed `requirements/` to `specs/`** (and the inner
+  `requirements_v0.2.md` to `specs_v0.2.md`) to remove the
+  Python-pip-deps double-take. Documentation only; no code paths or
+  tooling read from the directory. References updated in `README.md`,
+  `docs/design.md`, `THIRD_PARTY_NOTICES.md`, and the four conductor
+  artifacts that cite the v0.2 spec as evidence. `REVIEW.md` is left
+  untouched as a frozen review snapshot.
 
 ## [0.1.0] - 2026-06-08
 
@@ -59,7 +66,7 @@ First public release.
 ### Known limitations
 - Linux/macOS hosts only (Windows unsupported); single-stack deployment is supported (the multi-instance
   variant ships but is unvalidated); the domain schema is TTRPG-specific. See
-  `requirements/v0.2/requirements_v0.2.md` for the v0.2 backlog (R-3 collection support + the
+  `specs/v0.2/specs_v0.2.md` for the v0.2 backlog (R-3 collection support + the
   sourcebooks MCP design review).
 
 [Unreleased]: https://github.com/mm-weber/R2R-ClaudeCode-integration/compare/v0.1.0...HEAD

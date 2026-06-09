@@ -57,7 +57,7 @@ is permissive and sidesteps the multi-page bug.
 **Consequences:**
 - Fully permissive (MIT / Apache / BSD) OCR footprint.
 - New dependency `pypdfium2`; `surya` / `pymupdf` / `paddleocr` excluded from the shipped path.
-- Evidence: `requirements/v0.2/requirements_v0.2.md` R-1 / R-1E.
+- Evidence: `specs/v0.2/specs_v0.2.md` R-1 / R-1E.
 
 ## Version Compatibility Matrix
 | Component | Min | Notes |

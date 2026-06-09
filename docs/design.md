@@ -186,7 +186,7 @@ R2R-ClaudeCode-integration/
 ├── evals/                     # D7: skill evaluation harness (with-skill vs without-skill)
 ├── examples/                  # D1: Vault CLAUDE.md template + bundled TTRPG demo (examples/ttrpg/)
 ├── docs/                      # Documentation
-├── requirements/              # EARS specifications
+├── specs/                     # EARS specifications
 └── .github/workflows/         # CI/CD
 ```
 

@@ -19,7 +19,7 @@ v0.1 release-prep debugging proved kreuzberg is both a functional and a license 
   same rendered pages fine → the fault is kreuzberg's multi-page wrapper.
 - kreuzberg (≥ 4.6) is Elastic License 2.0 (source-available, non-OSI) — even the tesseract path pulls it.
 
-Full evidence: `requirements/v0.2/requirements_v0.2.md` R-1 / R-1E. EasyOCR itself is Apache-2.0 —
+Full evidence: `specs/v0.2/specs_v0.2.md` R-1 / R-1E. EasyOCR itself is Apache-2.0 —
 calling it directly per page is permissive **and** fixes the bug.
 
 ## Acceptance Criteria (EARS notation)

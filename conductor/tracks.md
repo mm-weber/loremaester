@@ -35,4 +35,4 @@ _None currently in progress._
 
 ## Notes
 - Track IDs: lowercase-hyphen + `_YYYYMMDD`.
-- See `requirements/v0.2/requirements_v0.2.md` R-1 / R-1E for the kreuzberg evidence.
+- See `specs/v0.2/specs_v0.2.md` R-1 / R-1E for the kreuzberg evidence.

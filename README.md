@@ -100,7 +100,7 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 │   ├── quickstart.md              # Full setup guide for your own vault
 │   ├── design.md                  # Architecture and design decisions
 │   └── troubleshooting.md         # Common issues and fixes
-├── requirements/                  # v0.2 requirements & design notes
+├── specs/                         # v0.2 EARS specs & design notes
 ├── .github/workflows/tests.yml    # CI/CD pipeline
 └── pyproject.toml                 # Pytest configuration
 ```
@@ -111,7 +111,7 @@ See [docs/quickstart.md](docs/quickstart.md) for the full setup guide.
 - **[Quickstart](docs/quickstart.md)** — Full setup: Ollama, R2R, vault prep, MCP config, first session — for wiring up your own vault and sourcebooks.
 - **[Design](docs/design.md)** — Architecture decisions, component map, workflow
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues, database resets, multi-instance debugging
-- **[Requirements](requirements/)** — v0.2 requirements and design-review notes (sourcebooks MCP review + OCR/licensing follow-ups)
+- **[Specs](specs/)** — v0.2 EARS specs and design-review notes (sourcebooks MCP review + OCR/licensing follow-ups)
 - **[Changelog](CHANGELOG.md)** — notable changes per release (Keep a Changelog + SemVer)
 
 ## Multi-Instance Deployment
