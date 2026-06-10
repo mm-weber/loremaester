@@ -54,12 +54,15 @@ may still change between minor versions.
   skipped.
 
 ### Changed
-- **`.devcontainer/devcontainer.json`**: SSH-agent mount source restored to
-  `${localEnv:SSH_AUTH_SOCK}`. The macOS-validation pass had hardcoded it to
-  Docker Desktop's `/run/host-services/ssh-auth.sock`, which made the devcontainer
-  fail to start on Linux hosts (`bind source path does not exist`). macOS users
-  now run a one-time shell-init `export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock`
-  and launch VS Code from a terminal, documented in `docs/quickstart.md`,
+- **`.devcontainer/devcontainer.json`**: SSH-agent mount source now reads
+  `${localEnv:SSH_AUTH_SOCK_HOST:/run/host-services/ssh-auth.sock}`. The default
+  is the path Docker Desktop forwards the host agent on, so **macOS / Docker
+  Desktop works out of the box** (no shell-init export, and VS Code can launch
+  from the Dock). **Linux** runs `export SSH_AUTH_SOCK_HOST="$SSH_AUTH_SOCK"`
+  before launching the editor, because that default path does not exist outside
+  Docker Desktop's VM. A dedicated variable is used (not `SSH_AUTH_SOCK`) because
+  macOS keeps `SSH_AUTH_SOCK` set to an unmountable launchd socket that would
+  shadow the default. Documented in `docs/quickstart.md`,
   `docs/demo-walkthrough.md`, and `docs/troubleshooting.md`.
 - **`docker/compose.yaml`** and **`docker/compose.full.yaml`**: the r2r
   service's Linux-only `172.17.0.1:7272:7272` binding has moved out of the

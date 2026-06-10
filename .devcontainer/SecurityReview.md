@@ -57,7 +57,7 @@ container). DinD was removed because:
   `entrypoint.sh`, so no sudoers rule is needed.
 
 ## Residual risks (accepted by design)
-- **SSH-agent forwarding** — `devcontainer.json` bind-mounts the host `SSH_AUTH_SOCK`
+- **SSH-agent forwarding** — `devcontainer.json` bind-mounts the host's SSH agent socket
   so git over SSH works. While mounted, a compromised agent could use the host's keys.
   Mitigations if this matters: an agent that confirms each use, a scoped key, or switch
   to HTTPS+PAT and drop the mount.

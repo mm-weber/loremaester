@@ -2,34 +2,22 @@
 
 ## Devcontainer Issues
 
-### Devcontainer fails to start: `bind source path does not exist: /run/host-services/ssh-auth.sock` (macOS)
+### Devcontainer fails to start: `bind source path does not exist: /run/host-services/ssh-auth.sock` (Linux)
 
-**Cause:** The macOS / Docker Desktop default `SSH_AUTH_SOCK` is a launchd socket that Docker Desktop's VM cannot bind-mount, so the devcontainer's SSH-agent forwarding mount fails. The fix is a one-time shell-init export that points the env var at the stable in-VM path Docker Desktop manufactures.
+**Cause:** On Linux, `SSH_AUTH_SOCK_HOST` was not set, so the SSH-agent mount fell back to its default, the Docker-Desktop-only path `/run/host-services/ssh-auth.sock`, which does not exist on Linux. (On macOS / Docker Desktop this default is correct and the devcontainer starts with no setup.)
 
-**Fix:** add the export to `~/.zshrc` (or your shell init) and launch VS Code from a terminal rather than the Dock / Spotlight, so the export is actually inherited:
-
-```bash
-# Add to ~/.zshrc on macOS
-export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
-# Then, in a fresh terminal:
-source ~/.zshrc && code .
-```
-
-See [the macOS preflight in quickstart.md](./quickstart.md#macos--docker-desktop-one-time-preflight) for the longer explanation.
-
-### Devcontainer fails to start: empty or invalid mount source for SSH agent (Linux)
-
-**Cause:** `${localEnv:SSH_AUTH_SOCK}` resolved to empty because no `ssh-agent` was running in the shell that launched the editor, so the devcontainer's SSH-agent mount has no source path.
-
-**Fix (recommended):** start an ssh-agent before launching VS Code:
+**Fix (recommended):** make sure an `ssh-agent` is running, point the override at its socket, and launch VS Code from that shell:
 
 ```bash
-eval "$(ssh-agent)"
-ssh-add ~/.ssh/id_ed25519   # or whichever key
-code .                      # launch from this same shell
+eval "$(ssh-agent)"             # if one isn't already running
+ssh-add ~/.ssh/id_ed25519       # or whichever key
+export SSH_AUTH_SOCK_HOST="$SSH_AUTH_SOCK"
+code .                          # launch from this same shell
 ```
 
-**Fix (no SSH at all):** if the host genuinely has no ssh-agent (Windows without one, fully headless boxes), delete the `"source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,..."` line from `.devcontainer/devcontainer.json`'s `mounts` array AND the matching `"SSH_AUTH_SOCK": "/ssh-agent"` line from `containerEnv`. Use HTTPS plus a personal access token for git instead.
+See [the SSH section in quickstart.md](./quickstart.md#git-over-ssh-host-agent-forwarding) for the longer explanation.
+
+**Fix (no SSH at all):** if the host genuinely has no ssh-agent (Windows without one, fully headless boxes), delete the `"source=${localEnv:SSH_AUTH_SOCK_HOST:/run/host-services/ssh-auth.sock},target=/ssh-agent,..."` line from `.devcontainer/devcontainer.json`'s `mounts` array AND the matching `"SSH_AUTH_SOCK": "/ssh-agent"` line from `containerEnv`. Use HTTPS plus a personal access token for git instead.
 
 ---
 

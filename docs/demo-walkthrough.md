@@ -35,16 +35,18 @@ On the machine where you'll run the devcontainer:
 
 **Windows is not currently supported** — the Ollama install path and `host.docker.internal` networking differ from the configurations validated here. Linux and macOS hosts are the supported platforms for v0.1.
 
-## macOS / Docker Desktop: one-time preflight
+## Git over SSH: host agent forwarding
 
-On macOS, before opening the devcontainer, point `SSH_AUTH_SOCK` at the path Docker Desktop manufactures inside its VM:
+SSH-agent forwarding into the devcontainer (for `git push` over SSH) **works out of the box on macOS / Docker Desktop**: the mount source defaults to `/run/host-services/ssh-auth.sock`, the path Docker Desktop forwards the agent on, so there is nothing to set up.
+
+**Linux:** that default path does not exist, so before opening the devcontainer point the override at your real agent socket and launch from that shell:
 
 ```bash
-# Add to ~/.zshrc on macOS (one-time setup)
-export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+export SSH_AUTH_SOCK_HOST="$SSH_AUTH_SOCK"   # one-time; needs a running ssh-agent
+code .
 ```
 
-Then launch VS Code from a terminal (`source ~/.zshrc && code .`), not from the Dock or Spotlight, so the devcontainer CLI inherits the export. macOS's default `SSH_AUTH_SOCK` is a launchd socket Docker Desktop cannot bind-mount, so without this the devcontainer fails to start with `bind source path does not exist`. Linux hosts work out of the box (assuming an ssh-agent is running). See [`quickstart.md`](./quickstart.md) for the longer explanation.
+See [`quickstart.md`](./quickstart.md) "Git over SSH: host agent forwarding" for the full explanation and the no-SSH-agent fallback.
 
 ## How this demo runs
 

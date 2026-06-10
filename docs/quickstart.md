@@ -79,18 +79,21 @@ The Python OCR libraries (`pdfplumber`, `pypdfium2`, `pytesseract`) are declared
 
 > **Note:** The default client-side OCR path renders pages with **pypdfium2** (a self-contained wheel pulled in by `uv run`, no poppler needed) and OCRs each page with the system `tesseract` binary (above). `scripts/ingest_books.py` and `scripts/extract_text.py` use this pypdfium2 path. The opt-in **EasyOCR** backend brings its own (torch-based) OCR instead (see Step 4). Full Mode OCRs server-side via Unstructured.io. (Note: the one-off `scripts/ocr_preprocess.py` helper still uses pdf2image, which needs `poppler-utils`/`brew install poppler` — but the ingestion path does not.)
 
-### macOS / Docker Desktop: one-time preflight
+### Git over SSH: host agent forwarding
 
-The devcontainer forwards your host's SSH agent into the container (for `git push` over SSH) by bind-mounting `$SSH_AUTH_SOCK`. On **macOS / Docker Desktop**, the real `SSH_AUTH_SOCK` points at a launchd socket that Docker Desktop's VM cannot bind-mount, so you have to point the env var at the stable in-VM path Docker Desktop manufactures for exactly this purpose:
+The devcontainer forwards your host's SSH agent into the container (for `git push` over SSH). The mount source **defaults to `/run/host-services/ssh-auth.sock`**, the path Docker Desktop forwards the agent on, so **macOS / Docker Desktop works out of the box**: no shell-init export, and you can launch VS Code from the Dock or Spotlight.
+
+**Linux: one-time setup.** That default path is Docker-Desktop-only and does not exist on Linux, so point the override variable at your real agent socket, then launch VS Code from that shell so it inherits the value:
 
 ```bash
-# Add to ~/.zshrc (or your shell init) on macOS, one-time setup
-export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+# one-time, e.g. in ~/.bashrc or ~/.zshrc on Linux (needs a running ssh-agent)
+export SSH_AUTH_SOCK_HOST="$SSH_AUTH_SOCK"
+code .   # launch from this shell
 ```
 
-The devcontainer CLI reads `SSH_AUTH_SOCK` from the shell that *launches* the editor, so on macOS launch VS Code from a terminal (`source ~/.zshrc && code .`) rather than double-clicking it from the Dock or Spotlight. GUI-launched apps don't inherit shell-init env vars, so the export only takes effect for terminal-launched VS Code. Skipping this preflight produces `Error: bind source path does not exist: ...` from the `docker run` step and the container fails to start.
+The devcontainer reads `SSH_AUTH_SOCK_HOST` from the shell that *launches* the editor. If it is unset on Linux the mount falls back to the macOS-only default, which does not exist there, and the container fails to start with `Error: bind source path does not exist: ...`; make sure an `ssh-agent` is running (so `$SSH_AUTH_SOCK` is populated) and that you exported `SSH_AUTH_SOCK_HOST`.
 
-Linux hosts work out of the box as long as an `ssh-agent` is running (otherwise `SSH_AUTH_SOCK` is empty and you hit the same error). If your host has no SSH agent at all (Windows without ssh-agent, fully headless setups), remove the SSH mount line from `.devcontainer/devcontainer.json` and use HTTPS plus a personal access token for git auth instead.
+If your host has no SSH agent at all (Windows without ssh-agent, fully headless setups), remove the SSH mount line from `.devcontainer/devcontainer.json` and use HTTPS plus a personal access token for git auth instead.
 
 ---
 
