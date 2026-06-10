@@ -15,7 +15,7 @@ The sourcebooks design review is the open v0.2 backlog.
 | **R-2** — Consolidate the overlapping OCR code paths | ✅ Done — `ingest_books.py` + `extract_text.py` share `scripts/ocr_extract.py`; `ocr_preprocess.py` stays standalone by design |
 | **R-3** — End-to-end collection support | ⬜ Open (v0.2) |
 | **R-4** — Migrate dependency declarations to `pyproject.toml` `[project]` | ⬜ Open (v0.2) |
-| **R-5** — Supply-chain auto-updates: Dependabot (digest-pinned images + GitHub Actions) | ⬜ Open (v0.2) — config staged + commented out in `.github/dependabot.yml` |
+| **R-5** — Supply-chain auto-updates: Dependabot (digest-pinned images + GitHub Actions) | ⬜ Open (v0.2). Config staged at `specs/v0.2/dependabot.yml` (out of `.github/`; GitHub validates that path even when commented). |
 | **Sourcebooks MCP design review** (issues 1–7) | ⬜ Open (v0.2) — not addressed in v0.1 |
 
 **Also delivered in v0.1 release prep** (beyond the original requirements):
@@ -356,8 +356,10 @@ self-contained intentionally.
 
 **Context:** v0.1 pins every container image by `sha256` digest (the compose stacks and the
 devcontainer base) and the GitHub Actions by tag, but ships **without** an automated updater — so the
-pins are reproducible yet frozen until someone re-pins by hand. A `.github/dependabot.yml` is **staged
-but commented out** in the release branch; activating it is deferred here to keep v0.1's scope small.
+pins are reproducible yet frozen until someone re-pins by hand. A ready-to-use `dependabot.yml` is **staged at `specs/v0.2/dependabot.yml`**, deliberately outside
+`.github/`: GitHub validates `.github/dependabot.yml` on every push and rejects a config with no active
+`version:` key, so a commented-out file cannot sit there. Activating it is deferred here to keep v0.1's
+scope small.
 
 **Motivation:**
 
@@ -373,8 +375,9 @@ but commented out** in the release branch; activating it is deferred here to kee
 - Dependabot version updates SHALL be enabled in repo **Settings → Code security**, and the config
   SHALL live on the **default branch** (Dependabot reads it only there).
 
-**Effort:** Low. The config already exists, commented out, in `.github/dependabot.yml` — picking it up
-is: uncomment the `version:`/`updates:` block, enable in settings, and have it on the default branch.
+**Effort:** Low. The config already exists, ready to use, at `specs/v0.2/dependabot.yml`. Picking it up
+is: `git mv specs/v0.2/dependabot.yml .github/dependabot.yml`, enable in Settings, and have it on the
+default branch.
 
 **Out of scope / caveats:** Dependabot's `docker` ecosystem auto-detects the Dockerfile and the
 **standard-named** `docker/compose.yaml` only — `compose.full.yaml` / `compose.app.yaml` /

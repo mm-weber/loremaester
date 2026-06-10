@@ -44,8 +44,8 @@ container). DinD was removed because:
 - **Pinned images** — the devcontainer base (`FROM node:20@sha256:…`) and every image in
   the host compose stacks are pinned by **`sha256` digest**, not a floating tag, so builds
   are reproducible and an upstream tag can't be silently repointed. Automated bumps via
-  **Dependabot** are **staged for v0.2** (`.github/dependabot.yml` ships commented out); for
-  v0.1, re-pin manually when updating.
+  **Dependabot** are **staged for v0.2** (config parked at `specs/v0.2/dependabot.yml`, outside
+  `.github/` so GitHub does not reject it); for v0.1, re-pin manually when updating.
 
 ## Original findings — status
 - **C-1 — `seccomp=unconfined`:** **Resolved.** The override is gone; Docker's default
