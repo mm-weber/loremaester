@@ -18,7 +18,7 @@ volumes:
 
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:00ba258a66dac104fd5171074a0084462a64a1369d8513f3d0a634e2f24d15bc
     profiles: [postgres]
     env_file:
       - ./env/postgres.env
@@ -38,7 +38,7 @@ services:
       -c max_connections=1024
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     profiles: [minio]
     env_file:
       - ./env/minio.env
@@ -56,7 +56,7 @@ services:
     command: server /data --console-address ":9001"
 
   hatchet-postgres:
-    image: postgres:latest
+    image: postgres:latest@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     env_file:
       - ./env/hatchet.env
     volumes:
@@ -69,7 +69,7 @@ services:
 
 
   hatchet-rabbitmq:
-    image: "rabbitmq:3-management"
+    image: "rabbitmq:3-management@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69"
     hostname: "hatchet-rabbitmq"
     ports:
       - "127.0.0.1:5673:5672"
@@ -86,7 +86,7 @@ services:
       retries: 5
 
   hatchet-create-db:
-    image: postgres:latest
+    image: postgres:latest@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     command: sh /scripts/create-hatchet-db.sh
     volumes:
       - ./scripts:/scripts
@@ -97,7 +97,7 @@ services:
         condition: service_healthy
 
   hatchet-migration:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.53.15@sha256:e5d3857e4fe5111f569cfc9c44bba0ad3de7ee14414dd10a59e05c56eb1cdadb
     env_file:
       - ./env/hatchet.env
     depends_on:
@@ -105,7 +105,7 @@ services:
         condition: service_completed_successfully
 
   hatchet-setup-config:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15@sha256:cd3155e5d0ea852f689354c87c484af8547a740d464f76e801dc92a7b9d6d210
     command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
     env_file:
       - ./env/hatchet.env
@@ -119,7 +119,7 @@ services:
         condition: service_healthy
 
   hatchet-engine:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15@sha256:7698a5bfe987940c338090d6b9894de3c61a699c67861afdc876fcf18645afb9
     command: /hatchet/hatchet-engine --config /hatchet/config
     restart: on-failure
     depends_on:
@@ -140,7 +140,7 @@ services:
       start_period: 30s
 
   hatchet-dashboard:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15@sha256:0a36505cc0c12dee56a504dddb6c3f5038fc08be3d8e1ff275b2ea2b66cd4003
     command: sh ./entrypoint.sh --config /hatchet/config
     restart: on-failure
     depends_on:
@@ -155,7 +155,7 @@ services:
       - "127.0.0.1:7274:80"
 
   setup-token:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15@sha256:cd3155e5d0ea852f689354c87c484af8547a740d464f76e801dc92a7b9d6d210
     command: sh /scripts/setup-token.sh
     volumes:
       - ./scripts:/scripts
@@ -167,7 +167,7 @@ services:
         condition: service_completed_successfully
 
   unstructured:
-    image: ragtoriches/unst-prod
+    image: ragtoriches/unst-prod:latest@sha256:6efd836062aa8bedc5d88e9733096e2a52a9d83bb2717a82aca7468e3e97e52c
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7275/health"]
       interval: 10s
@@ -175,7 +175,7 @@ services:
       retries: 5
 
   graph_clustering:
-    image: ragtoriches/cluster-prod
+    image: ragtoriches/cluster-prod:latest@sha256:53bcbcc114fe08906b6df6b4d3863644145b1efa240fd6643ef65986593938b6
     ports:
       - "127.0.0.1:7276:7276"
     healthcheck:
@@ -205,7 +205,7 @@ services:
   # `service_completed_successfully` gate fast (with a logline) rather
   # than hanging indefinitely if hatchet-engine never binds 7077.
   wait-for-hatchet-grpc:
-    image: alpine:latest
+    image: alpine:latest@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
     # Compose interpolates ${VAR} in YAML values, so shell variables here
     # need $$ to survive (${i} → $${i}). Using exec-form + literal `|`
     # block keeps newlines so the if/then/fi parses correctly.
@@ -229,7 +229,7 @@ services:
     restart: "no"
 
   r2r:
-    image: sciphiai/r2r:latest
+    image: sciphiai/r2r:latest@sha256:f7f7ee5ef3aa0945895320eb7424cb7e2f89e455b6a6a20ec5aff6de3024b88c
     ports:
       # Bind to host loopback only, keeping r2r off the host's LAN. The
       # devcontainer talks to r2r via host.docker.internal: on macOS that
@@ -270,7 +270,7 @@ services:
         condition: service_completed_successfully
 
   r2r-dashboard:
-    image: sciphiai/r2r-dashboard:1.0.3
+    image: sciphiai/r2r-dashboard:1.0.3@sha256:ba9bcb43c5e7d7d4eb9fe38970f976f6a0842297f3da078cb6223d1f078741d1
     env_file:
       - ./env/r2r-dashboard.env
     ports:

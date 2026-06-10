@@ -298,7 +298,7 @@ This starts the following services:
 curl http://localhost:7272/v3/health
 ```
 
-Expected: `{"results":{"response":"ok"}}`
+Expected: `{"results":{"message":"ok"}}`
 
 You can also open the R2R dashboard at [http://localhost:7273](http://localhost:7273) in your browser. The default login credentials are `admin@example.com` / `change_me_immediately` — change these for any non-local deployment.
 

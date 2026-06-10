@@ -41,6 +41,11 @@ container). DinD was removed because:
   ports **7272** (R2R) and **11434** (Ollama) only — no whole-subnet carve-out.
 - **PID 1 runs as root** solely so the entrypoint can apply iptables rules; the
   interactive/agent shell runs as the unprivileged `node` user.
+- **Pinned images** — the devcontainer base (`FROM node:20@sha256:…`) and every image in
+  the host compose stacks are pinned by **`sha256` digest**, not a floating tag, so builds
+  are reproducible and an upstream tag can't be silently repointed. Automated bumps via
+  **Dependabot** are **staged for v0.2** (`.github/dependabot.yml` ships commented out); for
+  v0.1, re-pin manually when updating.
 
 ## Original findings — status
 - **C-1 — `seccomp=unconfined`:** **Resolved.** The override is gone; Docker's default
@@ -67,6 +72,7 @@ container). DinD was removed because:
 
 ## Validating after a rebuild
 - `docker --version` should be **absent** inside the container (no Docker shipped).
+- `grep '^FROM' .devcontainer/Dockerfile` shows an `@sha256:` digest (the base is pinned).
 - The firewall log shows `Host gateway detected as …` and the scoped 7272/11434 rule.
 - From inside the container: `curl http://host.docker.internal:7272/v3/health` succeeds;
   `curl https://example.com` is blocked (egress lockdown working).
