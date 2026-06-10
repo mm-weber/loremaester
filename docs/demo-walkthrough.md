@@ -96,7 +96,7 @@ Health check:
 ```bash
 curl http://localhost:7272/v3/health
 ```
-Expected: `{"results":{"response":"ok"}}`.
+Expected: `{"results":{"message":"ok"}}`.
 
 The R2R dashboard is on http://localhost:7273 on the host — the same machine where you ran `docker compose`.
 
@@ -139,7 +139,7 @@ Everything from here runs **in the devcontainer terminal**. First, confirm the d
 ```bash
 curl http://host.docker.internal:7272/v3/health
 ```
-Expected: `{"results":{"response":"ok"}}`.
+Expected: `{"results":{"message":"ok"}}`.
 
 #### a. Install the four bundled skills
 
