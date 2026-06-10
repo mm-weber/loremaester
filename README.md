@@ -15,15 +15,15 @@ that use it: `worldbuilding`, `session-creation`, `chronik`,
 
 ## What you get
 
-1. **Cross-reference your vault and your scanned sourcebooks in one prompt, end-to-end.** Claude walks your wikilink graph via the `vault-graph` MCP server, queries sourcebooks via hybrid semantic + keyword search, drafts a new NPC / location / session with correct frontmatter and `[[wikilinks]]`, writes it to the right vault folder, and refreshes the graph. No tool switching, no copy-pasting.
+1. **Keep your story straight: cross-reference your vault and your scanned sourcebooks in one prompt, end-to-end.** Claude reads your vault as canon (walking your `[[wikilink]]` graph via the `vault-graph` MCP server), queries sourcebooks via hybrid semantic + keyword search, drafts a new NPC / location / session consistent with both, writes it to the right vault folder with correct frontmatter and `[[wikilinks]]`, and refreshes the graph. No tool switching, no copy-pasting.
 
 2. **Four opinionated GM skills (`worldbuilding`, `session-creation`, `chronik`, `vault-scout`) that auto-trigger on your prompts**, driving 14 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
 
 3. **Drop a folder of PDFs (text-native, mixed, or image-only) and walk away.** The bulk ingester auto-classifies each PDF, routes text-native straight to R2R, OCRs scanned ones per-page with `pypdfium2` + `tesseract` (CPU default) or opt-in **EasyOCR on CUDA** (auto-falls back if no GPU), and skips books already ingested. Stored in PostgreSQL + pgvector; retrieved via R2R's **hybrid semantic + keyword search with reciprocal rank fusion (RRF)**. Every result carries book / chapter / page citations.
 
-4. **Ships in a hardened devcontainer.** Default-DROP egress firewall with a small allowlist (GitHub, PyPI, Anthropic, VS Code telemetry), Docker-default seccomp, no Docker-in-Docker, agent runs unprivileged. Threat model and design rationale: [`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md).
+4. **Hardened by default.** Default-DROP egress firewall with a small allowlist (GitHub, npm, PyPI, Anthropic); VS Code Server telemetry disabled; container images pinned to SHA256 digests (devcontainer base + the full compose stack); Docker-default seccomp; no Docker-in-Docker; agent runs unprivileged. Threat model and design rationale: [`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md).
 
-5. **Bring your own Obsidian vault, or start with the bundled `Grunvyr_Campaign` scaffold.** The 30-minute [demo walkthrough](docs/demo-walkthrough.md) ships three sourcebooks (one image-only as the OCR exhibit), an empty campaign vault, and six prompts that exercise every layer end-to-end.
+5. **Bring your own Obsidian vault, or start with the bundled `Grunvyr_Campaign` scaffold.** From `git clone` to a playable session in 30 minutes. The [demo walkthrough](docs/demo-walkthrough.md) ships three sourcebooks (one image-only as the OCR exhibit), an empty campaign vault, and six prompts that exercise every layer end-to-end.
 
 ## Retrieval is a tool here, not the product
 
@@ -104,7 +104,7 @@ Each skill auto-triggers on matching prompts and orchestrates the MCP tools abov
 
 ### Hardened devcontainer
 
-`.devcontainer/init-firewall.sh` configures a default-DROP egress firewall with a small allowlist (GitHub, npm, PyPI/uv, Anthropic, VS Code telemetry); host access is scoped to the docker-bridge gateway on ports `7272` (R2R) and `11434` (Ollama) only. Docker-in-Docker was deliberately removed (incompatible with the host-R2R networking AND it would gut the sandbox); the only Linux capability granted is `NET_ADMIN`, used by the firewall, not Docker. The agent shell runs as the unprivileged `node` user; PID 1 runs as root only long enough to apply iptables rules. Full threat model and design rationale: [`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md).
+`.devcontainer/init-firewall.sh` configures a default-DROP egress firewall with a small allowlist (GitHub, npm, PyPI/uv, Anthropic); host access is scoped to the docker-bridge gateway on ports `7272` (R2R) and `11434` (Ollama) only. Docker-in-Docker was deliberately removed (incompatible with the host-R2R networking AND it would gut the sandbox); the only Linux capability granted is `NET_ADMIN`, used by the firewall, not Docker. The agent shell runs as the unprivileged `node` user; PID 1 runs as root only long enough to apply iptables rules. Full threat model and design rationale: [`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md).
 
 ### Multi-instance deployment
 
