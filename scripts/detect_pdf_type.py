@@ -1,7 +1,15 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pdfplumber",
+# ]
+# ///
 """Detect whether a PDF is text-native, image-only, or mixed."""
+
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-import sys
+
 import pdfplumber
 
 
@@ -46,14 +54,13 @@ def classify_pdf_pages(text_pages: int, total_pages: int) -> str:
 def main():
     """CLI entry point."""
     if len(sys.argv) < 2:
-        print("Usage: detect_pdf_type.py <pdf_file_or_directory> [...]", file=sys.stderr)
+        print(
+            "Usage: detect_pdf_type.py <pdf_file_or_directory> [...]", file=sys.stderr
+        )
         sys.exit(1)
     for arg in sys.argv[1:]:
         target = Path(arg)
-        if target.is_dir():
-            paths = target.glob("*.pdf")
-        else:
-            paths = [target]
+        paths = target.glob("*.pdf") if target.is_dir() else [target]
         for pdf_path in paths:
             report = analyze_pdf(str(pdf_path))
             print(format_report(report))

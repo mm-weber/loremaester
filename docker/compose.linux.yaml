@@ -1,0 +1,30 @@
+# Linux-only override: dual-bind r2r so the devcontainer can reach it.
+#
+# The devcontainer reaches host services via host.docker.internal, which on
+# Linux resolves to the docker0 bridge gateway (typically 172.17.0.1, set
+# via `--add-host=host.docker.internal:host-gateway` in
+# .devcontainer/devcontainer.json). The base compose files bind r2r only on
+# 127.0.0.1 (host loopback), which the devcontainer cannot reach: host
+# loopback and the bridge-gateway IP are different interfaces from the
+# kernel's POV. This file appends a second binding on the bridge-gateway IP
+# so devcontainer-to-r2r works without exposing r2r on the host LAN.
+#
+# Compose merges `ports` arrays by concatenation, so the merged result is
+# both bindings. On macOS / Docker Desktop, do NOT include this file: that
+# IP is not a host interface there and `up` fails with "cannot assign
+# requested address".
+#
+# Usage on Linux:
+#   docker compose -f docker/compose.yaml      -f docker/compose.linux.yaml ... up -d
+#   docker compose -f docker/compose.full.yaml -f docker/compose.linux.yaml ... up -d
+# Or set once in your shell so plain `docker compose ...` picks it up:
+#   export COMPOSE_FILE=docker/compose.yaml:docker/compose.linux.yaml
+#
+# Custom docker0 bip: if your bridge gateway is not 172.17.0.1, edit the IP
+# below to match `ip route | awk '/default/ {print $3}'` run from inside
+# the devcontainer.
+
+services:
+  r2r:
+    ports:
+      - "172.17.0.1:7272:7272"

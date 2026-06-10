@@ -1,0 +1,51 @@
+# =============================================================================
+# STAGED FOR v0.2 - parked here on purpose, NOT under .github/.
+#
+# GitHub validates .github/dependabot.yml on every push and rejects a file that
+# has no active `version:` key, so a fully commented-out config fails there with
+# "contained invalid details". A deferred Dependabot config therefore cannot sit,
+# commented, in .github/. It lives here as a ready-to-use config until v0.2.
+#
+# Tracked as "R-5 - Supply-chain auto-updates (Dependabot)" in
+# specs/v0.2/specs_v0.2.md.
+#
+# TO ACTIVATE (v0.2):
+#   1. git mv specs/v0.2/dependabot.yml .github/dependabot.yml
+#   2. Ensure it lands on the DEFAULT branch (Dependabot reads it only there).
+#   3. Repo -> Settings -> Code security -> enable "Dependabot version updates"
+#      (and ideally "Dependabot alerts" + "security updates").
+#
+# Caveat: the docker ecosystem auto-tracks the Dockerfile + the standard-named
+# docker/compose.yaml only. compose.full.yaml / compose.app.yaml /
+# compose.infra.yaml use non-standard filenames and need a manual re-pin
+# (`docker buildx imagetools inspect <ref>`, then update the image: line).
+# =============================================================================
+
+version: 2
+updates:
+  # Devcontainer base image: FROM node:20@sha256:... in .devcontainer/Dockerfile
+  - package-ecosystem: docker
+    directory: /.devcontainer
+    schedule:
+      interval: weekly
+    groups:
+      devcontainer:
+        patterns: ["*"]
+
+  # R2R stack images (standard-named docker/compose.yaml; see caveat above)
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    groups:
+      r2r-stack:
+        patterns: ["*"]
+
+  # GitHub Actions referenced by .github/workflows/
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

@@ -1,12 +1,21 @@
 """Tests for ocr_preprocess.py"""
+
 import sys
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-from unittest.mock import patch, MagicMock
 from ocr_preprocess import (
-    ocr_page, PageOcrResult, pdf_to_images, build_chunks, build_metadata,
-    ingest_to_r2r, OcrReport, format_report, run_pipeline, main,
+    OcrReport,
+    PageOcrResult,
+    build_chunks,
+    build_metadata,
+    format_report,
+    ingest_to_r2r,
+    main,
+    ocr_page,
+    pdf_to_images,
+    run_pipeline,
 )
 
 
@@ -22,7 +31,9 @@ class TestOcrPage:
 
         result = ocr_page(image, page_number=1, engine="tesseract")
 
-        assert result == PageOcrResult(page_number=1, text="Hello world", confidence=0.92)
+        assert result == PageOcrResult(
+            page_number=1, text="Hello world", confidence=0.92
+        )
 
     @patch("ocr_preprocess.pytesseract.image_to_data", create=True)
     @patch("ocr_preprocess.pytesseract.image_to_string", create=True)
@@ -43,7 +54,9 @@ class TestOcrPage:
         with patch("ocr_preprocess.surya_ocr", mock_surya):
             result = ocr_page(image, page_number=3, engine="surya")
 
-        assert result == PageOcrResult(page_number=3, text="Dragon stats", confidence=0.85)
+        assert result == PageOcrResult(
+            page_number=3, text="Dragon stats", confidence=0.85
+        )
 
     def test_ocr_page_invalid_engine_raises(self):
         image = MagicMock()
@@ -68,7 +81,9 @@ class TestPdfToImages:
 
         pdf_to_images("/path/to/doc.pdf", page_range="3-5")
 
-        mock_convert.assert_called_once_with("/path/to/doc.pdf", first_page=3, last_page=5)
+        mock_convert.assert_called_once_with(
+            "/path/to/doc.pdf", first_page=3, last_page=5
+        )
 
 
 class TestBuildChunks:
@@ -84,7 +99,11 @@ class TestBuildChunks:
 class TestBuildMetadata:
     def test_build_metadata_full(self):
         result = build_metadata("Monster Manual", "Ch 1", "1-320")
-        assert result == {"book_title": "Monster Manual", "chapter": "Ch 1", "page_range": "1-320"}
+        assert result == {
+            "book_title": "Monster Manual",
+            "chapter": "Ch 1",
+            "page_range": "1-320",
+        }
 
     def test_build_metadata_omits_none_fields(self):
         result = build_metadata("Monster Manual")
@@ -168,9 +187,16 @@ class TestCLI:
             average_confidence=0.9,
             low_confidence_pages=[],
         )
-        monkeypatch.setattr(sys, "argv", [
-            "ocr_preprocess.py", "/path.pdf", "--book-title", "Monster Manual",
-        ])
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "ocr_preprocess.py",
+                "/path.pdf",
+                "--book-title",
+                "Monster Manual",
+            ],
+        )
 
         main()
 

@@ -1,27 +1,26 @@
-"""Tests for extract_text.py — all kreuzberg calls are mocked (no tesseract needed)."""
+"""Tests for extract_text.py — OCR (ocr_extract.ocr_pdf) is mocked (no OCR backends needed)."""
 
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 import extract_text
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def run_main(args, monkeypatch):
     """Run extract_text.main() with given CLI args, return exit code."""
-    monkeypatch.setattr(sys, "argv", ["extract_text.py"] + args)
+    monkeypatch.setattr(sys, "argv", ["extract_text.py", *args])
     return extract_text.main()
 
 
 # ---------------------------------------------------------------------------
 # FR-1 / FR-2 / FR-3: single file → stdout
 # ---------------------------------------------------------------------------
+
 
 def test_extract_single_file(monkeypatch, capsys, tmp_path):
     f = tmp_path / "photo.jpeg"
@@ -37,6 +36,7 @@ def test_extract_single_file(monkeypatch, capsys, tmp_path):
 # ---------------------------------------------------------------------------
 # FR-9: multiple files → separator headers
 # ---------------------------------------------------------------------------
+
 
 def test_extract_multiple_files(monkeypatch, capsys, tmp_path):
     f1 = tmp_path / "a.jpeg"
@@ -62,6 +62,7 @@ def test_extract_multiple_files(monkeypatch, capsys, tmp_path):
 # FR-4: --output writes to file
 # ---------------------------------------------------------------------------
 
+
 def test_output_to_file(monkeypatch, capsys, tmp_path):
     src = tmp_path / "img.jpeg"
     src.write_bytes(b"\xff\xd8dummy")
@@ -80,14 +81,17 @@ def test_output_to_file(monkeypatch, capsys, tmp_path):
 # FR-5: --ingest calls R2R
 # ---------------------------------------------------------------------------
 
+
 def test_ingest_calls_r2r(monkeypatch, tmp_path):
     src = tmp_path / "contract.jpeg"
     src.write_bytes(b"\xff\xd8dummy")
 
     mock_client = MagicMock()
 
-    with patch("extract_text._do_extract", return_value="clause text"), \
-         patch("extract_text._get_r2r_client", return_value=mock_client):
+    with (
+        patch("extract_text._do_extract", return_value="clause text"),
+        patch("extract_text._get_r2r_client", return_value=mock_client),
+    ):
         code = run_main([str(src), "--ingest"], monkeypatch)
 
     assert code == 0
@@ -100,14 +104,17 @@ def test_ingest_calls_r2r(monkeypatch, tmp_path):
 # FR-6: default title = filename stem title-cased
 # ---------------------------------------------------------------------------
 
+
 def test_title_default(monkeypatch, tmp_path):
     src = tmp_path / "my_report.jpeg"
     src.write_bytes(b"\xff\xd8dummy")
 
     mock_client = MagicMock()
 
-    with patch("extract_text._do_extract", return_value="text"), \
-         patch("extract_text._get_r2r_client", return_value=mock_client):
+    with (
+        patch("extract_text._do_extract", return_value="text"),
+        patch("extract_text._get_r2r_client", return_value=mock_client),
+    ):
         run_main([str(src), "--ingest"], monkeypatch)
 
     call_kwargs = mock_client.documents.create.call_args
@@ -119,14 +126,17 @@ def test_title_default(monkeypatch, tmp_path):
 # FR-6: --title override
 # ---------------------------------------------------------------------------
 
+
 def test_title_override(monkeypatch, tmp_path):
     src = tmp_path / "img.jpeg"
     src.write_bytes(b"\xff\xd8dummy")
 
     mock_client = MagicMock()
 
-    with patch("extract_text._do_extract", return_value="text"), \
-         patch("extract_text._get_r2r_client", return_value=mock_client):
+    with (
+        patch("extract_text._do_extract", return_value="text"),
+        patch("extract_text._get_r2r_client", return_value=mock_client),
+    ):
         run_main([str(src), "--ingest", "--title", "Custom Title"], monkeypatch)
 
     call_kwargs = mock_client.documents.create.call_args
@@ -134,8 +144,9 @@ def test_title_override(monkeypatch, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# FR-7: --engine passes correct config to kreuzberg
+# FR-7: --engine is passed through to the OCR backend
 # ---------------------------------------------------------------------------
+
 
 def test_engine_selection(monkeypatch, capsys, tmp_path):
     src = tmp_path / "img.jpeg"
@@ -150,8 +161,9 @@ def test_engine_selection(monkeypatch, capsys, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# FR-8: --language passes correct config to kreuzberg
+# FR-8: --language is passed through to the OCR backend
 # ---------------------------------------------------------------------------
+
 
 def test_language_selection(monkeypatch, capsys, tmp_path):
     src = tmp_path / "img.jpeg"
@@ -169,6 +181,7 @@ def test_language_selection(monkeypatch, capsys, tmp_path):
 # FR-10: missing file → exit code 1
 # ---------------------------------------------------------------------------
 
+
 def test_missing_file(monkeypatch, capsys):
     code = run_main(["/nonexistent/file.jpeg"], monkeypatch)
     assert code == 1
@@ -179,22 +192,40 @@ def test_missing_file(monkeypatch, capsys):
 # FR-10: no args → exit code 2
 # ---------------------------------------------------------------------------
 
+
 def test_no_args(monkeypatch, capsys):
     code = run_main([], monkeypatch)
     assert code == 2
 
 
 # ---------------------------------------------------------------------------
-# kreuzberg not installed → graceful error
+# missing OCR backend → actionable error reported
 # ---------------------------------------------------------------------------
 
-def test_kreuzberg_not_installed(monkeypatch, capsys, tmp_path):
+
+def test_missing_backend_reported(monkeypatch, capsys, tmp_path):
     src = tmp_path / "img.jpeg"
     src.write_bytes(b"\xff\xd8dummy")
 
-    with patch("extract_text._do_extract", side_effect=ImportError("No module named 'kreuzberg'")):
+    err_msg = "pytesseract is not installed. Install it with: pip install pytesseract"
+    with patch("extract_text._do_extract", side_effect=RuntimeError(err_msg)):
         code = run_main([str(src)], monkeypatch)
 
     assert code == 1
     err = capsys.readouterr().err
-    assert "kreuzberg" in err.lower()
+    assert "pytesseract" in err.lower()
+
+
+# ---------------------------------------------------------------------------
+# _do_extract delegates to ocr_pdf (kreuzberg-free)
+# ---------------------------------------------------------------------------
+
+
+def test_do_extract_delegates_to_ocr_pdf():
+    with patch("extract_text.ocr_pdf") as mock_ocr_pdf:
+        mock_ocr_pdf.return_value = MagicMock(content="OCR CONTENT")
+        result = extract_text._do_extract("/x/img.png", "tesseract", "eng")
+    assert result == "OCR CONTENT"
+    mock_ocr_pdf.assert_called_once_with(
+        "/x/img.png", engine="tesseract", language="eng"
+    )

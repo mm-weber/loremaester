@@ -6,14 +6,16 @@ volumes:
 
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:00ba258a66dac104fd5171074a0084462a64a1369d8513f3d0a634e2f24d15bc
     profiles: [postgres]
     env_file:
       - ./env/postgres.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # loopback-only: internal to the stack (R2R reaches it over the compose
+      # network), so it is never exposed on the host's LAN.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -25,15 +27,15 @@ services:
       -c max_connections=1024
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     profiles: [minio]
     env_file:
       - ./env/minio.env
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -43,9 +45,9 @@ services:
     command: server /data --console-address ":9001"
 
   graph_clustering:
-    image: ragtoriches/cluster-prod
+    image: ragtoriches/cluster-prod:latest@sha256:53bcbcc114fe08906b6df6b4d3863644145b1efa240fd6643ef65986593938b6
     ports:
-      - "7276:7276"
+      - "127.0.0.1:7276:7276"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7276/health"]
       interval: 10s
@@ -53,9 +55,18 @@ services:
       retries: 5
 
   r2r:
-    image: sciphiai/r2r:latest
+    image: sciphiai/r2r:latest@sha256:f7f7ee5ef3aa0945895320eb7424cb7e2f89e455b6a6a20ec5aff6de3024b88c
     ports:
-      - "7272:7272"
+      # Bind to host loopback only, keeping r2r off the host's LAN. The
+      # devcontainer talks to r2r via host.docker.internal: on macOS that
+      # resolves through Docker Desktop's NAT and routes to this binding;
+      # on Linux it resolves to the docker0 bridge gateway (typically
+      # 172.17.0.1) which 127.0.0.1 alone does not cover, so Linux users
+      # layer on docker/compose.linux.yaml to add a second binding on
+      # that IP. See docs/quickstart.md Step 2 for the invocation. Verify
+      # the gateway from inside the container with `getent hosts
+      # host.docker.internal`.
+      - "127.0.0.1:7272:7272"
     env_file:
       - ./env/r2r.env
     healthcheck:
@@ -69,10 +80,15 @@ services:
       - ./user_tools:/app/user_tools
     extra_hosts:
       - host.docker.internal:host-gateway
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   r2r-dashboard:
-    image: sciphiai/r2r-dashboard:1.0.3
+    image: sciphiai/r2r-dashboard:1.0.3@sha256:ba9bcb43c5e7d7d4eb9fe38970f976f6a0842297f3da078cb6223d1f078741d1
     env_file:
       - ./env/r2r-dashboard.env
     ports:
-      - "7273:3000"
+      - "127.0.0.1:7273:3000"

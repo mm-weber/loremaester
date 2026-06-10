@@ -1,13 +1,19 @@
-"""Tests for Vault Graph Builder (RED phase — all tests should fail on assertions)."""
+"""Tests for the vault graph builder (scripts/build_vault_graph.py)."""
+
 import json
+import os
 import sys
 from pathlib import Path
 
 import pytest
-
 from build_vault_graph import build_graph, extract_wikilinks, main, parse_frontmatter
 
-REAL_VAULT = "/workspace/repos/R2R-ClaudeCode-integration/initial-commit/GM-Vault-Pathfinder2e/"
+# Smoke-test target for TestRealVault. Defaults to the bundled example vault;
+# set TEST_VAULT to point the smoke tests at your own vault instead.
+REAL_VAULT = os.environ.get(
+    "TEST_VAULT",
+    str(Path(__file__).resolve().parent.parent / "examples" / "ttrpg" / "GM-Vault"),
+)
 
 
 def _create_vault(tmp_path, files: dict) -> Path:
@@ -22,6 +28,7 @@ def _create_vault(tmp_path, files: dict) -> Path:
 # ---------------------------------------------------------------------------
 # Test Class 1: TestExtractWikilinks
 # ---------------------------------------------------------------------------
+
 
 class TestExtractWikilinks:
     def test_basic_wikilink(self):
@@ -49,6 +56,7 @@ class TestExtractWikilinks:
 # ---------------------------------------------------------------------------
 # Test Class 2: TestParseFrontmatter
 # ---------------------------------------------------------------------------
+
 
 class TestParseFrontmatter:
     def test_basic_frontmatter(self):
@@ -81,12 +89,16 @@ class TestParseFrontmatter:
 # Test Class 3: TestBuildGraph
 # ---------------------------------------------------------------------------
 
+
 class TestBuildGraph:
     def test_basic_graph(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "NoteA.md": "Hello [[NoteB]]",
-            "NoteB.md": "Back to [[NoteA]]",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "NoteA.md": "Hello [[NoteB]]",
+                "NoteB.md": "Back to [[NoteA]]",
+            },
+        )
         graph = build_graph(str(vault))
         assert "NoteA" in graph["nodes"]
         assert "NoteB" in graph["nodes"]
@@ -95,40 +107,53 @@ class TestBuildGraph:
         assert len(graph["edges"]) == 2
 
     def test_recursive_md_discovery(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "World/Overview.md": "See [[Hero]]",
-            "NPCs/Hero.md": "Lives in [[Overview]]",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "World/Overview.md": "See [[Hero]]",
+                "NPCs/Hero.md": "Lives in [[Overview]]",
+            },
+        )
         graph = build_graph(str(vault))
         assert "Overview" in graph["nodes"]
         assert "Hero" in graph["nodes"]
 
     def test_nonexistent_link_target(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "NoteA.md": "Link to [[Ghost]]",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "NoteA.md": "Link to [[Ghost]]",
+            },
+        )
         graph = build_graph(str(vault))
         assert "Ghost" in graph["nodes"]["NoteA"]["links_to"]
         assert "Ghost" not in graph["nodes"]
 
     def test_metadata_fields(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "NoteA.md": "[[NoteB]]",
-            "NoteB.md": "Hello",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "NoteA.md": "[[NoteB]]",
+                "NoteB.md": "Hello",
+            },
+        )
         graph = build_graph(str(vault))
         meta = graph["metadata"]
         assert meta["note_count"] == 2
         assert meta["edge_count"] == 1
         # built_at should be parseable ISO format
         from datetime import datetime
+
         datetime.fromisoformat(meta["built_at"])
         assert isinstance(meta["vault_path"], str)
 
     def test_frontmatter_in_nodes(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "Ironhold.md": "---\ntype: location\ntags: [city]\n---\n# Ironhold",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "Ironhold.md": "---\ntype: location\ntags: [city]\n---\n# Ironhold",
+            },
+        )
         graph = build_graph(str(vault))
         node = graph["nodes"]["Ironhold"]
         assert node["type"] == "location"
@@ -148,9 +173,12 @@ class TestBuildGraph:
         assert graph["metadata"]["edge_count"] == 0
 
     def test_node_path_is_relative(self, tmp_path):
-        vault = _create_vault(tmp_path, {
-            "World/Overview.md": "# Overview",
-        })
+        vault = _create_vault(
+            tmp_path,
+            {
+                "World/Overview.md": "# Overview",
+            },
+        )
         graph = build_graph(str(vault))
         assert graph["nodes"]["Overview"]["path"] == "World/Overview.md"
 
@@ -158,6 +186,7 @@ class TestBuildGraph:
 # ---------------------------------------------------------------------------
 # Test Class 4: TestCLI
 # ---------------------------------------------------------------------------
+
 
 class TestCLI:
     def test_cli_creates_graph_json(self, tmp_path, monkeypatch):
@@ -188,8 +217,19 @@ class TestCLI:
 # Test Class 5: TestRealVault
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not Path(REAL_VAULT).exists(), reason="Real vault not available")
+
+@pytest.mark.skipif(
+    not Path(REAL_VAULT).exists(),
+    reason=f"Vault not found at {REAL_VAULT}; set TEST_VAULT to override",
+)
 class TestRealVault:
+    """Structural smoke tests against a real on-disk vault.
+
+    Defaults to the bundled example vault; point TEST_VAULT at your own vault to
+    validate it. Assertions are vault-agnostic (shape + invariants), so they hold
+    for any vault, whether populated or empty.
+    """
+
     def test_real_vault_parses(self):
         graph = build_graph(REAL_VAULT)
         assert isinstance(graph, dict)
@@ -197,25 +237,13 @@ class TestRealVault:
         assert "edges" in graph
         assert "metadata" in graph
 
-    def test_real_vault_note_count(self):
+    def test_real_vault_note_count_is_nonnegative_int(self):
         graph = build_graph(REAL_VAULT)
         assert "note_count" in graph["metadata"], "metadata missing 'note_count'"
-        assert graph["metadata"]["note_count"] >= 300
-
-    def test_real_vault_has_edges(self):
-        graph = build_graph(REAL_VAULT)
-        assert "edge_count" in graph["metadata"], "metadata missing 'edge_count'"
-        assert graph["metadata"]["edge_count"] > 0
+        assert isinstance(graph["metadata"]["note_count"], int)
+        assert graph["metadata"]["note_count"] >= 0
 
     def test_real_vault_anchor_links_stripped(self):
         graph = build_graph(REAL_VAULT)
         for name in graph["nodes"]:
             assert "#" not in name, f"Node name contains #: {name}"
-
-    def test_real_vault_german_unicode(self):
-        graph = build_graph(REAL_VAULT)
-        umlauts = set("äöüÄÖÜß")
-        has_umlaut = any(
-            umlauts & set(name) for name in graph["nodes"]
-        )
-        assert has_umlaut, "Expected at least one node with German umlauts"

@@ -1,6 +1,17 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "pytesseract",
+#   "pdf2image",
+#   "Pillow",
+#   "pandas",
+#   "r2r",
+# ]
+# ///
 """OCR preprocessing utilities for scanned PDF pages."""
-from dataclasses import dataclass, field
+
 import types
+from dataclasses import dataclass, field
 
 try:
     import pytesseract
@@ -91,7 +102,9 @@ def ingest_to_r2r(chunks, metadata, book_title, page_results):
     response = client.documents.create(chunks=chunks, metadata=metadata)
     document_id = response.results.document_id
     avg_confidence = sum(p.confidence for p in page_results) / len(page_results)
-    low_confidence_pages = [p.page_number for p in page_results if p.confidence < LOW_CONFIDENCE_THRESHOLD]
+    low_confidence_pages = [
+        p.page_number for p in page_results if p.confidence < LOW_CONFIDENCE_THRESHOLD
+    ]
     return OcrReport(
         book_title=book_title,
         document_id=document_id,
@@ -114,11 +127,12 @@ def format_report(report):
     return "\n".join(lines)
 
 
-def run_pipeline(pdf_path, book_title, engine="tesseract", chapter=None, page_range=None):
+def run_pipeline(
+    pdf_path, book_title, engine="tesseract", chapter=None, page_range=None
+):
     images = pdf_to_images(pdf_path, page_range=page_range)
     page_results = [
-        ocr_page(img, page_number=i + 1, engine=engine)
-        for i, img in enumerate(images)
+        ocr_page(img, page_number=i + 1, engine=engine) for i, img in enumerate(images)
     ]
     chunks = build_chunks(page_results)
     metadata = build_metadata(book_title, chapter=chapter, page_range=page_range)
@@ -127,16 +141,22 @@ def run_pipeline(pdf_path, book_title, engine="tesseract", chapter=None, page_ra
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="OCR preprocess and ingest PDF to R2R")
     parser.add_argument("pdf_path", help="Path to PDF file")
     parser.add_argument("--book-title", required=True, help="Title of the book")
     parser.add_argument("--chapter", default=None, help="Chapter name")
     parser.add_argument("--page-range", default=None, help="Page range (e.g. 3-5)")
-    parser.add_argument("--engine", default="tesseract", help="OCR engine (tesseract or surya)")
+    parser.add_argument(
+        "--engine", default="tesseract", help="OCR engine (tesseract or surya)"
+    )
     args = parser.parse_args()
     report = run_pipeline(
-        args.pdf_path, args.book_title,
-        engine=args.engine, chapter=args.chapter, page_range=args.page_range,
+        args.pdf_path,
+        args.book_title,
+        engine=args.engine,
+        chapter=args.chapter,
+        page_range=args.page_range,
     )
     print(format_report(report))
 

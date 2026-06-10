@@ -1,0 +1,12 @@
+{
+  "id": "idempotent-ingest_20260607",
+  "title": "Idempotent ingest — skip already-ingested PDFs",
+  "type": "bug",
+  "status": "complete",
+  "created": "2026-06-07T11:44:18Z",
+  "updated": "2026-06-07T11:53:03Z",
+  "current_phase": 2,
+  "current_task": "complete",
+  "phases": { "total": 2, "completed": 2 },
+  "tasks": { "total": 3, "completed": 3 }
+}

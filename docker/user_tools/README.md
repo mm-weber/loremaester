@@ -6,7 +6,7 @@ agent can load custom Python tool definitions at runtime.
 ## Status in this repo
 
 **Not used.** This project puts its tool surface in Claude Code via MCP
-servers (see `../../mcp-servers/` and `../../r2r_mcp_wrapper.py`), not
+servers (see `../../mcp-servers/`), not
 in R2R's agent runtime. Claude Code handles all reasoning — R2R is
 restricted to embeddings, search, and ingestion, with no completion
 provider configured.

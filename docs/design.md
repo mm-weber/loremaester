@@ -20,7 +20,7 @@ Claude Code's built-in `Read`, `Write`, `Grep`, and `Glob` tools operate directl
 
 ### 2. R2R Semantic Search → Scanned Source Books
 
-Source books are scanned/image-based PDFs that can't be read with file tools. They're ingested into R2R (a RAG pipeline) which handles OCR, chunking, and vector indexing. Claude queries them through MCP tools that wrap R2R's Python SDK, getting back relevant passages with book/chapter/page metadata.
+Source books are scanned/image-based PDFs that can't be read with file tools. They're ingested into R2R (a RAG engine, used here for retrieval only) for chunking and vector indexing; scanned pages are OCR'd to text first — client-side per-page by default (`scripts/ingest_books.py`, which also captures the scanned pages and figures of *mixed* PDFs), or server-side via Unstructured.io in Full Mode. Claude queries them through MCP tools that wrap R2R's Python SDK, getting back relevant passages with book/chapter/page metadata.
 
 ### 3. MCP Servers → Integration Layer
 
@@ -95,9 +95,53 @@ Parsing `[[wikilinks]]` from every `.md` file on every query would be slow for l
 - **Simple MCP server** — D5 just reads JSON, no filesystem parsing
 - **Explicit rebuild cycle** — the GM (or Claude) triggers a rebuild after vault changes via `vault_rebuild_graph` (re-parses vault + reloads cache); `vault_reload_cache` is the cheaper "re-read JSON only" variant that flags staleness when the on-disk graph is behind the vault
 
+### Why retrieval-only (R2R), not classic RAG?
+
+Classic RAG is a pipeline that owns both halves — retrieve *and* generate — with an LLM wired inside it (R2R's `/rag` endpoint, had we set a `[completion]` provider). We deliberately split them: **R2R retrieves; Claude Code reasons.** Retrieval is one tool in an agent loop that also reads/writes the vault and walks the wikilink graph.
+
+```
+Classic RAG:  query → [ embed → search → stuff prompt → GENERATOR LLM ] → answer   (LLM lives inside R2R)
+
+Ours:         Claude Code (planner + reasoner + writer)
+                 ├─ search_lore ─► R2R /retrieval/search ─► ranked chunks + book/ch/page
+                 ├─ Read / Grep ─► vault files (the GM's canon)
+                 ├─ vault_graph ─► wikilink graph (human-authored)
+                 └─ synthesize → ask user → Write note → rebuild graph
+              (R2R is a leaf tool; Claude is the brain, above and outside it)
+```
+
+| | Classic RAG | Ours (retrieval-only + agent) |
+|---|---|---|
+| Synthesis | an LLM inside R2R | Claude Code (the host agent) |
+| LLMs to run | ≥1 generator in R2R (+ maybe a reranker) | none in R2R; one reasoner (Claude) |
+| Sources fused | one corpus | sourcebooks + vault canon + wikilink graph |
+| Output | an answer string (+citations) | new content written back to the vault |
+| Query expansion / rerank | pipeline stages (HyDE, RAG-fusion, rerank) | the agent re-queries and filters itself |
+| Cost / latency | per-query generation; low, predictable | embeddings free; higher, variable (tool loop) |
+| Best for | scalable, cited Q&A over a corpus | single-user, multi-source, write-back reasoning |
+
+Two things make the split decisive here:
+1. **Multi-source fusion with a priority rule** — vault canon outranks sourcebook lore. Weighing two sources by precedence is per-request reasoning the agent does; a single-corpus retrieve→generate has nowhere to put that rule.
+2. **Action, not Q&A** — the deliverable is a frontmatter-correct note saved to the right folder and a refreshed graph. A RAG pipeline returns text; it can't *do* the work.
+
+Trade-offs we accept: more tokens/latency per task than one tight generate, less determinism, and no turnkey `/rag` endpoint — citation discipline lives in the skills, not a tuned pipeline. If the goal were scalable, low-latency, multi-tenant *"chat with your sourcebooks,"* classic RAG (enable R2R's `[completion]` + `/rag`, add a reranker) would be the better tool. Skipping GraphRAG follows the same logic — the human-authored vault graph already supplies relationship-aware context without LLM extraction.
+
 ### Why hybrid search as the default for lore queries?
 
 Source books contain both natural-language lore and proper nouns (place names, character names, spell names). Pure semantic search misses exact keyword matches for proper nouns; pure keyword search misses conceptual relationships. Hybrid search (combining vector similarity and full-text matching) balances both, which is critical for TTRPG content where a query like "dwarven death rites" needs to match both the concept and specific named rituals.
+
+**What R2R offers vs. what we use.** R2R can search by semantic (pgvector) similarity, full-text (Postgres `tsvector`) matching, **hybrid** (both, fused via Reciprocal Rank Fusion), or a knowledge graph; and it can run retrieval-only (`/retrieval/search`), retrieval + LLM (`/retrieval/rag`), or agentic RAG. We use **retrieval-only, chunk-level search**: the `sourcebooks` server defaults to **hybrid** (`search_lore`, `get_chapter`); the generic `r2r-wrapper` does **semantic** by default. R2R never runs an LLM here — no completion provider is configured, so Claude Code is the sole reasoner. Knowledge-graph search is off (`automatic_extraction = false`, and extraction would itself need an LLM); HyDE / RAG-fusion query strategies and rerankers are likewise unused.
+
+**Lexical leg: Postgres full-text, not Okapi BM25.** R2R's hybrid keyword side runs on Postgres' built-in full-text search (`tsvector` + `ts_rank`/`ts_rank_cd`), not a dedicated **BM25** engine. The dense leg is identical to a "BM25 hybrid" (pgvector + mxbai-embed-large), so only the keyword leg differs:
+
+| | Our hybrid | "BM25 hybrid" |
+|---|---|---|
+| Keyword leg | Postgres `tsvector` + `ts_rank`/`ts_rank_cd` | Okapi BM25 (OpenSearch, or ParadeDB `pg_search`) |
+| Term-rarity weighting (IDF) | none | yes — rare names count for more |
+| TF saturation / length norm | optional, coarse | built-in (`k1`, `b`) |
+| Infrastructure | reuses the Postgres already running for pgvector | extra service, or a Postgres extension |
+
+For a single-user, modest, proper-noun-heavy corpus the Postgres-FTS hybrid is the right trade-off. RRF fuses on *rank*, not absolute lexical score, so `ts_rank`'s missing IDF rarely changes the final order; and the keyword leg's main job here — exact name matches like "Stonecrown" — is served by `tsvector` regardless. BM25's advantages (IDF on mixed queries, length normalization, multi-keyword precision) widen with corpus size, so BM25 is worth adopting only once the library grows large/heterogeneous or keyword-heavy queries dominate. Because R2R's hybrid is wired to native Postgres full-text, that switch is an **architectural change** (R2R support, or a custom retrieval path via `pg_search`) — not a config flag — and is tracked as a **v0.2 option**. The first-order win is adding *any* keyword leg to pure-vector search, which is already captured; BM25 would be a second-order refinement.
 
 ### Why the GM brings their own vault?
 
@@ -120,26 +164,29 @@ This is a single self-contained repository. R2R is consumed as a Docker image (`
 ```
 R2R-ClaudeCode-integration/
 ├── docker/                    # Docker Compose deployment configs
+│   ├── compose.yaml           # Light mode (recommended): R2R + Postgres + MinIO
 │   ├── compose.infra.yaml     # Shared infrastructure (postgres, hatchet, minio)
 │   ├── compose.app.yaml       # Per-instance R2R app (parameterized)
-│   ├── compose.full.yaml      # Single-stack deployment (all-in-one)
+│   ├── compose.full.yaml      # Full mode (all-in-one): + Unstructured.io, Hatchet
 │   ├── instances/             # Per-deployment configs (.env, user_configs/)
 │   └── env/                   # Environment variable files
 ├── mcp-servers/
+│   ├── r2r-wrapper/           # D2: Generic R2R MCP server (search/ingest/list)
 │   ├── sourcebooks/           # D3: Worldbuilding lore search
 │   └── vault-graph/           # D5: Wikilink graph navigation
 ├── scripts/
 │   ├── build_vault_graph.py   # D4: Parse [[wikilinks]] → .graph.json
 │   ├── detect_pdf_type.py     # Classify PDFs as text-native / image-only / mixed
-│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R, image→kreuzberg)
+│   ├── ingest_books.py        # Bulk-ingest PDFs (auto-routes text-native→R2R native, image-only|mixed→ocr_extract hybrid)
 │   ├── ocr_preprocess.py      # Standalone OCR via pytesseract/surya (non-ingesting)
-│   ├── extract_text.py        # Standalone kreuzberg text extraction (images + docs)
+│   ├── extract_text.py        # Standalone OCR text extraction (pypdfium2 + tesseract/easyocr)
+│   ├── ocr_extract.py         # Shared OCR engine: pypdfium2 render + per-page tesseract/easyocr
 │   └── verify_ingestion.py    # Post-ingestion quality checks against R2R
-├── plugins/                   # D7: Worldbuilding skill
-├── r2r_mcp_wrapper.py         # D2: Generic R2R MCP wrapper
-├── examples/                  # D1: Vault CLAUDE.md template
+├── skills/                    # D7: Claude Code skills (worldbuilding, session-creation, chronik, vault-scout)
+├── evals/                     # D7: skill evaluation harness (with-skill vs without-skill)
+├── examples/                  # D1: Vault CLAUDE.md template + bundled TTRPG demo (examples/ttrpg/)
 ├── docs/                      # Documentation
-├── requirements/              # EARS specifications
+├── specs/                     # EARS specifications
 └── .github/workflows/         # CI/CD
 ```
 

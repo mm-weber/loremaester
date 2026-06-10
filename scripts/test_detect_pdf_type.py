@@ -1,9 +1,17 @@
 """Tests for detect_pdf_type.py"""
-import pytest
-from unittest.mock import patch, MagicMock
+
 import sys
 from pathlib import Path
-from detect_pdf_type import classify_pdf_pages, PdfReport, analyze_pdf, format_report, main
+from unittest.mock import MagicMock, patch
+
+import pytest
+from detect_pdf_type import (
+    PdfReport,
+    analyze_pdf,
+    classify_pdf_pages,
+    format_report,
+    main,
+)
 
 
 def _mock_pdf(mock_pdfplumber, page_texts):
@@ -81,12 +89,14 @@ class TestCLI:
     @patch("detect_pdf_type.analyze_pdf")
     def test_cli_single_file(self, mock_analyze, capsys):
         mock_analyze.return_value = PdfReport("book.pdf", "text-native", 10, 10)
-        with patch.object(sys, "argv", ["detect_pdf_type.py", "book.pdf"]):
-            with patch("detect_pdf_type.Path") as mock_path:
-                mock_path_inst = MagicMock()
-                mock_path.return_value = mock_path_inst
-                mock_path_inst.is_dir.return_value = False
-                main()
+        with (
+            patch.object(sys, "argv", ["detect_pdf_type.py", "book.pdf"]),
+            patch("detect_pdf_type.Path") as mock_path,
+        ):
+            mock_path_inst = MagicMock()
+            mock_path.return_value = mock_path_inst
+            mock_path_inst.is_dir.return_value = False
+            main()
         output = capsys.readouterr().out
         assert "book.pdf" in output
         assert "text-native" in output
@@ -97,18 +107,22 @@ class TestCLI:
             PdfReport("a.pdf", "text-native", 10, 10),
             PdfReport("b.pdf", "image-only", 5, 0),
         ]
-        with patch.object(sys, "argv", ["detect_pdf_type.py", "/some/dir"]):
-            with patch("detect_pdf_type.Path") as mock_path:
-                mock_path_inst = MagicMock()
-                mock_path.return_value = mock_path_inst
-                mock_path_inst.is_dir.return_value = True
-                mock_path_inst.glob.return_value = [Path("a.pdf"), Path("b.pdf")]
-                main()
+        with (
+            patch.object(sys, "argv", ["detect_pdf_type.py", "/some/dir"]),
+            patch("detect_pdf_type.Path") as mock_path,
+        ):
+            mock_path_inst = MagicMock()
+            mock_path.return_value = mock_path_inst
+            mock_path_inst.is_dir.return_value = True
+            mock_path_inst.glob.return_value = [Path("a.pdf"), Path("b.pdf")]
+            main()
         output = capsys.readouterr().out
         assert "a.pdf" in output
         assert "b.pdf" in output
 
     def test_cli_no_args_exits(self):
-        with patch.object(sys, "argv", ["detect_pdf_type.py"]):
-            with pytest.raises(SystemExit):
-                main()
+        with (
+            patch.object(sys, "argv", ["detect_pdf_type.py"]),
+            pytest.raises(SystemExit),
+        ):
+            main()

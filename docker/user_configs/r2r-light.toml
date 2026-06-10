@@ -1,0 +1,43 @@
+# R2R config: Light Mode — Ollama embeddings, no Hatchet, no Unstructured service.
+#
+# Pairs with docker/compose.yaml (the small Light stack: postgres + minio + r2r
+# + dashboard). Claude Code handles all reasoning via MCP servers, so no
+# completion/LLM provider is configured here.
+#
+# Differences from the Full-Mode config (r2r-ollama-embeddings.toml):
+#   - [orchestration] provider = "simple"  -> in-process; no Hatchet/RabbitMQ
+#   - [ingestion]     provider = "r2r"      -> built-in parser; no Unstructured
+# Image-only/scanned PDFs are OCR'd client-side by scripts/ingest_books.py
+# (pypdfium2 render + per-page tesseract/easyocr) and uploaded as text, so
+# server-side OCR isn't needed.
+
+[embedding]
+provider = "ollama"
+base_model = "mxbai-embed-large"
+base_dimension = 1_024
+batch_size = 128
+concurrent_request_limit = 8
+
+[completion_embedding]
+provider = "ollama"
+base_model = "mxbai-embed-large"
+base_dimension = 1_024
+batch_size = 128
+concurrent_request_limit = 8
+
+[ingestion]
+# Built-in R2R parsing — no Unstructured.io container required. Text-native PDFs
+# parse directly; route image-only PDFs through scripts/ingest_books.py instead.
+provider = "r2r"
+# No completion provider is configured, so skip the LLM-dependent steps.
+skip_document_summary = true
+automatic_extraction = false
+
+[orchestration]
+# In-process — no Hatchet, RabbitMQ, or the wait-for-gRPC startup gate.
+provider = "simple"
+
+[app]
+# TTRPG sourcebooks (scanned multi-volume boxed sets) can exceed the 30MB
+# default once reshaped, so cap uploads at 500MB.
+max_upload_size_by_type = { pdf = 500_000_000 }

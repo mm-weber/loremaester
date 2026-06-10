@@ -1,0 +1,89 @@
+{
+  "name": "R2R-ClaudeCode-integration",
+  "build": {
+    "dockerfile": "Dockerfile",
+    // Build context is the repo root (not .devcontainer/) so the Dockerfile
+    // can COPY requirements.txt / requirements-dev.txt from the repo root.
+    // See .dockerignore for the trees excluded from the context tarball.
+    "context": "..",
+    "options": ["--network=host"],
+    "args": {
+      "TZ": "${localEnv:TZ:America/Los_Angeles}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2"
+    }
+  },
+
+  // --- Capabilities ---
+  // NET_ADMIN is for the egress firewall (init-firewall.sh) ONLY.
+  // There is no Docker-in-Docker here: R2R runs on the host, and this
+  // container reaches it (and Ollama) via host.docker.internal. No seccomp
+  // override — Docker's default profile applies. See SecurityReview.md.
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--add-host=host.docker.internal:host-gateway"
+  ],
+
+  // --- VS Code ---
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-python.python"
+      ],
+      "settings": {
+        "editor.formatOnSave": false,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        // Stops VS Code Server's periodic POSTs to
+        // mobile.events.data.microsoft.com — which were continuously failing
+        // against the egress firewall and generating ongoing log noise.
+        // Aligned with the firewall-narrowing posture in init-firewall.sh.
+        "telemetry.telemetryLevel": "off",
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/.git/objects/**": true
+        }
+      }
+    }
+  },
+
+  // PID 1 runs as root so the entrypoint can run init-firewall.sh (iptables
+  // needs NET_ADMIN) without sudo. Interactive shells attach as `node` per
+  // remoteUser. overrideCommand: false keeps our CMD (the wait loop) so the
+  // entrypoint's exec "$@" chains cleanly.
+  "containerUser": "root",
+  "remoteUser": "node",
+  "overrideCommand": false,
+
+  // --- Mounts ---
+  "mounts": [
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    // SSH agent forwarding from host (for git push/pull via SSH). The mount
+    // source defaults to /run/host-services/ssh-auth.sock, the socket Docker
+    // Desktop forwards the host agent on, so macOS works with no setup.
+    // (macOS's real $SSH_AUTH_SOCK is a launchd socket Docker Desktop cannot
+    // bind-mount, so we do not read it directly; a default on SSH_AUTH_SOCK
+    // would be shadowed by that launchd value.)
+    // Linux: that default path does not exist outside Docker Desktop's VM, so
+    // point SSH_AUTH_SOCK_HOST at your agent socket before launching the editor:
+    //   export SSH_AUTH_SOCK_HOST="$SSH_AUTH_SOCK"
+    // and launch VS Code from that shell. See docs/quickstart.md
+    // "Git over SSH: host agent forwarding".
+    // If the host has no SSH agent (Windows, headless), remove this mount
+    // and the matching containerEnv SSH_AUTH_SOCK line below, then use
+    // HTTPS + a personal access token for git auth instead.
+    "source=${localEnv:SSH_AUTH_SOCK_HOST:/run/host-services/ssh-auth.sock},target=/ssh-agent,type=bind,consistency=cached"
+  ],
+
+  // --- Environment ---
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "SSH_AUTH_SOCK": "/ssh-agent",
+    "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=accept-new"
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/R2R-ClaudeCode-integration,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspaces/R2R-ClaudeCode-integration"
+}

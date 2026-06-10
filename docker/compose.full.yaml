@@ -18,14 +18,15 @@ volumes:
 
 services:
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:00ba258a66dac104fd5171074a0084462a64a1369d8513f3d0a634e2f24d15bc
     profiles: [postgres]
     env_file:
       - ./env/postgres.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # loopback-only: internal to the stack (off the host LAN).
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -37,15 +38,15 @@ services:
       -c max_connections=1024
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     profiles: [minio]
     env_file:
       - ./env/minio.env
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -55,7 +56,7 @@ services:
     command: server /data --console-address ":9001"
 
   hatchet-postgres:
-    image: postgres:latest
+    image: postgres:latest@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     env_file:
       - ./env/hatchet.env
     volumes:
@@ -68,11 +69,11 @@ services:
 
 
   hatchet-rabbitmq:
-    image: "rabbitmq:3-management"
+    image: "rabbitmq:3-management@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69"
     hostname: "hatchet-rabbitmq"
     ports:
-      - "5673:5672"
-      - "15673:15672"
+      - "127.0.0.1:5673:5672"
+      - "127.0.0.1:15673:15672"
     env_file:
       - ./env/hatchet.env
     volumes:
@@ -85,7 +86,7 @@ services:
       retries: 5
 
   hatchet-create-db:
-    image: postgres:latest
+    image: postgres:latest@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     command: sh /scripts/create-hatchet-db.sh
     volumes:
       - ./scripts:/scripts
@@ -96,7 +97,7 @@ services:
         condition: service_healthy
 
   hatchet-migration:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-migrate:v0.53.15@sha256:e5d3857e4fe5111f569cfc9c44bba0ad3de7ee14414dd10a59e05c56eb1cdadb
     env_file:
       - ./env/hatchet.env
     depends_on:
@@ -104,7 +105,7 @@ services:
         condition: service_completed_successfully
 
   hatchet-setup-config:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15@sha256:cd3155e5d0ea852f689354c87c484af8547a740d464f76e801dc92a7b9d6d210
     command: /hatchet/hatchet-admin quickstart --skip certs --generated-config-dir /hatchet/config --overwrite=false
     env_file:
       - ./env/hatchet.env
@@ -118,14 +119,14 @@ services:
         condition: service_healthy
 
   hatchet-engine:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-engine:v0.53.15@sha256:7698a5bfe987940c338090d6b9894de3c61a699c67861afdc876fcf18645afb9
     command: /hatchet/hatchet-engine --config /hatchet/config
     restart: on-failure
     depends_on:
       hatchet-setup-config:
         condition: service_completed_successfully
     ports:
-      - "7077:7077"
+      - "127.0.0.1:7077:7077"
     env_file:
       - ./env/hatchet.env
     volumes:
@@ -135,10 +136,11 @@ services:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8733/live"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 30
+      start_period: 30s
 
   hatchet-dashboard:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-dashboard:v0.53.15@sha256:0a36505cc0c12dee56a504dddb6c3f5038fc08be3d8e1ff275b2ea2b66cd4003
     command: sh ./entrypoint.sh --config /hatchet/config
     restart: on-failure
     depends_on:
@@ -150,10 +152,10 @@ services:
       - hatchet_certs:/hatchet/certs
       - hatchet_config:/hatchet/config
     ports:
-      - "7274:80"
+      - "127.0.0.1:7274:80"
 
   setup-token:
-    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-admin:v0.53.15@sha256:cd3155e5d0ea852f689354c87c484af8547a740d464f76e801dc92a7b9d6d210
     command: sh /scripts/setup-token.sh
     volumes:
       - ./scripts:/scripts
@@ -165,7 +167,7 @@ services:
         condition: service_completed_successfully
 
   unstructured:
-    image: ragtoriches/unst-prod
+    image: ragtoriches/unst-prod:latest@sha256:6efd836062aa8bedc5d88e9733096e2a52a9d83bb2717a82aca7468e3e97e52c
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7275/health"]
       interval: 10s
@@ -173,19 +175,72 @@ services:
       retries: 5
 
   graph_clustering:
-    image: ragtoriches/cluster-prod
+    image: ragtoriches/cluster-prod:latest@sha256:53bcbcc114fe08906b6df6b4d3863644145b1efa240fd6643ef65986593938b6
     ports:
-      - "7276:7276"
+      - "127.0.0.1:7276:7276"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7276/health"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Init container: gate r2r startup on hatchet-engine's gRPC port (7077)
+  # being reachable. hatchet-engine's own healthcheck (further up) only
+  # probes HTTP /live on 8733, not 7077 — so `service_healthy` on
+  # hatchet-engine doesn't imply gRPC is ready. Without this gate, r2r
+  # races Hatchet's gRPC bind on every start, fails register_workflow with
+  # `_InactiveRpcError: Connection refused`, and SystemExit(1)s into a
+  # restart loop. This container polls 7077 with `nc -z` until TCP accepts,
+  # then exits 0 — and r2r's depends_on (below) gates on that exit.
+  #
+  # The gate below is `service_started`, NOT `service_healthy`. Gating
+  # the gRPC poll on the HTTP /live healthcheck would re-introduce the
+  # very fragility this sidecar exists to bypass: if /live is slow to
+  # pass or flaps, the gRPC poll never even starts and compose hangs at
+  # "Waiting 300s+". The TCP poll below IS the readiness check — Docker
+  # just needs hatchet-engine's container to exist so DNS resolves the
+  # name. Do not "fix" this back to service_healthy.
+  #
+  # The loop is bounded to 300s; on timeout it exits 1, failing r2r's
+  # `service_completed_successfully` gate fast (with a logline) rather
+  # than hanging indefinitely if hatchet-engine never binds 7077.
+  wait-for-hatchet-grpc:
+    image: alpine:latest@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
+    # Compose interpolates ${VAR} in YAML values, so shell variables here
+    # need $$ to survive (${i} → $${i}). Using exec-form + literal `|`
+    # block keeps newlines so the if/then/fi parses correctly.
+    command:
+      - sh
+      - -c
+      - |
+        for i in $$(seq 1 300); do
+          if nc -z hatchet-engine 7077; then
+            echo "hatchet gRPC reachable after $${i}s"
+            exit 0
+          fi
+          echo "waiting for hatchet gRPC on 7077... ($${i}/300)"
+          sleep 1
+        done
+        echo "TIMEOUT: hatchet gRPC not reachable after 300s" >&2
+        exit 1
+    depends_on:
+      hatchet-engine:
+        condition: service_started
+    restart: "no"
+
   r2r:
-    image: sciphiai/r2r:latest
+    image: sciphiai/r2r:latest@sha256:f7f7ee5ef3aa0945895320eb7424cb7e2f89e455b6a6a20ec5aff6de3024b88c
     ports:
-      - "7272:7272"
+      # Bind to host loopback only, keeping r2r off the host's LAN. The
+      # devcontainer talks to r2r via host.docker.internal: on macOS that
+      # resolves through Docker Desktop's NAT and routes to this binding;
+      # on Linux it resolves to the docker0 bridge gateway (typically
+      # 172.17.0.1) which 127.0.0.1 alone does not cover, so Linux users
+      # layer on docker/compose.linux.yaml to add a second binding on
+      # that IP. See docs/quickstart.md Step 2 for the invocation. Verify
+      # the gateway from inside the container with `getent hosts
+      # host.docker.internal`.
+      - "127.0.0.1:7272:7272"
     env_file:
       - ./env/r2r-full.env
     command: sh /scripts/start-r2r.sh
@@ -211,10 +266,12 @@ services:
         condition: service_healthy
       graph_clustering:
         condition: service_healthy
+      wait-for-hatchet-grpc:
+        condition: service_completed_successfully
 
   r2r-dashboard:
-    image: sciphiai/r2r-dashboard:1.0.3
+    image: sciphiai/r2r-dashboard:1.0.3@sha256:ba9bcb43c5e7d7d4eb9fe38970f976f6a0842297f3da078cb6223d1f078741d1
     env_file:
       - ./env/r2r-dashboard.env
     ports:
-      - "7273:3000"
+      - "127.0.0.1:7273:3000"

@@ -1,5 +1,7 @@
 # Quickstart: Worldbuilding Assistant for Claude Code
 
+> **First time here?** If you want to see the product work end-to-end against bundled demo content (3 sourcebooks, the `Grunvyr_Campaign` vault scaffold, all four GM skills) before configuring your own vault, run through [`demo-walkthrough.md`](./demo-walkthrough.md) first. This quickstart is the reference for setting up *your own* content.
+
 Turn Claude Code into a worldbuilding collaborator that knows your Obsidian vault AND your sourcebooks.
 
 Set up R2R semantic search with Ollama embeddings, ingest your PDF sourcebooks (including scanned/image PDFs), connect your vault, and run your first worldbuilding session — all in one guide.
@@ -37,7 +39,7 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 | # | Component | What it does |
 |---|-----------|--------------|
 | 1 | **Ollama** | Runs the embedding model (`mxbai-embed-large`) locally — no API keys needed |
-| 2 | **R2R (Docker Full Mode)** | Search, ingestion, PostgreSQL + pgvector, Unstructured.io for PDF OCR |
+| 2 | **R2R (Docker)** | Search, ingestion, PostgreSQL + pgvector (Light Mode; Full Mode adds Unstructured.io for server-side PDF OCR) |
 | 3 | **Vault CLAUDE.md** | Teaches Claude your vault's structure, frontmatter schemas, wikilink conventions |
 | 4 | **R2R MCP Wrapper** | Generic search/ingest/list/delete against R2R |
 | 5 | **Sourcebooks MCP Server** | Worldbuilding-specific lore queries (`search_lore`, `list_books`, `get_chapter`) |
@@ -45,7 +47,7 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 | 7 | **Vault Graph MCP Server** | Graph traversal, backlinks, centrality ranking |
 | 8 | **Worldbuilding Skill** | Orchestrates the full workflow: gather context, research lore, generate, write back |
 
-> **Why does R2R live on the host?** R2R runs PostgreSQL with pgvector, an embedding pipeline, and Unstructured.io for PDF parsing. These are heavy services that don't belong inside a devcontainer. The devcontainer talks to R2R over the Docker bridge network via `host.docker.internal:7272`.
+> **Why does R2R live on the host?** R2R runs PostgreSQL with pgvector and an embedding pipeline (and, in Full Mode, Unstructured.io for PDF parsing). These are heavy services that don't belong inside a devcontainer. The devcontainer talks to R2R over the Docker bridge network via `host.docker.internal:7272`.
 
 > **Why Ollama instead of OpenAI?** Ollama runs entirely on your machine — no API keys, no per-token costs, no data leaving your network. The `mxbai-embed-large` model produces 1024-dimensional embeddings that work well for TTRPG sourcebook content.
 
@@ -58,27 +60,40 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 - [ ] [`uv`](https://docs.astral.sh/uv/) for Python package management: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - [ ] An Obsidian vault with TTRPG worldbuilding notes
 - [ ] PDF sourcebooks (optional — the system works with just the vault)
-- [ ] Docker + Docker Compose on the host (**required** for R2R Full Mode)
-- [ ] `pdfplumber` on the host for PDF type detection: `uv pip install pdfplumber`
-- [ ] (Optional) For client-side OCR without Docker Full Mode: `tesseract-ocr`, `poppler-utils`
+- [ ] Docker + Docker Compose on the host (**required** to run R2R)
+- [ ] (Optional) For client-side OCR without Docker Full Mode: the system `tesseract` binary (`tesseract-ocr`)
 
 ### System Requirements for OCR Tools (Optional)
 
-If you plan to use client-side OCR preprocessing (for users who can't use Docker Full Mode for image PDFs):
+If you plan to use client-side OCR (for users who can't use Docker Full Mode for image PDFs):
 
 ```bash
 # Debian/Ubuntu
-sudo apt install tesseract-ocr poppler-utils
+sudo apt install tesseract-ocr
 
 # macOS
-brew install tesseract poppler
-
-# Python packages
-uv pip install pdfplumber pdf2image Pillow pytesseract
-# Optional: uv pip install surya-ocr  (Python-native OCR, no system deps)
+brew install tesseract
 ```
 
-> **Note:** If you're running Docker Full Mode (recommended), Unstructured.io handles OCR server-side and you don't need these system packages.
+The Python OCR libraries (`pdfplumber`, `pypdfium2`, `pytesseract`) are declared inline in each script's PEP 723 metadata, so `uv run --no-project scripts/...` resolves them per invocation — no host-level Python install needed.
+
+> **Note:** The default client-side OCR path renders pages with **pypdfium2** (a self-contained wheel pulled in by `uv run`, no poppler needed) and OCRs each page with the system `tesseract` binary (above). `scripts/ingest_books.py` and `scripts/extract_text.py` use this pypdfium2 path. The opt-in **EasyOCR** backend brings its own (torch-based) OCR instead (see Step 4). Full Mode OCRs server-side via Unstructured.io. (Note: the one-off `scripts/ocr_preprocess.py` helper still uses pdf2image, which needs `poppler-utils`/`brew install poppler` — but the ingestion path does not.)
+
+### Git over SSH: host agent forwarding
+
+The devcontainer forwards your host's SSH agent into the container (for `git push` over SSH). The mount source **defaults to `/run/host-services/ssh-auth.sock`**, the path Docker Desktop forwards the agent on, so **macOS / Docker Desktop works out of the box**: no shell-init export, and you can launch VS Code from the Dock or Spotlight.
+
+**Linux: one-time setup.** That default path is Docker-Desktop-only and does not exist on Linux, so point the override variable at your real agent socket, then launch VS Code from that shell so it inherits the value:
+
+```bash
+# one-time, e.g. in ~/.bashrc or ~/.zshrc on Linux (needs a running ssh-agent)
+export SSH_AUTH_SOCK_HOST="$SSH_AUTH_SOCK"
+code .   # launch from this shell
+```
+
+The devcontainer reads `SSH_AUTH_SOCK_HOST` from the shell that *launches* the editor. If it is unset on Linux the mount falls back to the macOS-only default, which does not exist there, and the container fails to start with `Error: bind source path does not exist: ...`; make sure an `ssh-agent` is running (so `$SSH_AUTH_SOCK` is populated) and that you exported `SSH_AUTH_SOCK_HOST`.
+
+If your host has no SSH agent at all (Windows without ssh-agent, fully headless setups), remove the SSH mount line from `.devcontainer/devcontainer.json` and use HTTPS plus a personal access token for git auth instead.
 
 ---
 
@@ -126,9 +141,68 @@ mxbai-embed-large:latest   ...           670 MB  ...
 
 ---
 
-## Step 2 — Start R2R with Docker Full Mode
+## Step 2 — Start R2R
 
-Docker Full Mode gives you PostgreSQL + pgvector for vector storage, Unstructured.io for PDF parsing (including OCR for scanned/image PDFs), and Hatchet for orchestration.
+R2R runs on the host in Docker. There are two deployment modes; **Light Mode is recommended** for a single-user setup:
+
+| Mode | Containers | Ingestion / Orchestration | Use it when |
+|------|-----------|---------------------------|-------------|
+| **Light (recommended)** | ~4 — Postgres, MinIO, R2R, dashboard | Built-in parser / in-process | Single user; you OCR image PDFs client-side (Step 4) |
+| **Full (advanced)** | ~15 — adds Unstructured.io, Hatchet, RabbitMQ | Unstructured.io / Hatchet | You want server-side OCR at ingest time, or durable/observable async ingestion |
+
+Both modes use Ollama for embeddings only — Claude Code does all reasoning. Either way, image-only PDFs can be OCR'd client-side with `scripts/ingest_books.py` (Step 4), so Light Mode loses no capability for that workflow.
+
+> **Light Mode is the default for a single-user setup.** Reach for Full Mode (below) only if you want server-side OCR at ingest time, or durable/observable async ingestion (it adds Unstructured.io + Hatchet).
+
+### Light Mode (recommended)
+
+The small stack: Postgres + pgvector, MinIO, R2R, and the dashboard — no Unstructured.io, Hatchet, or RabbitMQ. R2R uses its built-in parser and in-process orchestration (config: `docker/user_configs/r2r-light.toml`).
+
+**Bootstrap the env files.** `docker/env/*.env` are gitignored, so copy the templates Light Mode needs:
+
+```bash
+cd docker/env/
+cp r2r.env.example           r2r.env
+cp postgres.env.example      postgres.env
+cp minio.env.example         minio.env
+cp r2r-dashboard.env.example r2r-dashboard.env
+cd -
+```
+
+**Start the stack** (Postgres and MinIO sit behind compose profiles):
+
+```bash
+# macOS / Docker Desktop
+docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
+
+# Linux: layer in the additive Linux-only port override
+# (see docker/compose.linux.yaml) so the devcontainer can reach R2R via
+# the docker0 bridge gateway
+docker compose -f docker/compose.yaml -f docker/compose.linux.yaml \
+  --profile postgres --profile minio up -d
+```
+
+> **Why two forms?** The base `compose.yaml` binds R2R only to host loopback (off the LAN). macOS routes the devcontainer's `host.docker.internal:7272` to that binding via Docker Desktop's NAT, so the base file alone works. Linux's `host.docker.internal` instead resolves to the docker0 bridge gateway (typically `172.17.0.1`), which the loopback bind does not cover, so `docker/compose.linux.yaml` adds a second binding on that IP via compose's additive `ports`-array merge. Set `export COMPOSE_FILE=docker/compose.yaml:docker/compose.linux.yaml` once in your shell init on Linux if you'd rather not pass `-f` on every invocation.
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| **postgres** | 5432 | PostgreSQL with pgvector for vector storage |
+| **minio** | 9000 / 9001 | Object storage for original files |
+| **graph_clustering** | 7276 | Graph community detection service |
+| **r2r** | 7272 | The R2R API |
+| **r2r-dashboard** | 7273 | Web UI |
+
+Verify R2R is healthy:
+
+```bash
+curl http://localhost:7272/v3/health
+```
+
+Then continue to **Step 3** below — ingestion and MCP setup are identical for both modes.
+
+### Full Mode (advanced)
+
+Full Mode gives you PostgreSQL + pgvector for vector storage, Unstructured.io for PDF parsing (including OCR for scanned/image PDFs), and Hatchet for orchestration.
 
 ### 2a. Docker Compose files and helper scripts
 
@@ -136,8 +210,8 @@ Everything needed to run R2R lives under `docker/` — you don't need to clone R
 
 | Path | What it is |
 |------|------------|
-| `docker/compose.full.yaml` | Single-instance full-mode stack — **used by this guide** |
-| `docker/compose.yaml` | Light mode (R2R without Hatchet/Unstructured) — not covered here |
+| `docker/compose.yaml` | Light mode (R2R + Postgres + MinIO, no Hatchet/Unstructured) — **recommended; the default path in this guide** |
+| `docker/compose.full.yaml` | Single-instance full-mode stack (+ Unstructured.io, Hatchet) — the advanced option (see the **Full Mode** section) |
 | `docker/compose.infra.yaml` + `docker/compose.app.yaml` | Multi-instance deployment path — see note at the end of this step |
 | `docker/env/` | Env files that compose loads via `env_file:` directives (bootstrapped in Step 2c) |
 | `docker/user_configs/` | R2R's TOML configuration, bind-mounted into the container at `/app/user_configs/` |
@@ -190,14 +264,20 @@ The shipped defaults are safe for local, single-user development:
 
 > **Security note.** The defaults in `*.env.example` are for local development only. Change every credential (Postgres passwords, RabbitMQ, the dashboard login) before exposing R2R on a shared network.
 
-> **Not using this guide's compose file?** `docker/env/r2r.env` is for `compose.yaml` (light mode) and isn't created by this flow. Stick to the five files above for `compose.full.yaml`.
+> **Note:** `docker/env/r2r.env` is the env file for **Light Mode** (`compose.yaml`), bootstrapped in the Light Mode section above — it is not used by `compose.full.yaml`. For Full Mode, stick to the five files above.
 
 ### 2d. Start the Full Stack
 
 From the repository root:
 
 ```bash
+# macOS / Docker Desktop
 docker compose -f docker/compose.full.yaml --profile postgres up -d
+
+# Linux: layer in the Linux-only port override (same reasoning as Light
+# Mode above) so the devcontainer can reach R2R via the docker0 bridge gateway
+docker compose -f docker/compose.full.yaml -f docker/compose.linux.yaml \
+  --profile postgres up -d
 ```
 
 This starts the following services:
@@ -221,7 +301,7 @@ This starts the following services:
 curl http://localhost:7272/v3/health
 ```
 
-Expected: `{"results":{"response":"ok"}}`
+Expected: `{"results":{"message":"ok"}}`
 
 You can also open the R2R dashboard at [http://localhost:7273](http://localhost:7273) in your browser. The default login credentials are `admin@example.com` / `change_me_immediately` — change these for any non-local deployment.
 
@@ -249,7 +329,7 @@ Before ingesting, determine which of your PDFs are text-native (purchased digita
 ### 3a. Run the Detection Script
 
 ```bash
-python scripts/detect_pdf_type.py /path/to/your/sourcebooks/
+uv run --no-project scripts/detect_pdf_type.py /path/to/your/sourcebooks/
 ```
 
 Output:
@@ -266,23 +346,24 @@ Old_Campaign_Guide.pdf     mixed        (200 of 400 pages have extractable text)
 |--------|---------|----------------|
 | `text-native` | >= 90% of pages have extractable text | Direct ingestion (Step 4) |
 | `image-only` | >= 90% of pages have no extractable text | Needs OCR (see decision tree below) |
-| `mixed` | Some pages have text, some don't | Treat as image-only for best results |
+| `mixed` | Some pages have text, some don't | Auto-OCR'd per-page by `ingest_books.py` (Step 4) — text layer kept, scanned pages OCR'd |
 
 ### 3b. Choose Your Ingestion Path
 
 ```
 Are your PDFs scanned (image-only or mixed)?
 +-- Don't know
-|   +-- Run: python scripts/detect_pdf_type.py /path/to/pdfs/
-+-- Yes, and I'm running Docker Full Mode (Step 2)
-|   +-- Just ingest normally — Unstructured.io handles OCR server-side automatically
-+-- Yes, and I'm NOT running Docker Full Mode
-|   +-- Preprocess first: python scripts/ocr_preprocess.py /path/to/book.pdf --book-title "..."
+|   +-- Run: uv run --no-project scripts/detect_pdf_type.py /path/to/pdfs/
++-- Yes -- pick an OCR path:
+|   +-- Server-side (Docker Full Mode): ingest the PDF *directly* so R2R/Unstructured.io OCRs it
+|   |       e.g. r2r documents create book.pdf --metadata '{"book_title":"..."}'   (no client OCR deps)
+|   +-- Client-side (any mode): scripts/ingest_books.py auto-OCRs image-only AND mixed PDFs per-page (pypdfium2 + tesseract)
+|           (tesseract by default, CPU; opt into EasyOCR for GPU — see "Bulk Ingestion Script")
 +-- No, they're text-native
-    +-- Ingest directly (Step 4)
+    +-- Ingest directly, or via scripts/ingest_books.py (Step 4)
 ```
 
-> **Docker Full Mode users:** You don't need to do anything special for image PDFs. Unstructured.io performs OCR automatically during ingestion. Just follow Step 4 as normal.
+> **Which tool does which OCR?** If you ingest an image PDF **directly** (single-PDF `r2r documents create`, or the `r2r` MCP `ingest_document`) in Docker Full Mode, R2R/Unstructured.io OCRs it server-side. The bulk helper `scripts/ingest_books.py` instead OCRs image PDFs **client-side** via `scripts/ocr_extract.py` (Step 4), in any mode — so you choose the OCR path by choosing the tool.
 
 ---
 
@@ -296,7 +377,7 @@ Drop your PDFs into a flat folder — no special directory hierarchy needed:
 sourcebooks/
 +-- Core_Rulebook_PF2e.pdf
 +-- Lost_Omens_World_Guide.pdf
-+-- Planescape_Campaign_Setting.pdf
++-- Campaign_Setting_Boxed_Set.pdf
 +-- Bestiary_PF2e.pdf
 ```
 
@@ -314,8 +395,8 @@ Only `book_title` is required. The sourcebooks MCP server uses it for `search_lo
 ### Single PDF
 
 ```bash
-# Install the R2R CLI if not already available
-uv pip install r2r
+# Install the project's runtime deps (includes the R2R CLI; single source: requirements.txt)
+uv pip install -r requirements.txt
 
 r2r documents create /path/to/book.pdf \
   --metadata '{"book_title": "Core Rulebook"}'
@@ -324,54 +405,77 @@ r2r documents create /path/to/book.pdf \
 ### Bulk Ingestion Script
 
 The repo ships `scripts/ingest_books.py`, a PEP 723-style single-file script
-that bulk-ingests a folder of PDFs with automatic image-vs-text routing,
-SHA1 content-hash deduplication, and client-side OCR for scanned books:
+that bulk-ingests a folder of PDFs with automatic content-based routing,
+SHA1 content-hash deduplication, and client-side OCR for scanned books. Each
+PDF is classified by `scripts/detect_pdf_type.py` (text-native if ≥90% of pages
+have a text layer, image-only if ≤10%, mixed in between) and routed accordingly:
 
 - **Text-native PDFs** → forwarded to R2R via `documents.create(file_path=…)`.
   In Docker Full Mode this means Unstructured.io parses them server-side.
-- **Image-only PDFs** (detected by pdfplumber: <10% of pages have extractable
-  text) → OCR'd client-side via [Kreuzberg](https://kreuzberg.dev/) with
-  EasyOCR as the default backend (GPU-accelerated via torch+CUDA), then
-  pushed to R2R as `raw_text`.
+- **Image-only *and* mixed PDFs** → extracted client-side by
+  `scripts/ocr_extract.py`'s per-page **hybrid**: each page keeps its embedded
+  text layer where it has one, and only the pages — or the embedded figure
+  regions — that lack text are rendered with **pypdfium2** and OCR'd. So a mixed
+  book's scanned pages (and figures) are captured instead of being lost to native
+  parsing. The default OCR engine is **tesseract** (CPU; needs only the system
+  `tesseract` binary, no poppler); the extracted text is then pushed to R2R.
 
 Run it with `uv run` — the script declares its own dependencies inline:
 
 ```bash
-uv run --no-project --python 3.12 \
+uv run --no-project scripts/ingest_books.py /path/to/sourcebooks/
+```
+
+Tesseract is the default because it's robust and dependency-light — no torch,
+no GPU. Install the binary first: `apt install tesseract-ocr tesseract-ocr-eng`
+(Debian/Ubuntu) or `brew install tesseract` (macOS).
+
+> **Re-running is safe (idempotent).** Books already in R2R come back as `already exists` and are
+> reported as **SKIPPED**, not failed. The final line counts `succeeded / skipped / failed`
+> separately, so a second run on a populated corpus shows everything skipped and **0 failed**. To
+> force a re-ingest (e.g. after switching OCR engine), delete the document(s) in R2R first.
+
+#### Higher-quality OCR: EasyOCR (opt-in, GPU)
+
+EasyOCR (torch+CUDA) is often sharper on noisy scans, but it's heavy and not in
+the script's default deps. Set `OCR_ENGINE=easyocr` and add it for the run with
+uv `--with`:
+
+```bash
+UV_HTTP_TIMEOUT=600 OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with easyocr --with 'torch==2.9.1+cu126' \
   --extra-index-url https://download.pytorch.org/whl/cu126 \
   --index-strategy unsafe-best-match \
   scripts/ingest_books.py /path/to/sourcebooks/
 ```
 
-The two uv flags are needed because the script pins `torch==2.9.1+cu126`, a
-local-version variant only published on PyTorch's own index. Skip them and
-uv won't find the CUDA-bound wheel. (See Troubleshooting if you hit
-`driver too old` or dependency-resolution errors.)
+(To smoke-test the GPU path against the bundled demo books, swap the final
+argument for `examples/ttrpg/sourcebooks/`.)
 
-#### OCR backend selection
+The `--extra-index-url`/`--index-strategy` flags fetch `torch==2.9.1+cu126`, a
+local-version variant only published on PyTorch's own index (see Troubleshooting
+if you hit `driver too old` or resolution errors). **`UV_HTTP_TIMEOUT=600` matters:**
+the CUDA `torch` wheel is multiple GB, and uv's default 30-second per-request HTTP
+timeout aborts the download on most connections — 600 s (10 min) gives it room (raise
+it further on a slow link). Without it, the GPU run fails before it can ingest anything.
 
-The default (`easyocr`) runs on GPU via torch+CUDA and needs no extra
-system packages. Two env-var overrides if you want to swap backends:
+`OCR_ENGINE` selects the engine (`tesseract`, the default | `easyocr`); the
+legacy `KREUZBERG_OCR_ENGINE` is still honored as a fallback. Language codes
+differ by engine: tesseract takes ISO 639-3 three-letter codes
+(`OCR_LANGUAGE=eng`, `deu`); easyocr takes ISO 639-1 two-letter codes
+(`OCR_LANGUAGE=en`, `de`).
 
-```bash
-# Tesseract — CPU only. Requires `apt install tesseract-ocr tesseract-ocr-eng`
-KREUZBERG_OCR_ENGINE=tesseract KREUZBERG_OCR_LANGUAGE=eng \
-  uv run --no-project --python 3.12 scripts/ingest_books.py <pdf-dir>
-
-# PaddleOCR — needs paddlepaddle-gpu from PaddlePaddle's own index (not pinned
-# here because it doesn't live on PyPI). Only worth the trouble for languages
-# EasyOCR doesn't cover well.
-```
-
-Note the language code difference: `easyocr`/`paddleocr` take ISO 639-1
-two-letter codes (`en`, `de`), tesseract takes ISO 639-3 three-letter
-codes (`eng`, `deu`).
+> **Auto-fallback.** If you request `OCR_ENGINE=easyocr` but no usable CUDA GPU
+> is detected, `ingest_books.py` automatically falls back to **tesseract** (CPU)
+> and prints a notice — so a GPU-less run still completes instead of silently
+> producing empty text.
 
 ### Ingesting Image PDFs Without Docker Full Mode
 
-If you're running R2R in Light Mode, `scripts/ingest_books.py` already
-handles scanned books — the kreuzberg client-side OCR path runs without
-needing Unstructured.io server-side. You don't need a separate tool.
+`scripts/ingest_books.py` OCRs scanned books **client-side** via
+`scripts/ocr_extract.py` (pypdfium2 render + tesseract) in any R2R mode, so it
+works even in Light Mode (no Unstructured.io needed). If you'd rather OCR
+server-side, ingest image PDFs directly in Docker Full Mode (see Step 3b).
 
 For one-off OCR experiments outside the ingestion flow (e.g., extracting
 text from a single image or PDF without pushing to R2R),
@@ -384,13 +488,13 @@ After ingesting, verify that the text was extracted correctly:
 
 ```bash
 # Single document by title
-python scripts/verify_ingestion.py --book-title "Core Rulebook"
+uv run --no-project scripts/verify_ingestion.py --book-title "Core Rulebook"
 
 # Single document by ID
-python scripts/verify_ingestion.py --document-id 7a3f...
+uv run --no-project scripts/verify_ingestion.py --document-id 7a3f...
 
 # All ingested documents
-python scripts/verify_ingestion.py --all
+uv run --no-project scripts/verify_ingestion.py --all
 ```
 
 **Output:**
@@ -462,9 +566,7 @@ Open `/workspace/vault/CLAUDE.md` and replace the placeholders:
 Inside the devcontainer:
 
 ```bash
-uv pip install pyyaml
-
-python scripts/build_vault_graph.py /workspace/vault
+uv run --no-project scripts/build_vault_graph.py /workspace/vault
 ```
 
 Expected output:
@@ -482,14 +584,14 @@ The note and edge counts will vary based on your vault size.
 ### 6a. Install Python dependencies in the devcontainer
 
 ```bash
-uv pip install mcp r2r pyyaml
+uv pip install -r requirements.txt
 ```
 
 Or with a virtual environment:
 
 ```bash
 uv venv .venv && source .venv/bin/activate
-uv pip install mcp r2r pyyaml
+uv pip install -r requirements.txt
 ```
 
 ### 6b. Edit `.claude/settings.json`
@@ -501,7 +603,7 @@ Add the `mcpServers` block to your Claude Code settings. Replace `/path/to/repo`
   "mcpServers": {
     "r2r": {
       "command": "python",
-      "args": ["/path/to/repo/r2r_mcp_wrapper.py"],
+      "args": ["/path/to/repo/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
       "env": {
         "R2R_API_BASE": "http://host.docker.internal:7272",
         "R2R_API_KEY": "${R2R_API_KEY}"
@@ -568,11 +670,13 @@ You should see 3 servers connected with 14 tools total:
 
 ## Step 7 — Install the Worldbuilding Skill
 
-Copy the skill into your Claude Code skills directory:
+Copy the skill into your Claude Code skills directory. This project's skills live in `skills/` (worldbuilding, session-creation, chronik, vault-scout):
 
 ```bash
-mkdir -p .claude/skills/worldbuilding
-cp plugins/worldbuilding/SKILL.md .claude/skills/worldbuilding/SKILL.md
+mkdir -p .claude/skills
+cp -r skills/worldbuilding .claude/skills/worldbuilding
+# (optional) install the others too:
+# cp -r skills/* .claude/skills/
 ```
 
 The skill auto-triggers on worldbuilding requests — creating NPCs, factions, locations, researching lore, or expanding your world. You don't need to invoke it manually.

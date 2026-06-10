@@ -10,7 +10,7 @@
 
 services:
   unstructured:
-    image: ragtoriches/unst-prod
+    image: ragtoriches/unst-prod:latest@sha256:6efd836062aa8bedc5d88e9733096e2a52a9d83bb2717a82aca7468e3e97e52c
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7275/health"]
       interval: 10s
@@ -18,7 +18,7 @@ services:
       retries: 5
 
   graph_clustering:
-    image: ragtoriches/cluster-prod
+    image: ragtoriches/cluster-prod:latest@sha256:53bcbcc114fe08906b6df6b4d3863644145b1efa240fd6643ef65986593938b6
     ports:
       - "${GRAPH_CLUSTERING_PORT:-7276}:7276"
     healthcheck:
@@ -28,7 +28,7 @@ services:
       retries: 5
 
   r2r:
-    image: sciphiai/r2r:latest
+    image: sciphiai/r2r:latest@sha256:f7f7ee5ef3aa0945895320eb7424cb7e2f89e455b6a6a20ec5aff6de3024b88c
     ports:
       - "${R2R_PORT:-7272}:${R2R_PORT:-7272}"
     env_file:
@@ -72,7 +72,7 @@ services:
         condition: service_healthy
 
   r2r-dashboard:
-    image: sciphiai/r2r-dashboard:1.0.3
+    image: sciphiai/r2r-dashboard:1.0.3@sha256:ba9bcb43c5e7d7d4eb9fe38970f976f6a0842297f3da078cb6223d1f078741d1
     environment:
       - NEXT_PUBLIC_R2R_DEPLOYMENT_URL=http://localhost:${R2R_PORT:-7272}
       - NEXT_PUBLIC_HATCHET_DASHBOARD_URL=http://localhost:7274

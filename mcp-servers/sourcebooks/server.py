@@ -15,7 +15,9 @@ def _get_client() -> R2RClient:
 
 
 @mcp.tool()
-async def search_lore(query: str, book: str = None, content_type: str = None, limit: int = 5) -> str:
+async def search_lore(
+    query: str, book: str | None = None, content_type: str | None = None, limit: int = 5
+) -> str:
     """Search worldbuilding lore across source books."""
     try:
         client = _get_client()
@@ -45,7 +47,9 @@ async def search_lore(query: str, book: str = None, content_type: str = None, li
             page_range = meta.get("page_range", "")
             score = chunk.score
             text = chunk.text
-            lines.append(f"### {i}. {book_title} — {chapter} ({page_range}) [{score:.2f}]")
+            lines.append(
+                f"### {i}. {book_title} — {chapter} ({page_range}) [{score:.2f}]"
+            )
             lines.append(text)
             lines.append("")
 
@@ -105,7 +109,9 @@ async def get_chapter(book: str, chapter: str) -> str:
             "include_metadatas": True,
         }
 
-        result = client.retrieval.search(query=f"{book} {chapter}", search_settings=settings)
+        result = client.retrieval.search(
+            query=f"{book} {chapter}", search_settings=settings
+        )
         chunks = result.results.chunk_search_results
 
         if not chunks:
