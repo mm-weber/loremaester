@@ -42,16 +42,19 @@ import tempfile
 import traceback
 from pathlib import Path
 
-from r2r import R2RClient
-
 from detect_pdf_type import analyze_pdf
 from ocr_extract import extract_pdf, resolve_engine
+from r2r import R2RClient
 
 R2R_BASE = "http://localhost:7272"
 # OCR_ENGINE / OCR_LANGUAGE are canonical; the legacy KREUZBERG_* names are
 # still honored as a fallback so older commands keep working.
-OCR_ENGINE = os.environ.get("OCR_ENGINE", os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract"))
-OCR_LANGUAGE = os.environ.get("OCR_LANGUAGE", os.environ.get("KREUZBERG_OCR_LANGUAGE", "en"))
+OCR_ENGINE = os.environ.get(
+    "OCR_ENGINE", os.environ.get("KREUZBERG_OCR_ENGINE", "tesseract")
+)
+OCR_LANGUAGE = os.environ.get(
+    "OCR_LANGUAGE", os.environ.get("KREUZBERG_OCR_LANGUAGE", "en")
+)
 
 
 def file_sha1(path, chunk_size=1024 * 1024):
@@ -143,7 +146,9 @@ def ingest_via_ocr(client, pdf_path, metadata):
     text layer where present, tesseract/easyocr where absent, plus figure-region OCR);
     ingest via a named temp .txt so R2R derives the title + default collection."""
     engine = resolve_engine(OCR_ENGINE)
-    print(f"  Hybrid extract ({engine}): {pdf_path.name} — per-page (text layer where present, OCR + figure-region OCR where absent); this takes a while for big scans...")
+    print(
+        f"  Hybrid extract ({engine}): {pdf_path.name} — per-page (text layer where present, OCR + figure-region OCR where absent); this takes a while for big scans..."
+    )
     result = extract_pdf(str(pdf_path), engine=engine, language=OCR_LANGUAGE)
     with tempfile.TemporaryDirectory(prefix="ingest_books_") as tmp_dir:
         tmp_path = Path(tmp_dir) / f"{pdf_path.stem}.txt"
@@ -220,7 +225,9 @@ def main():
     if dupes:
         print(f"Skipping {len(dupes)} duplicate(s) (same SHA1 as the kept copy):")
         for dupe, original in dupes:
-            print(f"  - {dupe.relative_to(pdf_dir)}  (same content as {original.relative_to(pdf_dir)})")
+            print(
+                f"  - {dupe.relative_to(pdf_dir)}  (same content as {original.relative_to(pdf_dir)})"
+            )
     print()
 
     print_easyocr_diagnostics()

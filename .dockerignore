@@ -1,0 +1,20 @@
+# With .devcontainer/devcontainer.json's `context: ".."`, Docker sends the
+# whole repo as build context. Exclude the obvious heavy / irrelevant trees
+# so image builds stay quick.
+
+.git/
+.pnpm-store/
+node_modules/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+
+# Large fixture assets that the image build never needs.
+examples/ttrpg/sourcebooks/*.pdf
+examples/**/outputs/
+
+# Local-only / ephemeral.
+tmp/
+*.log
+.env
+.venv/

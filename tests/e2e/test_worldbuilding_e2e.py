@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import textwrap
+from typing import ClassVar
 
 import pytest
 import yaml
@@ -25,9 +26,9 @@ import yaml
 # used below to locate the MCP server entry points under mcp-servers/.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from build_vault_graph import build_graph  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
 
+from build_vault_graph import build_graph  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Vault fixture — interconnected notes matching the requirements doc example
@@ -138,6 +139,7 @@ def vault(tmp_path):
 def _import_vault_graph():
     """Import the vault-graph server module under a distinct name."""
     import importlib.util as ilu
+
     spec = ilu.spec_from_file_location(
         "vault_graph_server",
         os.path.join(REPO_ROOT, "mcp-servers", "vault-graph", "server.py"),
@@ -160,6 +162,7 @@ def vg_server(vault):
 # ---------------------------------------------------------------------------
 # Mock helpers for sourcebooks (R2R mocked)
 # ---------------------------------------------------------------------------
+
 
 def _make_chunk(score=0.95, text="chunk text", metadata=None):
     chunk = MagicMock()
@@ -206,6 +209,7 @@ def _make_docs_response(docs):
 # Import sourcebooks tools (with server module alias to avoid name clash)
 # ---------------------------------------------------------------------------
 
+
 def _import_sourcebooks():
     """Import the sourcebooks server module under a distinct name.
 
@@ -213,6 +217,7 @@ def _import_sourcebooks():
     already on sys.path. Use importlib to load it under a unique module name.
     """
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
         "sourcebooks_server",
         os.path.join(REPO_ROOT, "mcp-servers", "sourcebooks", "server.py"),
@@ -274,16 +279,30 @@ class TestEndToEndWorldbuildingSession:
         with patch.object(_sb_server, "R2RClient") as mock_cls:
             client = mock_cls.return_value
             docs = [
-                _make_doc("d1", "Ch7", metadata={
-                    "book_title": "Dwarf Kingdoms", "system": "D&D 5e",
-                    "publisher": "WotC", "content_type": "lore",
-                    "chapter": "Ch 7", "page_range": "pp. 120-135",
-                }),
-                _make_doc("d2", "Ch1", metadata={
-                    "book_title": "Elven Lore", "system": "Pathfinder",
-                    "publisher": "Paizo", "content_type": "lore",
-                    "chapter": "Ch 1", "page_range": "pp. 1-15",
-                }),
+                _make_doc(
+                    "d1",
+                    "Ch7",
+                    metadata={
+                        "book_title": "Dwarf Kingdoms",
+                        "system": "D&D 5e",
+                        "publisher": "WotC",
+                        "content_type": "lore",
+                        "chapter": "Ch 7",
+                        "page_range": "pp. 120-135",
+                    },
+                ),
+                _make_doc(
+                    "d2",
+                    "Ch1",
+                    metadata={
+                        "book_title": "Elven Lore",
+                        "system": "Pathfinder",
+                        "publisher": "Paizo",
+                        "content_type": "lore",
+                        "chapter": "Ch 1",
+                        "page_range": "pp. 1-15",
+                    },
+                ),
             ]
             client.documents.list = MagicMock(return_value=_make_docs_response(docs))
             output = await _sb_server.list_books()
@@ -297,7 +316,9 @@ class TestEndToEndWorldbuildingSession:
                 _make_chunk(0.93, "The dwarven council system dates back millennia"),
                 _make_chunk(0.87, "Clan elders hold veto power over military action"),
             ]
-            client.retrieval.search = MagicMock(return_value=_make_search_result(chunks))
+            client.retrieval.search = MagicMock(
+                return_value=_make_search_result(chunks)
+            )
             output = await _sb_server.search_lore(query="dwarven politics")
             assert "dwarven council" in output.lower()
             assert "Dwarf Kingdoms" in output
@@ -306,8 +327,12 @@ class TestEndToEndWorldbuildingSession:
         # 3. search_lore (scoped to book)
         with patch.object(_sb_server, "R2RClient") as mock_cls:
             client = mock_cls.return_value
-            chunks = [_make_chunk(0.95, "The Council of Elders governs all trade disputes")]
-            client.retrieval.search = MagicMock(return_value=_make_search_result(chunks))
+            chunks = [
+                _make_chunk(0.95, "The Council of Elders governs all trade disputes")
+            ]
+            client.retrieval.search = MagicMock(
+                return_value=_make_search_result(chunks)
+            )
             output = await _sb_server.search_lore(
                 query="dwarven politics", book="Dwarf Kingdoms"
             )
@@ -315,18 +340,24 @@ class TestEndToEndWorldbuildingSession:
 
             # Verify filter was applied
             call_kwargs = client.retrieval.search.call_args
-            settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+            settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+                "search_settings"
+            )
             assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
         # 4. get_chapter (full chapter text)
         with patch.object(_sb_server, "R2RClient") as mock_cls:
             client = mock_cls.return_value
             chunks = [
-                _make_chunk(text="The Council of Elders was established in the Third Age."),
+                _make_chunk(
+                    text="The Council of Elders was established in the Third Age."
+                ),
                 _make_chunk(text="Each clan sends one representative to the council."),
                 _make_chunk(text="Decisions require a two-thirds majority vote."),
             ]
-            client.retrieval.search = MagicMock(return_value=_make_search_result(chunks))
+            client.retrieval.search = MagicMock(
+                return_value=_make_search_result(chunks)
+            )
             output = await _sb_server.get_chapter(
                 book="Dwarf Kingdoms", chapter="Chapter 7"
             )
@@ -423,7 +454,9 @@ class TestEndToEndWorldbuildingSession:
         assert "success" in reload_result.lower() or "reload" in reload_result.lower()
 
         # 5. Verify new note in graph
-        search_result = await vg_server.vault_search_notes(name_pattern="Ironhold Council")
+        search_result = await vg_server.vault_search_notes(
+            name_pattern="Ironhold Council"
+        )
         assert "Ironhold Council" in search_result
         assert "Factions/Ironhold Council.md" in search_result
 
@@ -469,8 +502,16 @@ class TestNoteQuality:
         [[Thrain Ironbeard]], the eldest and most respected of the elders.
     """)
 
-    VAULT_NOTE_NAMES = {"Overview", "Ironhold", "Thrain Ironbeard", "Dwarven Clans",
-                        "Iron Mountains", "The Forest", "Elven Court", "Ironhold Council"}
+    VAULT_NOTE_NAMES: ClassVar[set[str]] = {
+        "Overview",
+        "Ironhold",
+        "Thrain Ironbeard",
+        "Dwarven Clans",
+        "Iron Mountains",
+        "The Forest",
+        "Elven Court",
+        "Ironhold Council",
+    }
 
     def test_frontmatter_schema_faction(self):
         """Validate the generated note's frontmatter has required Faction fields."""
@@ -478,8 +519,15 @@ class TestNoteQuality:
         assert fm_match
         fm = yaml.safe_load(fm_match.group(1))
 
-        required_fields = ["type", "aliases", "faction", "location",
-                           "description", "alignment", "tags"]
+        required_fields = [
+            "type",
+            "aliases",
+            "faction",
+            "location",
+            "description",
+            "alignment",
+            "tags",
+        ]
         for field in required_fields:
             assert field in fm, f"Missing required Faction field: {field}"
 
@@ -552,7 +600,9 @@ class TestCanonHierarchy:
         assert "trading hub" in ironhold_content
 
         # Simulate source book saying something different
-        source_book_text = "Ironhold is an isolationist fortress, sealed from outsiders."
+        source_book_text = (
+            "Ironhold is an isolationist fortress, sealed from outsiders."
+        )
 
         # Generate content following canon hierarchy rule:
         # vault > source books. The generated note should use vault's version.

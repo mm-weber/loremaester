@@ -61,7 +61,6 @@ R2R is used **only for search and ingestion** — embedding, vector storage, and
 - [ ] An Obsidian vault with TTRPG worldbuilding notes
 - [ ] PDF sourcebooks (optional — the system works with just the vault)
 - [ ] Docker + Docker Compose on the host (**required** to run R2R)
-- [ ] `pdfplumber` on the host for PDF type detection: `uv pip install pdfplumber`
 - [ ] (Optional) For client-side OCR without Docker Full Mode: the system `tesseract` binary (`tesseract-ocr`)
 
 ### System Requirements for OCR Tools (Optional)
@@ -74,12 +73,24 @@ sudo apt install tesseract-ocr
 
 # macOS
 brew install tesseract
-
-# Python packages
-uv pip install pdfplumber
 ```
 
+The Python OCR libraries (`pdfplumber`, `pypdfium2`, `pytesseract`) are declared inline in each script's PEP 723 metadata, so `uv run --no-project scripts/...` resolves them per invocation — no host-level Python install needed.
+
 > **Note:** The default client-side OCR path renders pages with **pypdfium2** (a self-contained wheel pulled in by `uv run`, no poppler needed) and OCRs each page with the system `tesseract` binary (above). `scripts/ingest_books.py` and `scripts/extract_text.py` use this pypdfium2 path. The opt-in **EasyOCR** backend brings its own (torch-based) OCR instead (see Step 4). Full Mode OCRs server-side via Unstructured.io. (Note: the one-off `scripts/ocr_preprocess.py` helper still uses pdf2image, which needs `poppler-utils`/`brew install poppler` — but the ingestion path does not.)
+
+### macOS / Docker Desktop: one-time preflight
+
+The devcontainer forwards your host's SSH agent into the container (for `git push` over SSH) by bind-mounting `$SSH_AUTH_SOCK`. On **macOS / Docker Desktop**, the real `SSH_AUTH_SOCK` points at a launchd socket that Docker Desktop's VM cannot bind-mount, so you have to point the env var at the stable in-VM path Docker Desktop manufactures for exactly this purpose:
+
+```bash
+# Add to ~/.zshrc (or your shell init) on macOS, one-time setup
+export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+```
+
+The devcontainer CLI reads `SSH_AUTH_SOCK` from the shell that *launches* the editor, so on macOS launch VS Code from a terminal (`source ~/.zshrc && code .`) rather than double-clicking it from the Dock or Spotlight. GUI-launched apps don't inherit shell-init env vars, so the export only takes effect for terminal-launched VS Code. Skipping this preflight produces `Error: bind source path does not exist: ...` from the `docker run` step and the container fails to start.
+
+Linux hosts work out of the box as long as an `ssh-agent` is running (otherwise `SSH_AUTH_SOCK` is empty and you hit the same error). If your host has no SSH agent at all (Windows without ssh-agent, fully headless setups), remove the SSH mount line from `.devcontainer/devcontainer.json` and use HTTPS plus a personal access token for git auth instead.
 
 ---
 
@@ -158,10 +169,17 @@ cd -
 **Start the stack** (Postgres and MinIO sit behind compose profiles):
 
 ```bash
+# macOS / Docker Desktop
 docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
+
+# Linux: layer in the additive Linux-only port override
+# (see docker/compose.linux.yaml) so the devcontainer can reach R2R via
+# the docker0 bridge gateway
+docker compose -f docker/compose.yaml -f docker/compose.linux.yaml \
+  --profile postgres --profile minio up -d
 ```
 
-> **macOS/Docker Desktop:** delete the `172.17.0.1:7272:7272` line under the `r2r` service in `docker/compose.yaml` first — it's a Linux-only bind (it keeps R2R off the host LAN while still reachable from the devcontainer); `127.0.0.1` alone works on Docker Desktop.
+> **Why two forms?** The base `compose.yaml` binds R2R only to host loopback (off the LAN). macOS routes the devcontainer's `host.docker.internal:7272` to that binding via Docker Desktop's NAT, so the base file alone works. Linux's `host.docker.internal` instead resolves to the docker0 bridge gateway (typically `172.17.0.1`), which the loopback bind does not cover, so `docker/compose.linux.yaml` adds a second binding on that IP via compose's additive `ports`-array merge. Set `export COMPOSE_FILE=docker/compose.yaml:docker/compose.linux.yaml` once in your shell init on Linux if you'd rather not pass `-f` on every invocation.
 
 | Service | Port | Purpose |
 |---------|------|---------|
@@ -250,7 +268,13 @@ The shipped defaults are safe for local, single-user development:
 From the repository root:
 
 ```bash
+# macOS / Docker Desktop
 docker compose -f docker/compose.full.yaml --profile postgres up -d
+
+# Linux: layer in the Linux-only port override (same reasoning as Light
+# Mode above) so the devcontainer can reach R2R via the docker0 bridge gateway
+docker compose -f docker/compose.full.yaml -f docker/compose.linux.yaml \
+  --profile postgres up -d
 ```
 
 This starts the following services:
@@ -368,8 +392,8 @@ Only `book_title` is required. The sourcebooks MCP server uses it for `search_lo
 ### Single PDF
 
 ```bash
-# Install the R2R CLI if not already available
-uv pip install r2r
+# Install the project's runtime deps (includes the R2R CLI; single source: requirements.txt)
+uv pip install -r requirements.txt
 
 r2r documents create /path/to/book.pdf \
   --metadata '{"book_title": "Core Rulebook"}'
@@ -557,14 +581,14 @@ The note and edge counts will vary based on your vault size.
 ### 6a. Install Python dependencies in the devcontainer
 
 ```bash
-uv pip install mcp r2r pyyaml
+uv pip install -r requirements.txt
 ```
 
 Or with a virtual environment:
 
 ```bash
 uv venv .venv && source .venv/bin/activate
-uv pip install mcp r2r pyyaml
+uv pip install -r requirements.txt
 ```
 
 ### 6b. Edit `.claude/settings.json`

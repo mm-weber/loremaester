@@ -5,3 +5,25 @@ testpaths = ["tests", "scripts", "mcp-servers/sourcebooks", "mcp-servers/vault-g
 filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = [
+  ".pnpm-store",
+  "node_modules",
+  "obsidian_vaults",
+  "tmp",
+  "tasks",
+]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF"]
+# Let `ruff format` own line-length so we do not double-flag with E501.
+ignore = ["E501"]
+
+# E402 ("module-level import not at top of file") is handled per-instance with
+# explicit `# noqa: E402` markers at the import lines in test files (pytest's
+# sys.path setup runs above the import). Per-instance noqa keeps the suppression
+# visible to human readers; a blanket per-file-ignores would make ruff flag the
+# existing markers as redundant (RUF100).

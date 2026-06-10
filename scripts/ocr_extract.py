@@ -19,10 +19,11 @@ Backends: tesseract (default, CPU) and easyocr (GPU opt-in, via one reused
 Reader). Both are Apache-2.0; pypdfium2 is Apache/BSD — a fully permissive
 footprint. Consumed by ingest_books.py and extract_text.py via ocr_pdf().
 """
-from dataclasses import dataclass, field
+
 import io
 import os
 import types
+from dataclasses import dataclass, field
 
 LOW_CONFIDENCE_THRESHOLD = 0.7
 RENDER_SCALE = 2.78  # pdfium scale 1.0 = 72 dpi; 2.78 ≈ 200 dpi
@@ -30,6 +31,7 @@ FULL_PAGE_IMAGE_FRAC = 0.95
 
 try:
     import pypdfium2
+
     _HAS_PYPDFIUM2 = True
 except ModuleNotFoundError:
     pypdfium2 = types.ModuleType("pypdfium2")
@@ -37,6 +39,7 @@ except ModuleNotFoundError:
 
 try:
     import pytesseract
+
     _HAS_TESSERACT = True
 except ModuleNotFoundError:
     pytesseract = types.ModuleType("pytesseract")
@@ -44,6 +47,7 @@ except ModuleNotFoundError:
 
 try:
     import easyocr
+
     _HAS_EASYOCR = True
 except ModuleNotFoundError:
     easyocr = types.ModuleType("easyocr")
@@ -51,6 +55,7 @@ except ModuleNotFoundError:
 
 try:
     import pdfplumber
+
     _HAS_PDFPLUMBER = True
 except ModuleNotFoundError:
     pdfplumber = types.ModuleType("pdfplumber")
@@ -59,12 +64,15 @@ except ModuleNotFoundError:
 
 def _require(available, package, install_hint):
     if not available:
-        raise RuntimeError(f"{package} is not installed. Install it with: {install_hint}")
+        raise RuntimeError(
+            f"{package} is not installed. Install it with: {install_hint}"
+        )
 
 
 def _cuda_available():
     try:
         import torch
+
         return bool(torch.cuda.is_available())
     except Exception:
         return False
@@ -72,7 +80,9 @@ def _cuda_available():
 
 def resolve_engine(requested):
     if requested == "easyocr" and not _cuda_available():
-        print("  OCR: easyocr requested but no usable CUDA GPU — falling back to tesseract (CPU).")
+        print(
+            "  OCR: easyocr requested but no usable CUDA GPU — falling back to tesseract (CPU)."
+        )
         return "tesseract"
     return requested
 
@@ -111,7 +121,11 @@ def render_pages(pdf_path, page_range=None):
 
 def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=None):
     if engine == "tesseract":
-        _require(_HAS_TESSERACT, "pytesseract", "pip install pytesseract (and the system 'tesseract' binary)")
+        _require(
+            _HAS_TESSERACT,
+            "pytesseract",
+            "pip install pytesseract (and the system 'tesseract' binary)",
+        )
         text = pytesseract.image_to_string(image)
         data = pytesseract.image_to_data(image, output_type="dict")
         confs = [int(c) for c in data["conf"] if int(c) != -1]
@@ -120,9 +134,13 @@ def ocr_image(image, page_number=1, engine="tesseract", language="eng", reader=N
     elif engine == "easyocr":
         buf = io.BytesIO()
         image.save(buf, format="PNG")
-        results = reader.readtext(buf.getvalue(), detail=1)  # list of (bbox, text, conf)
+        results = reader.readtext(
+            buf.getvalue(), detail=1
+        )  # list of (bbox, text, conf)
         text = "\n".join(t for (_, t, _) in results)
-        confidence = (sum(c for (_, _, c) in results) / len(results)) if results else 0.0
+        confidence = (
+            (sum(c for (_, _, c) in results) / len(results)) if results else 0.0
+        )
         return PageOcrResult(page_number=page_number, text=text, confidence=confidence)
     raise ValueError(f"Unsupported OCR engine: {engine}")
 
@@ -142,8 +160,15 @@ def _finalize(pages, pdf_path):
         )
     content = "\n\n".join(f"[Page {p.page_number}]\n{p.text}" for p in pages)
     mean_confidence = (sum(p.confidence for p in pages) / len(pages)) if pages else 0.0
-    low_confidence_pages = [p.page_number for p in pages if p.confidence < LOW_CONFIDENCE_THRESHOLD]
-    return OcrExtraction(content=content, pages=pages, mean_confidence=mean_confidence, low_confidence_pages=low_confidence_pages)
+    low_confidence_pages = [
+        p.page_number for p in pages if p.confidence < LOW_CONFIDENCE_THRESHOLD
+    ]
+    return OcrExtraction(
+        content=content,
+        pages=pages,
+        mean_confidence=mean_confidence,
+        low_confidence_pages=low_confidence_pages,
+    )
 
 
 def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
@@ -152,7 +177,9 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
     # whole document in a single call (that is the kreuzberg failure we avoid).
     reader = make_reader(language) if engine == "easyocr" else None
     pages = [
-        ocr_image(img, page_number=i + 1, engine=engine, language=language, reader=reader)
+        ocr_image(
+            img, page_number=i + 1, engine=engine, language=language, reader=reader
+        )
         for i, img in enumerate(images)
     ]
     return _finalize(pages, pdf_path)
@@ -187,14 +214,37 @@ def extract_pdf(pdf_path, engine="tesseract", language="eng"):
                     page_img = rendered[i]
                     sx = page_img.width / page.width
                     sy = page_img.height / page.height
-                    box = (int(img["x0"] * sx), int(img["top"] * sy), int(img["x1"] * sx), int(img["bottom"] * sy))
-                    res = ocr_image(page_img.crop(box), page_number=i + 1, engine=engine, language=language, reader=reader)
+                    box = (
+                        int(img["x0"] * sx),
+                        int(img["top"] * sy),
+                        int(img["x1"] * sx),
+                        int(img["bottom"] * sy),
+                    )
+                    res = ocr_image(
+                        page_img.crop(box),
+                        page_number=i + 1,
+                        engine=engine,
+                        language=language,
+                        reader=reader,
+                    )
                     if res.text.strip():
                         figure_texts.append(res.text.strip())
-                page_text = text if not figure_texts else text + "\n" + "\n".join(figure_texts)
-                pages.append(PageOcrResult(page_number=i + 1, text=page_text, confidence=1.0))
+                page_text = (
+                    text if not figure_texts else text + "\n" + "\n".join(figure_texts)
+                )
+                pages.append(
+                    PageOcrResult(page_number=i + 1, text=page_text, confidence=1.0)
+                )
             else:
                 if rendered is None:
                     rendered = render_pages(pdf_path)
-                pages.append(ocr_image(rendered[i], page_number=i + 1, engine=engine, language=language, reader=reader))
+                pages.append(
+                    ocr_image(
+                        rendered[i],
+                        page_number=i + 1,
+                        engine=engine,
+                        language=language,
+                        reader=reader,
+                    )
+                )
     return _finalize(pages, pdf_path)

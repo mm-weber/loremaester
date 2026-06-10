@@ -14,6 +14,8 @@ The sourcebooks design review is the open v0.2 backlog.
 | **R-1** — Remove kreuzberg (functional + license liability) | ✅ Done (`remove-kreuzberg_20260606`) |
 | **R-2** — Consolidate the overlapping OCR code paths | ✅ Done — `ingest_books.py` + `extract_text.py` share `scripts/ocr_extract.py`; `ocr_preprocess.py` stays standalone by design |
 | **R-3** — End-to-end collection support | ⬜ Open (v0.2) |
+| **R-4** — Migrate dependency declarations to `pyproject.toml` `[project]` | ⬜ Open (v0.2) |
+| **R-5** — Supply-chain auto-updates: Dependabot (digest-pinned images + GitHub Actions) | ⬜ Open (v0.2). Config staged at `specs/v0.2/dependabot.yml` (out of `.github/`; GitHub validates that path even when commented). |
 | **Sourcebooks MCP design review** (issues 1–7) | ⬜ Open (v0.2) — not addressed in v0.1 |
 
 **Also delivered in v0.1 release prep** (beyond the original requirements):
@@ -309,3 +311,77 @@ The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` M
 is desired, add a `--collection` option to the ingest/verify scripts **and** collection filtering
 to the sourcebooks server so retrieval honors it. (v0.1 docs intentionally omit `--collection`
 because it is not wired end-to-end.)
+
+### R-4 — Migrate Python dependency declarations to `pyproject.toml` `[project]` — ⬜ OPEN (v0.2)
+
+**Context:** `requirements.txt` + `requirements-dev.txt` landed as the short-term single-source-of-truth fix
+for REVIEW.md item 6 (Python deps had been drifting across Dockerfile, CI, README, quickstart, and
+troubleshooting). PEP 621's `[project]` table in `pyproject.toml` is the more modern home for this
+metadata and aligns the repo with the broader Python packaging ecosystem. This entry records the
+deferred follow-up.
+
+**Motivation:**
+
+- Single configuration file: the repo already has a `pyproject.toml` (currently pytest-config-only).
+- Clean separation of runtime vs test deps via `[project.optional-dependencies]` (or PEP 735
+  `[dependency-groups]`).
+- Future-proof for ruff/black configuration (REVIEW.md item 7) and other tooling.
+- Plays nicely with `uv sync` / `uv.lock` for reproducible installs.
+
+**Requirement (EARS):**
+
+- THE project SHALL declare runtime dependencies in `pyproject.toml`'s `[project].dependencies` table.
+- THE project SHALL declare test dependencies in `pyproject.toml`'s `[project.optional-dependencies].test`
+  group.
+- THE project SHALL declare a minimal `[build-system]` (likely `hatchling`) so that `pip install -e .`
+  and `pip install -e ".[test]"` install the dependencies without requiring a packaged Python module
+  layout.
+- THE `.devcontainer/Dockerfile` SHALL install via `pip install -e ".[test]"` rather than
+  `-r requirements*.txt`.
+- THE `.github/workflows/tests.yml` SHALL install via `pip install -e ".[test]"`.
+- THE `requirements.txt` and `requirements-dev.txt` files SHALL be removed once the migration lands.
+- THE PEP 723 scripts under `scripts/` SHALL retain their inline metadata blocks (they are
+  intentionally self-contained and run via `uv run --no-project`).
+
+**Effort:** Modest. The dep lists from `requirements*.txt` map directly onto pyproject sections. The
+Dockerfile change requires verifying `pip install -e .` works against a `hatchling` config that
+declares no source packages (metadata-only install, since the project's "code" lives in three
+separate `mcp-servers/*/server.py` files without a packaged layout). The CI workflow change is
+trivial.
+
+**Out of scope:** Migrating script-level PEP 723 inline deps into pyproject. Those stay
+self-contained intentionally.
+
+### R-5 — Supply-chain auto-updates: Dependabot — ⬜ OPEN (v0.2)
+
+**Context:** v0.1 pins every container image by `sha256` digest (the compose stacks and the
+devcontainer base) and the GitHub Actions by tag, but ships **without** an automated updater — so the
+pins are reproducible yet frozen until someone re-pins by hand. A ready-to-use `dependabot.yml` is **staged at `specs/v0.2/dependabot.yml`**, deliberately outside
+`.github/`: GitHub validates `.github/dependabot.yml` on every push and rejects a config with no active
+`version:` key, so a commented-out file cannot sit there. Activating it is deferred here to keep v0.1's
+scope small.
+
+**Motivation:**
+
+- Pins without an updater drift from "hardened" to "stale" — frozen digests stop receiving CVE patches.
+- Dependabot restores patching as **reviewable** PRs (image digest/tag bumps + Action bumps) — the
+  natural complement to digest pinning.
+
+**Requirement (EARS):**
+
+- THE repository SHALL ship an active `.github/dependabot.yml` covering the `docker` ecosystem
+  (`/.devcontainer` for the Dockerfile, `/docker` for `compose.yaml`) and `github-actions` (`/`).
+- THE config SHALL group updates per ecosystem on a weekly schedule to limit PR noise.
+- Dependabot version updates SHALL be enabled in repo **Settings → Code security**, and the config
+  SHALL live on the **default branch** (Dependabot reads it only there).
+
+**Effort:** Low. The config already exists, ready to use, at `specs/v0.2/dependabot.yml`. Picking it up
+is: `git mv specs/v0.2/dependabot.yml .github/dependabot.yml`, enable in Settings, and have it on the
+default branch.
+
+**Out of scope / caveats:** Dependabot's `docker` ecosystem auto-detects the Dockerfile and the
+**standard-named** `docker/compose.yaml` only — `compose.full.yaml` / `compose.app.yaml` /
+`compose.infra.yaml` (non-standard filenames) will NOT be auto-tracked; re-pin those manually
+(`docker buildx imagetools inspect <ref>`) or add a small `docker/pin-images.sh` re-pinner. Add a
+`pip` ecosystem to track the Python manifest too — `requirements*.txt` (this branch) or the
+`pyproject.toml [project]` from **R-4** once it lands.

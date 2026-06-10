@@ -4,14 +4,13 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-import server  # noqa: E402
-from server import search_lore, list_books, get_chapter  # noqa: E402
-
+import server
+from server import get_chapter, list_books, search_lore
 
 # ---------------------------------------------------------------------------
 # Mock helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_chunk(score=0.95, text="chunk text", metadata=None):
     """Create a mock search chunk with worldbuilding metadata."""
@@ -62,6 +61,7 @@ def _make_docs_response(docs):
 # TestSearchLore
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 class TestSearchLore:
     @patch("server.R2RClient")
@@ -70,12 +70,16 @@ class TestSearchLore:
         client = mock_client_cls.return_value
         chunks = [
             _make_chunk(score=0.95, text="Deep roads were carved by ancient dwarves"),
-            _make_chunk(score=0.82, text="The forge halls echo with hammers", metadata={
-                "book_title": "Dwarf Kingdoms",
-                "chapter": "Chapter 4: The Forge",
-                "page_range": "pp. 53-60",
-                "content_type": "lore",
-            }),
+            _make_chunk(
+                score=0.82,
+                text="The forge halls echo with hammers",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "chapter": "Chapter 4: The Forge",
+                    "page_range": "pp. 53-60",
+                    "content_type": "lore",
+                },
+            ),
         ]
         client.retrieval.search = MagicMock(return_value=_make_search_result(chunks))
 
@@ -93,48 +97,64 @@ class TestSearchLore:
     async def test_hybrid_search_default(self, mock_client_cls):
         """SearchSettings called with use_hybrid_search=True"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await search_lore(query="test")
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["use_hybrid_search"] is True
 
     @patch("server.R2RClient")
     async def test_filter_by_book(self, mock_client_cls):
         """book='Dwarf Kingdoms' -> filters contain book_title.$eq"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await search_lore(query="test", book="Dwarf Kingdoms")
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
 
     @patch("server.R2RClient")
     async def test_filter_by_content_type(self, mock_client_cls):
         """content_type='lore' -> filters contain content_type.$eq"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await search_lore(query="test", content_type="lore")
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["filters"]["content_type"] == {"$eq": "lore"}
 
     @patch("server.R2RClient")
     async def test_combined_filters(self, mock_client_cls):
         """book + content_type both set -> both filters present"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await search_lore(query="test", book="Dwarf Kingdoms", content_type="lore")
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
         assert settings["filters"]["content_type"] == {"$eq": "lore"}
 
@@ -142,24 +162,32 @@ class TestSearchLore:
     async def test_default_limit_5(self, mock_client_cls):
         """No limit arg -> SearchSettings called with limit=5"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await search_lore(query="test")
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["limit"] == 5
 
     @patch("server.R2RClient")
     async def test_custom_limit(self, mock_client_cls):
         """limit=10 -> SearchSettings called with limit=10"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await search_lore(query="test", limit=10)
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["limit"] == 10
 
     @patch("server.R2RClient")
@@ -177,6 +205,7 @@ class TestSearchLore:
 # TestListBooks
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 class TestListBooks:
     @patch("server.R2RClient")
@@ -184,21 +213,42 @@ class TestListBooks:
         """3 docs, 2 same book_title -> output groups by book, shows publisher/system/content_type/count"""
         client = mock_client_cls.return_value
         docs = [
-            _make_doc(doc_id="d1", title="Ch1", metadata={
-                "book_title": "Dwarf Kingdoms", "system": "D&D 5e",
-                "publisher": "WotC", "content_type": "lore",
-                "chapter": "Ch 1", "page_range": "pp. 1-20",
-            }),
-            _make_doc(doc_id="d2", title="Ch2", metadata={
-                "book_title": "Dwarf Kingdoms", "system": "D&D 5e",
-                "publisher": "WotC", "content_type": "lore",
-                "chapter": "Ch 2", "page_range": "pp. 21-40",
-            }),
-            _make_doc(doc_id="d3", title="ElvenLore", metadata={
-                "book_title": "Elven Lore", "system": "Pathfinder",
-                "publisher": "Paizo", "content_type": "bestiary",
-                "chapter": "Ch 1", "page_range": "pp. 1-15",
-            }),
+            _make_doc(
+                doc_id="d1",
+                title="Ch1",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "system": "D&D 5e",
+                    "publisher": "WotC",
+                    "content_type": "lore",
+                    "chapter": "Ch 1",
+                    "page_range": "pp. 1-20",
+                },
+            ),
+            _make_doc(
+                doc_id="d2",
+                title="Ch2",
+                metadata={
+                    "book_title": "Dwarf Kingdoms",
+                    "system": "D&D 5e",
+                    "publisher": "WotC",
+                    "content_type": "lore",
+                    "chapter": "Ch 2",
+                    "page_range": "pp. 21-40",
+                },
+            ),
+            _make_doc(
+                doc_id="d3",
+                title="ElvenLore",
+                metadata={
+                    "book_title": "Elven Lore",
+                    "system": "Pathfinder",
+                    "publisher": "Paizo",
+                    "content_type": "bestiary",
+                    "chapter": "Ch 1",
+                    "page_range": "pp. 1-15",
+                },
+            ),
         ]
         client.documents.list = MagicMock(return_value=_make_docs_response(docs))
 
@@ -236,6 +286,7 @@ class TestListBooks:
 # TestGetChapter
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 class TestGetChapter:
     @patch("server.R2RClient")
@@ -262,12 +313,16 @@ class TestGetChapter:
     async def test_filter_construction(self, mock_client_cls):
         """book='X', chapter='Ch 3' -> filters: book_title.$eq + chapter.$ilike with %Ch 3%"""
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(return_value=_make_search_result([_make_chunk()]))
+        client.retrieval.search = MagicMock(
+            return_value=_make_search_result([_make_chunk()])
+        )
 
         await get_chapter(book="Dwarf Kingdoms", chapter="Ch 3")
 
         call_kwargs = client.retrieval.search.call_args
-        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get("search_settings")
+        settings = call_kwargs.kwargs.get("search_settings") or call_kwargs[1].get(
+            "search_settings"
+        )
         assert settings["filters"]["book_title"] == {"$eq": "Dwarf Kingdoms"}
         assert settings["filters"]["chapter"] == {"$ilike": "%Ch 3%"}
 
@@ -296,6 +351,7 @@ class TestGetChapter:
 # TestServerSetup
 # ---------------------------------------------------------------------------
 
+
 class TestServerSetup:
     def test_server_name(self):
         """mcp.name == 'Worldbuilding Source Books'"""
@@ -312,6 +368,7 @@ class TestServerSetup:
     def test_client_uses_env_var(self, mock_client_cls):
         """Set R2R_API_BASE env -> _get_client() uses the env value"""
         from server import _get_client
+
         _get_client()
         mock_client_cls.assert_called_with("http://custom:9999")
 
@@ -321,5 +378,6 @@ class TestServerSetup:
         """No env var -> _get_client() uses http://localhost:7272"""
         os.environ.pop("R2R_API_BASE", None)
         from server import _get_client
+
         _get_client()
         mock_client_cls.assert_called_with("http://localhost:7272")

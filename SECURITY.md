@@ -46,7 +46,7 @@ These are targets, not guarantees — this is a small, maintainer-driven project
 
 This project assumes a **single-user, single-tenant** deployment: R2R + Ollama run on your host, and Claude Code runs in a sandboxed devcontainer that reaches them over `host.docker.internal`. The devcontainer is the security boundary — its threat model (a compromised agent context via prompt injection or a poisoned dependency), the host-R2R-not-Docker-in-Docker decision, the egress firewall, and the locked-down posture are documented in **[`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md)**. Multi-tenant or shared-host deployments need explicit additional hardening — please reach out before deploying that way.
 
-**Supply chain.** All container images — the host compose stacks and the devcontainer base — are pinned by **`sha256` digest** (not floating tags), so builds are reproducible and an upstream tag can't be silently repointed. Automated digest/version updates via [Dependabot](https://docs.github.com/code-security/dependabot) are **staged for v0.2** (`.github/dependabot.yml` ships commented out); for v0.1, re-pin manually when bumping versions.
+**Supply chain.** All container images — the host compose stacks and the devcontainer base — are pinned by **`sha256` digest** (not floating tags), so builds are reproducible and an upstream tag can't be silently repointed. Automated digest/version updates via [Dependabot](https://docs.github.com/code-security/dependabot) are **staged for v0.2** (a ready-to-use config sits at `specs/v0.2/dependabot.yml`, kept out of `.github/` so GitHub does not validate it yet); for v0.1, re-pin manually when bumping versions.
 
 ## Disclosure
 

@@ -8,6 +8,116 @@ may still change between minor versions.
 
 ## [Unreleased]
 
+### Security
+- **`.devcontainer/init-firewall.sh`**: dropped `vscode.blob.core.windows.net`
+  and `update.code.visualstudio.com` from the egress allowlist. The standard
+  VS Code Desktop + Reopen-in-Container flow installs the VS Code Server via
+  a client-side tunnel and handles version coordination, so the container
+  itself needs neither direct CDN access nor an update-check endpoint.
+  Narrowing the trust surface; re-add if an extension fails to fetch assets
+  at runtime (symptom: denied iptables hits to the respective domain).
+- **`.devcontainer/devcontainer.json`**: added
+  `"telemetry.telemetryLevel": "off"` to `customizations.vscode.settings`.
+  Stops VS Code Server's periodic POSTs to `mobile.events.data.microsoft.com`
+  (which were continuously failing against the egress firewall and generating
+  ongoing log noise). Aligned with the trust-narrowing posture above.
+
+### Added
+- **`ruff` (lint + format) gated in CI** (REVIEW.md item 7): new
+  `[tool.ruff]` config in `pyproject.toml` with the starter ruleset
+  (E, W, F, I, B, UP, SIM, RUF), `target-version = "py310"`, line length 88.
+  `.github/workflows/tests.yml` runs `ruff check .` and `ruff format --check .`
+  before pytest as a merge gate. `ruff` added to `requirements-dev.txt`
+  (`>= 0.7`). The starter ruleset includes `RUF013` (implicit-Optional),
+  which catches the type-hint bugs REVIEW.md item 8 called out.
+- **`requirements.txt`** and **`requirements-dev.txt`** (new files): single
+  source of truth for Python runtime and test dependencies. `mcp` and `r2r`
+  are pinned exactly (the volatile ones REVIEW.md item 6 called out); test
+  deps mix exact and floor pins. The Dockerfile, CI workflow, README,
+  quickstart, troubleshooting, and CONTRIBUTING docs now all install via
+  `pip install -r requirements*.txt`, replacing six divergent inline
+  `pip install <bare list>` lines. The follow-up migration to a
+  `pyproject.toml` `[project]` table is recorded as R-4 in
+  `specs/v0.2/specs_v0.2.md`.
+- **`.dockerignore`** (new file): pairs with the devcontainer build-context
+  expansion below. Excludes `.git/`, `.pnpm-store/`, `node_modules/`,
+  bundled-PDF fixtures, and `__pycache__` from the build context tarball so
+  image builds stay quick.
+- **`docker/compose.linux.yaml`** (new file): Linux-only port override that
+  adds a second binding for the `r2r` service on the docker0 bridge gateway
+  (typically `172.17.0.1:7272:7272`). Compose merges `ports` arrays by
+  concatenation, so layering this file on top of either `compose.yaml` or
+  `compose.full.yaml` produces a dual binding. Documented in
+  `docs/quickstart.md` Step 2 (both Light and Full Mode invocations),
+  `docs/demo-walkthrough.md` Step 5, and a new `docs/troubleshooting.md`
+  entry covering the silent-refused symptom on Linux when the override is
+  skipped.
+
+### Changed
+- **`.devcontainer/devcontainer.json`**: SSH-agent mount source restored to
+  `${localEnv:SSH_AUTH_SOCK}`. The macOS-validation pass had hardcoded it to
+  Docker Desktop's `/run/host-services/ssh-auth.sock`, which made the devcontainer
+  fail to start on Linux hosts (`bind source path does not exist`). macOS users
+  now run a one-time shell-init `export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock`
+  and launch VS Code from a terminal, documented in `docs/quickstart.md`,
+  `docs/demo-walkthrough.md`, and `docs/troubleshooting.md`.
+- **`docker/compose.yaml`** and **`docker/compose.full.yaml`**: the r2r
+  service's Linux-only `172.17.0.1:7272:7272` binding has moved out of the
+  base files into the new `docker/compose.linux.yaml` override. Both compose
+  entry points are now cross-platform safe by default (loopback-only).
+  Replaces the previous "delete the 172.17.0.1 line manually on macOS"
+  callout in the docs.
+- **Renamed `requirements/` to `specs/`** (and the inner
+  `requirements_v0.2.md` to `specs_v0.2.md`) to remove the
+  Python-pip-deps double-take. Documentation only; no code paths or
+  tooling read from the directory. References updated in `README.md`,
+  `docs/design.md`, `THIRD_PARTY_NOTICES.md`, and the four conductor
+  artifacts that cite the v0.2 spec as evidence. `REVIEW.md` is left
+  untouched as a frozen review snapshot.
+- **`.devcontainer/Dockerfile`** and **`.devcontainer/devcontainer.json`**:
+  build context expanded to the repo root via `"context": ".."` so the
+  Dockerfile can `COPY requirements.txt requirements-dev.txt /tmp/` at
+  image-build time. The two existing context-relative `COPY` directives
+  (`init-firewall.sh`, `entrypoint.sh`) are now prefixed with
+  `.devcontainer/`. The pip-install step at line 64 reads from
+  `requirements-dev.txt` instead of an inline package list; `uv` is
+  installed as a separate step (it is a tool, not a runtime dep).
+- **`docs/quickstart.md`**: removed the `uv pip install pdfplumber` host
+  prereq and the matching install line in the OCR System Requirements
+  block. The PEP 723 scripts that need `pdfplumber` declare it inline and
+  `uv run --no-project` resolves it per invocation, so the manual host
+  install was redundant.
+- **`mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py`** — defensive attribute
+  access dropped (REVIEW.md item 10): `search`, `list_documents`, and
+  `list_collections` now use bare attribute access (`chunk.score`,
+  `doc.title`, `coll.name`, etc.) instead of
+  `getattr(obj, "...", default)`. This matches the sourcebooks server's
+  style and intentionally chooses fail-loud-on-schema-drift over
+  silent-default-fallback. Rationale: the R2R dep may be replaced in
+  the future, and defensive getattrs only hide drift that we'd
+  otherwise want to discover and adapt to immediately. The wrapper's
+  unit tests already set every attribute explicitly on the test mocks,
+  so they continue to pass.
+
+### Fixed
+- **Implicit-Optional type hints in three MCP tool signatures** (REVIEW.md
+  item 8): `mcp-servers/sourcebooks/server.py:18` (`search_lore`'s `book` and
+  `content_type` params), `mcp-servers/vault-graph/server.py:169`
+  (`vault_central_notes`'s `tag` param), and
+  `mcp-servers/vault-graph/server.py:196` (`vault_search_notes`'s
+  `name_pattern`, `tag`, `note_type` params). Each `X: str = None` rewritten
+  as `X: str | None = None`. These signatures are exposed to Claude as MCP
+  tool schemas, so the fix corrects the schema the model sees as well as
+  satisfying ruff's `RUF013`.
+- **Dead `"{n} of {n} chunks"` output in `r2r_mcp_wrapper.search()`**
+  (REVIEW.md item 11): the trailing summary line read
+  `f"Returned {len(chunks)} of {len(chunks)} chunks (limit: {limit})"` —
+  both halves of "of" were the same variable, so it always printed
+  `Returned N of N chunks`. The original intent was clearly "actual vs
+  requested"; rewritten as `Returned {n} chunk(s); requested up to {limit}`
+  to restate that without the duplication. Test assertions updated to
+  match.
+
 ## [0.1.0] - 2026-06-08
 
 First public release.
@@ -33,7 +143,7 @@ First public release.
 ### Known limitations
 - Linux/macOS hosts only (Windows unsupported); single-stack deployment is supported (the multi-instance
   variant ships but is unvalidated); the domain schema is TTRPG-specific. See
-  `requirements/v0.2/requirements_v0.2.md` for the v0.2 backlog (R-3 collection support + the
+  `specs/v0.2/specs_v0.2.md` for the v0.2 backlog (R-3 collection support + the
   sourcebooks MCP design review).
 
 [Unreleased]: https://github.com/mm-weber/R2R-ClaudeCode-integration/compare/v0.1.0...HEAD

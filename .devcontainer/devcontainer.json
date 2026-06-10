@@ -2,6 +2,10 @@
   "name": "R2R-ClaudeCode-integration",
   "build": {
     "dockerfile": "Dockerfile",
+    // Build context is the repo root (not .devcontainer/) so the Dockerfile
+    // can COPY requirements.txt / requirements-dev.txt from the repo root.
+    // See .dockerignore for the trees excluded from the context tarball.
+    "context": "..",
     "options": ["--network=host"],
     "args": {
       "TZ": "${localEnv:TZ:America/Los_Angeles}",
@@ -30,6 +34,11 @@
       "settings": {
         "editor.formatOnSave": false,
         "terminal.integrated.defaultProfile.linux": "bash",
+        // Stops VS Code Server's periodic POSTs to
+        // mobile.events.data.microsoft.com — which were continuously failing
+        // against the egress firewall and generating ongoing log noise.
+        // Aligned with the firewall-narrowing posture in init-firewall.sh.
+        "telemetry.telemetryLevel": "off",
         "files.watcherExclude": {
           "**/node_modules/**": true,
           "**/.git/objects/**": true
@@ -50,9 +59,17 @@
   "mounts": [
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
-    // SSH agent forwarding from host (for git push/pull via SSH).
-    // If the host has no SSH agent (e.g. Windows without ssh-agent),
-    // remove this mount and use HTTPS+PAT for git auth instead.
+    // SSH agent forwarding from host (for git push/pull via SSH). The
+    // devcontainer CLI resolves ${localEnv:SSH_AUTH_SOCK} from the shell
+    // that launched VS Code / `devcontainer up`. macOS / Docker Desktop:
+    // the default launchd ssh-agent socket cannot be bind-mounted into
+    // Docker Desktop's VM, so set
+    //   export SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+    // in your shell init and launch VS Code from that shell (`code .`).
+    // See docs/quickstart.md "macOS / Docker Desktop: one-time preflight".
+    // If the host has no SSH agent (Windows, headless), remove this mount
+    // and the matching containerEnv SSH_AUTH_SOCK line below, then use
+    // HTTPS + a personal access token for git auth instead.
     "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
   ],
 

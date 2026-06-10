@@ -19,7 +19,7 @@ Files touched by this plan:
 Files referenced (read-only) but not modified:
 
 - `docs/superpowers/specs/2026-06-09-readme-marketing-design.md` (the source of all section bodies).
-- `docs/demo-walkthrough.md`, `docs/quickstart.md`, `docs/design.md`, `ATTRIBUTION.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, `.devcontainer/SecurityReview.md`, `requirements/v0.2/requirements_v0.2.md` (link targets verified to exist in Task 4).
+- `docs/demo-walkthrough.md`, `docs/quickstart.md`, `docs/design.md`, `ATTRIBUTION.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, `.devcontainer/SecurityReview.md`, `specs/v0.2/specs_v0.2.md` (link targets verified to exist in Task 4).
 
 ---
 
@@ -190,7 +190,7 @@ SECURITY.md
 LICENSE
 THIRD_PARTY_NOTICES.md
 .devcontainer/SecurityReview.md
-requirements/v0.2/requirements_v0.2.md
+specs/v0.2/specs_v0.2.md
 ```
 
 - [ ] **Step 3: Confirm no `THIRD_PARTY_LICENSES.md` ghost references remain in `README.md`**

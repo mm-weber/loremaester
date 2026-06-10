@@ -1,12 +1,20 @@
 """Tests for verify_ingestion.py"""
+
 import sys
 from unittest.mock import MagicMock, patch
+
 import pytest
 from verify_ingestion import (
-    is_garbled, CheckResult, VerificationReport,
-    check_document_exists, check_chunk_count, check_text_quality,
-    check_search_coherence, format_verification_report, run_verification,
+    CheckResult,
+    VerificationReport,
+    check_chunk_count,
+    check_document_exists,
+    check_search_coherence,
+    check_text_quality,
+    format_verification_report,
+    is_garbled,
     main,
+    run_verification,
 )
 
 
@@ -43,14 +51,14 @@ class TestCheckDocumentExists:
         client = MagicMock()
         client.documents.retrieve.return_value.results.ingestion_status = "success"
         client.documents.retrieve.return_value.results.metadata = {}
-        result, status, metadata, doc_info = check_document_exists(client, "7a3f")
+        result, status, _metadata, _doc_info = check_document_exists(client, "7a3f")
         assert result == CheckResult("Document exists", "PASS", "status: success")
         assert status == "success"
 
     def test_document_not_found_returns_fail(self):
         client = MagicMock()
         client.documents.retrieve.side_effect = Exception("Not found")
-        result, status, metadata, doc_info = check_document_exists(client, "7a3f")
+        result, _status, _metadata, _doc_info = check_document_exists(client, "7a3f")
         assert result.status == "FAIL"
         assert "not found" in result.message.lower()
 
@@ -133,8 +141,15 @@ class TestRunVerification:
     @patch("verify_ingestion.check_text_quality")
     @patch("verify_ingestion.check_chunk_count")
     @patch("verify_ingestion.check_document_exists")
-    def test_pipeline_runs_all_checks(self, mock_exists, mock_chunks, mock_quality, mock_search):
-        mock_exists.return_value = (CheckResult("Document exists", "PASS", "ok"), "success", {}, MagicMock())
+    def test_pipeline_runs_all_checks(
+        self, mock_exists, mock_chunks, mock_quality, mock_search
+    ):
+        mock_exists.return_value = (
+            CheckResult("Document exists", "PASS", "ok"),
+            "success",
+            {},
+            MagicMock(),
+        )
         mock_chunks.return_value = CheckResult("Chunk count", "PASS", "ok")
         mock_quality.return_value = CheckResult("Text quality", "PASS", "ok")
         mock_search.return_value = CheckResult("Search coherence", "PASS", "ok")
@@ -156,11 +171,17 @@ class TestCLI:
             document_id="7a3f",
             checks=[CheckResult("Document exists", "PASS", "ok")],
         )
-        monkeypatch.setattr(sys, "argv", [
-            "verify_ingestion.py",
-            "--document-id", "7a3f",
-            "--book-title", "Monster Manual",
-        ])
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "verify_ingestion.py",
+                "--document-id",
+                "7a3f",
+                "--book-title",
+                "Monster Manual",
+            ],
+        )
         main()
         output = capsys.readouterr().out
         assert "Verification: Monster Manual" in output

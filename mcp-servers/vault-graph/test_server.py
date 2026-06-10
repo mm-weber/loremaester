@@ -101,6 +101,7 @@ def server(vault_dir):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _reload_server_with_env(vault_path):
     """Reload the server module with a given VAULT_PATH."""
     import importlib
@@ -146,13 +147,14 @@ class TestServerSetup:
         """VAULT_PATH env var sets the vault path."""
         os.environ["VAULT_PATH"] = vault_dir
         server_mod = _reload_server_with_env(vault_dir)
-        assert server_mod.VAULT_PATH == vault_dir
+        assert vault_dir == server_mod.VAULT_PATH
 
     def test_default_vault_path(self):
         """No env var → defaults to /workspace/vault."""
         if "VAULT_PATH" in os.environ:
             del os.environ["VAULT_PATH"]
         import importlib
+
         import server as mod
 
         importlib.reload(mod)
@@ -233,7 +235,11 @@ class TestVaultBacklinks:
     @pytest.mark.asyncio
     async def test_no_backlinks(self, server):
         result = await _call(server, "vault_backlinks", note="Overview")
-        assert "no backlinks" in result.lower() or "none" in result.lower() or "0" in result
+        assert (
+            "no backlinks" in result.lower()
+            or "none" in result.lower()
+            or "0" in result
+        )
 
     @pytest.mark.asyncio
     async def test_nonexistent_note(self, server):
@@ -269,11 +275,15 @@ class TestVaultCentralNotes:
     @pytest.mark.asyncio
     async def test_custom_limit(self, server):
         result = await _call(server, "vault_central_notes", limit=2)
-        # Count the number of notes listed — should be at most 2
-        # We'll check that not all 6 notes appear
-        lines = [l for l in result.strip().split("\n") if l.strip()]
-        # At least verify it's a constrained result, not all 6 notes
-        note_names = ["Overview", "Ironhold", "The Forest", "Dwarven Clans", "Thrain Ironbeard", "Ironhold Council"]
+        # Verify the result is constrained — not all 6 notes should appear.
+        note_names = [
+            "Overview",
+            "Ironhold",
+            "The Forest",
+            "Dwarven Clans",
+            "Thrain Ironbeard",
+            "Ironhold Council",
+        ]
         found = sum(1 for name in note_names if name in result)
         assert found <= 2
 
@@ -305,7 +315,9 @@ class TestVaultSearchNotes:
 
     @pytest.mark.asyncio
     async def test_combined_filters(self, server):
-        result = await _call(server, "vault_search_notes", name_pattern="iron", tag="faction")
+        result = await _call(
+            server, "vault_search_notes", name_pattern="iron", tag="faction"
+        )
         # AND logic: name contains "iron" AND tag is "faction" → only Ironhold Council
         assert "Ironhold Council" in result
         # Ironhold (location, not faction) should not match
@@ -330,7 +342,7 @@ class TestVaultReloadCache:
     async def test_reload_updates_data(self, server, vault_dir):
         # Add a new node to the graph file on disk
         graph_path = os.path.join(vault_dir, ".graph.json")
-        with open(graph_path, "r") as f:
+        with open(graph_path) as f:
             graph = json.load(f)
         graph["nodes"]["New Note"] = {
             "path": "New/Note.md",
@@ -347,7 +359,9 @@ class TestVaultReloadCache:
         assert "7" in result or "reload" in result.lower()
 
         # Verify new data is accessible
-        search_result = await _call(server, "vault_search_notes", name_pattern="New Note")
+        search_result = await _call(
+            server, "vault_search_notes", name_pattern="New Note"
+        )
         assert "New Note" in search_result
 
     @pytest.mark.asyncio
@@ -422,7 +436,11 @@ class TestGraphMissing:
             # No .graph.json in this directory
             server_mod = _reload_server_with_env(tmpdir)
             result = await _call(server_mod, "vault_graph", note="Anything")
-            assert "build" in result.lower() or "missing" in result.lower() or "not found" in result.lower()
+            assert (
+                "build" in result.lower()
+                or "missing" in result.lower()
+                or "not found" in result.lower()
+            )
 
     @pytest.mark.asyncio
     async def test_malformed_graph_file(self):
@@ -432,4 +450,8 @@ class TestGraphMissing:
                 f.write("{invalid json!!!")
             server_mod = _reload_server_with_env(tmpdir)
             result = await _call(server_mod, "vault_graph", note="Anything")
-            assert "error" in result.lower() or "malformed" in result.lower() or "invalid" in result.lower()
+            assert (
+                "error" in result.lower()
+                or "malformed" in result.lower()
+                or "invalid" in result.lower()
+            )

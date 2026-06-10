@@ -232,7 +232,7 @@ This is a v0.1 release. The honest gaps:
 
 - **Windows hosts.** Linux and macOS are the supported and validated platforms for v0.1. The Ollama install path and `host.docker.internal` networking diverge on Windows and haven't been tested.
 - **Non-TTRPG domain adaptation.** The `sourcebooks` MCP server's metadata schema (`book_title` / `chapter` / `page_range`) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic) is on the v0.2 roadmap.
-- **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`requirements/v0.2/requirements_v0.2.md`](requirements/v0.2/requirements_v0.2.md).
+- **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`specs/v0.2/specs_v0.2.md`](specs/v0.2/specs_v0.2.md).
 ```
 
 ### 5.8. Contributing & community
@@ -268,7 +268,7 @@ See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for full attribution and 
 | **ADD** | "See it in 30 minutes" conversion section | Was previously buried under the Documentation list. |
 | **ADD** | "4 Claude Code skills" subsection table | Skills are currently mentioned but not pitched. |
 | **ADD** | "Hardened devcontainer" subsection | Surfaces the security work that is currently invisible in the README. |
-| **ADD** | "What's not included (yet)" honesty section | Sourced from `requirements/v0.2/` and `docs/demo-walkthrough.md`. |
+| **ADD** | "What's not included (yet)" honesty section | Sourced from `specs/v0.2/` and `docs/demo-walkthrough.md`. |
 | **ADD** | Related-work paragraph inside the techie section | Karpathy convergent-design + claude-obsidian sibling line. |
 | **KEEP** | Architecture ASCII diagram | Sharpened: shows all 4 skills, marks devcontainer as hardened. |
 | **KEEP** | 3 MCP servers table | Moved under "What's inside", "Purpose" relabeled "Role", lightly tightened. |

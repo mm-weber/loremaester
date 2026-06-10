@@ -211,13 +211,13 @@ Mirror R2R's own framing: "hybrid semantic + keyword search with reciprocal rank
 >
 > - **Windows hosts.** Linux and macOS are the supported and validated platforms for v0.1. The Ollama install path and `host.docker.internal` networking diverge on Windows and haven't been tested.
 > - **Non-TTRPG domain adaptation.** The `sourcebooks` MCP server's metadata schema (`book_title` / `chapter` / `page_range`) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic) is on the v0.2 roadmap.
-> - **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`requirements/v0.2/requirements_v0.2.md`](requirements/v0.2/requirements_v0.2.md).
+> - **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`specs/v0.2/specs_v0.2.md`](specs/v0.2/specs_v0.2.md).
 
 ### Sourcing trail
 
 - **Windows hosts:** `docs/demo-walkthrough.md` host-prereqs table ("Windows is not currently supported") + "Out of scope for v0.1" list.
 - **Non-TTRPG adaptation:** `docs/demo-walkthrough.md` "Out of scope for v0.1" item 1.
-- **End-to-end collection scoping:** `requirements/v0.2/requirements_v0.2.md` R-3 (status "Open" / v0.2).
+- **End-to-end collection scoping:** `specs/v0.2/specs_v0.2.md` R-3 (status "Open" / v0.2).
 
 ## "What's inside" section (LOCKED 2026-06-09)
 

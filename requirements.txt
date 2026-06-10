@@ -1,0 +1,17 @@
+# Runtime dependencies for the MCP servers and user-facing setup.
+# Single source of truth: also referenced by .devcontainer/Dockerfile,
+# .github/workflows/tests.yml (via requirements-dev.txt), README.md,
+# docs/quickstart.md, and docs/troubleshooting.md.
+#
+# Volatile deps (mcp, r2r) are pinned exactly per REVIEW item 6;
+# pyyaml is floor-pinned because it is stable and often satisfied by
+# the system package on Debian-based hosts.
+#
+# Script-level deps (pypdfium2, pytesseract, pdfplumber, etc.) are NOT
+# listed here: the scripts in scripts/ are PEP 723 single-file scripts
+# that declare their own deps inline and run via `uv run --no-project`.
+# Test-only deps live in requirements-dev.txt.
+
+mcp==1.27.2
+r2r==3.6.6
+pyyaml>=6.0

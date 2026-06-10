@@ -60,8 +60,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && ln -sf /usr/bin/python3 /usr/bin/python \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# MCP server runtime deps + uv (PEP 723 inline scripts) — baked in for reliability
-RUN pip install --break-system-packages mcp r2r pyyaml pytest uv
+# MCP server runtime + test deps (single source of truth: requirements*.txt
+# at the repo root, made reachable by `context: ".."` in devcontainer.json)
+# plus uv for the PEP 723 inline scripts. Baked in for reliability and
+# to keep image-build-time install cached across rebuilds.
+COPY requirements.txt requirements-dev.txt /tmp/
+RUN pip install --break-system-packages -r /tmp/requirements-dev.txt && \
+  pip install --break-system-packages uv
 
 # ============================================================
 # Standard devcontainer plumbing
@@ -103,13 +108,13 @@ ENV VISUAL=nano
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Firewall script (run from ENTRYPOINT as root; no sudoers rule needed)
-COPY init-firewall.sh /usr/local/bin/
+COPY .devcontainer/init-firewall.sh /usr/local/bin/
 USER root
 RUN chmod +x /usr/local/bin/init-firewall.sh
 
 # Entrypoint: runs as root (containerUser: "root" in devcontainer.json),
 # initializes the egress firewall, then exec's the container CMD.
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["sh", "-c", "while sleep 1 & wait $!; do :; done"]

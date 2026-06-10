@@ -78,8 +78,20 @@ done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[] | select(test(":") | 
 
 # ============================================================
 # Allowed domains
-# Stock:     npm, Anthropic, Sentry, Statsig, VS Code
+# Stock:     npm, Anthropic, Sentry, Statsig, VS Code (partial; see REMOVED)
 # ADDED:     Python (PyPI + uv via astral.sh)
+# REMOVED:
+#   * vscode.blob.core.windows.net — opaque Azure CDN; the standard
+#     VS Code Desktop + Reopen-in-Container flow tunnels the server
+#     install via the client, so the container never needs direct CDN
+#     access. Re-add if an extension fails to fetch assets at runtime
+#     (symptom: silent extension load failure with denied iptables hits
+#     to *.blob.core.windows.net).
+#   * update.code.visualstudio.com — VS Code Server self-update check.
+#     Version coordination is handled by the VS Code Client; the
+#     container does not need to self-update. Removal silences the
+#     periodic background fetch attempts and the resulting log noise;
+#     no functional impact.
 # To extend: just add more domains to this list
 # ============================================================
 for domain in \
@@ -91,8 +103,6 @@ for domain in \
     "statsig.anthropic.com" \
     "statsig.com" \
     "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com" \
     "pypi.org" \
     "files.pythonhosted.org" \
     "astral.sh" \
@@ -129,6 +139,16 @@ echo "Host gateway detected as: $HOST_IP"
 # Responses return via the ESTABLISHED rule below. This replaces the prior
 # whole-/24 carve-out; see .devcontainer/SecurityReview.md.
 iptables -A OUTPUT -d "$HOST_IP" -p tcp -m multiport --dports 7272,11434 -j ACCEPT
+
+# Docker Desktop (macOS/Windows): host.docker.internal is a dedicated host
+# address (e.g. 192.168.65.254), NOT the default-route gateway detected above.
+# Allow whatever host.docker.internal currently resolves to (IPv4), on the same
+# host-service ports, so the MCP servers can reach R2R/Ollama on Docker Desktop.
+HDI_IP=$(getent ahostsv4 host.docker.internal | awk '{print $1}' | head -1)
+if [ -n "$HDI_IP" ] && [ "$HDI_IP" != "$HOST_IP" ]; then
+    echo "Allowing host.docker.internal at $HDI_IP on 7272,11434 (Docker Desktop)"
+    iptables -A OUTPUT -d "$HDI_IP" -p tcp -m multiport --dports 7272,11434 -j ACCEPT
+fi
 
 # Set default policies to DROP
 iptables -P INPUT DROP

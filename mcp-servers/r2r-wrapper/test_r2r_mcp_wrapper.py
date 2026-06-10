@@ -8,11 +8,10 @@ full document lifecycle, R2R_API_BASE env configuration, and edge cases
 """
 
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
-
 import r2r_mcp_wrapper
 from r2r_mcp_wrapper import (
     _get_client,
@@ -20,10 +19,8 @@ from r2r_mcp_wrapper import (
     ingest_document,
     list_collections,
     list_documents,
-    mcp,
     search,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -87,7 +84,8 @@ class TestSearch:
         assert "### Result 1 (score: 0.95)" in output
         assert "[Source: Doc | Type: pdf]" in output
         assert "chunk text" in output
-        assert "Returned 2 of 2 chunks" in output
+        assert "Returned 2 chunk(s)" in output
+        assert "requested up to 5" in output
 
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_default_limit_is_5(self, mock_client_cls):
@@ -168,9 +166,7 @@ class TestSearch:
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_error(self, mock_client_cls):
         client = mock_client_cls.return_value
-        client.retrieval.search = MagicMock(
-            side_effect=Exception("Connection refused")
-        )
+        client.retrieval.search = MagicMock(side_effect=Exception("Connection refused"))
 
         output = await search(query="test")
 
@@ -232,9 +228,9 @@ class TestIngestDocument:
         )
 
         call_kwargs = client.documents.create.call_args
-        assert call_kwargs.kwargs.get(
-            "metadata", call_kwargs[1].get("metadata")
-        ) == {"key": "val"}
+        assert call_kwargs.kwargs.get("metadata", call_kwargs[1].get("metadata")) == {
+            "key": "val"
+        }
         assert call_kwargs.kwargs.get(
             "collection_ids", call_kwargs[1].get("collection_ids")
         ) == ["col1"]
@@ -242,9 +238,7 @@ class TestIngestDocument:
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_ingest_error(self, mock_client_cls):
         client = mock_client_cls.return_value
-        client.documents.create = MagicMock(
-            side_effect=Exception("Ingest failed")
-        )
+        client.documents.create = MagicMock(side_effect=Exception("Ingest failed"))
 
         output = await ingest_document(raw_text="hello")
 
@@ -303,9 +297,7 @@ class TestListDocuments:
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_list_documents_error(self, mock_client_cls):
         client = mock_client_cls.return_value
-        client.documents.list = MagicMock(
-            side_effect=Exception("List failed")
-        )
+        client.documents.list = MagicMock(side_effect=Exception("List failed"))
 
         output = await list_documents()
 
@@ -337,9 +329,7 @@ class TestDeleteDocument:
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_delete_error(self, mock_client_cls):
         client = mock_client_cls.return_value
-        client.documents.delete = MagicMock(
-            side_effect=Exception("Delete failed")
-        )
+        client.documents.delete = MagicMock(side_effect=Exception("Delete failed"))
 
         output = await delete_document(document_id="bad-id")
 
@@ -383,9 +373,7 @@ class TestListCollections:
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_list_collections_error(self, mock_client_cls):
         client = mock_client_cls.return_value
-        client.collections.list = MagicMock(
-            side_effect=Exception("Collections failed")
-        )
+        client.collections.list = MagicMock(side_effect=Exception("Collections failed"))
 
         output = await list_collections()
 
@@ -439,7 +427,9 @@ class TestSmokeFlow:
         ingest_result.results.message = "Document created"
         client.documents.create = MagicMock(return_value=ingest_result)
 
-        output = await ingest_document(raw_text="Mithril veins run deep beneath Ironhold.", title="Ironhold Lore")
+        output = await ingest_document(
+            raw_text="Mithril veins run deep beneath Ironhold.", title="Ironhold Lore"
+        )
         assert "Document ingested successfully" in output
         assert str(DOC_UUID) in output
         assert "Ironhold Lore" in output
@@ -469,7 +459,7 @@ class TestSmokeFlow:
         output = await search(query="mithril mining")
         assert "mithril mining" in output.lower() or "Mithril" in output
         assert "0.91" in output
-        assert "Returned 1 of 1 chunks" in output
+        assert "Returned 1 chunk(s)" in output
 
         # -- 4. delete_document --
         client.documents.delete = MagicMock(return_value=MagicMock())
@@ -496,7 +486,9 @@ class TestEnvironmentConfig:
 
     @patch("r2r_mcp_wrapper.R2RClient")
     def test_get_client_reads_R2R_API_BASE(self, mock_client_cls):
-        with patch.dict(os.environ, {"R2R_API_BASE": "http://custom-host:9999"}, clear=False):
+        with patch.dict(
+            os.environ, {"R2R_API_BASE": "http://custom-host:9999"}, clear=False
+        ):
             _get_client()
         mock_client_cls.assert_called_once_with("http://custom-host:9999")
 
@@ -536,7 +528,7 @@ class TestEdgeCases:
         client.retrieval.search = MagicMock(return_value=search_result)
 
         output = await search(query="nonexistent")
-        assert "Returned 0 of 0 chunks" in output
+        assert "Returned 0 chunk(s)" in output
         assert "Error" not in output
 
     @patch("r2r_mcp_wrapper.R2RClient")

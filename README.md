@@ -123,7 +123,7 @@ docker compose -f docker/compose.yaml --profile postgres --profile minio up -d
 uv run --no-project scripts/build_vault_graph.py /path/to/vault
 
 # 4. Install MCP dependencies (inside the devcontainer)
-pip install mcp r2r pyyaml
+pip install -r requirements.txt
 
 # 5. Configure MCP servers in .claude/settings.json (see docs/quickstart.md)
 ```
@@ -136,7 +136,7 @@ This is a v0.1 release. The honest gaps:
 
 - **Windows hosts.** Linux and macOS are the supported and validated platforms for v0.1. The Ollama install path and `host.docker.internal` networking diverge on Windows and haven't been tested.
 - **Non-TTRPG domain adaptation.** The `sourcebooks` MCP server's metadata schema (`book_title` / `chapter` / `page_range`) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic) is on the v0.2 roadmap.
-- **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`requirements/v0.2/requirements_v0.2.md`](requirements/v0.2/requirements_v0.2.md).
+- **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`specs/v0.2/specs_v0.2.md`](specs/v0.2/specs_v0.2.md).
 
 ## Contributing & community
 

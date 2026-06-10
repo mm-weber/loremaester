@@ -1,5 +1,6 @@
 """Vault Graph MCP server — navigate the vault's wikilink graph."""
 
+import contextlib
 import importlib.util
 import json
 import os
@@ -19,7 +20,9 @@ _graph = {"nodes": {}, "edges": [], "metadata": {}}
 # Load the builder script by path so vault_rebuild_graph can call it in-process.
 # Fail soft: if the builder isn't reachable, the server still starts and the
 # other tools work; only vault_rebuild_graph surfaces an error.
-_BUILDER_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "build_vault_graph.py"
+_BUILDER_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "scripts" / "build_vault_graph.py"
+)
 _builder = None
 try:
     _spec = importlib.util.spec_from_file_location("build_vault_graph", _BUILDER_PATH)
@@ -33,14 +36,12 @@ def _load_graph():
     """Load .graph.json from disk into module-level _graph."""
     global _graph, GRAPH_PATH
     GRAPH_PATH = os.path.join(VAULT_PATH, ".graph.json")
-    with open(GRAPH_PATH, "r") as f:
+    with open(GRAPH_PATH) as f:
         _graph = json.load(f)
 
 
-try:
+with contextlib.suppress(FileNotFoundError, json.JSONDecodeError):
     _load_graph()
-except (FileNotFoundError, json.JSONDecodeError):
-    pass
 
 
 def _check_graph() -> str | None:
@@ -49,7 +50,7 @@ def _check_graph() -> str | None:
         if not os.path.exists(GRAPH_PATH):
             return "Error: .graph.json not found. Run vault_rebuild_graph to create it."
         try:
-            with open(GRAPH_PATH, "r") as f:
+            with open(GRAPH_PATH) as f:
                 json.load(f)
         except json.JSONDecodeError:
             return "Error: .graph.json is malformed (invalid JSON). Run vault_rebuild_graph to regenerate."
@@ -76,7 +77,9 @@ def _staleness_summary() -> str:
                 newest_mtime = m
     if newer_count == 0:
         return ""
-    newest_iso = datetime.fromtimestamp(newest_mtime, tz=timezone.utc).isoformat(timespec="seconds")
+    newest_iso = datetime.fromtimestamp(newest_mtime, tz=timezone.utc).isoformat(
+        timespec="seconds"
+    )
     return f" STALE: {newer_count} .md file(s) modified since last build (newest: {newest_iso})."
 
 
@@ -166,7 +169,7 @@ async def vault_backlinks(note: str) -> str:
 
 
 @mcp.tool()
-async def vault_central_notes(tag: str = None, limit: int = 10) -> str:
+async def vault_central_notes(tag: str | None = None, limit: int = 10) -> str:
     """Rank notes by connection count (degree centrality), with optional tag filter."""
     err = _check_graph()
     if err:
@@ -186,14 +189,21 @@ async def vault_central_notes(tag: str = None, limit: int = 10) -> str:
     if not ranked:
         return "No notes found matching the filter."
 
-    lines = [f"## Most Connected Notes" + (f" (tag: {tag})" if tag else "") + "\n"]
+    lines = ["## Most Connected Notes" + (f" (tag: {tag})" if tag else "") + "\n"]
     for name, degree, data in ranked:
-        lines.append(f"- {name} — {degree} connections ({data['type']}) — {data['path']}")
+        lines.append(
+            f"- {name} — {degree} connections ({data['type']}) — {data['path']}"
+        )
     return "\n".join(lines)
 
 
 @mcp.tool()
-async def vault_search_notes(name_pattern: str = None, tag: str = None, note_type: str = None, limit: int = 20) -> str:
+async def vault_search_notes(
+    name_pattern: str | None = None,
+    tag: str | None = None,
+    note_type: str | None = None,
+    limit: int = 20,
+) -> str:
     """Search notes by name, tag, and/or type with AND logic."""
     err = _check_graph()
     if err:
@@ -209,7 +219,11 @@ async def vault_search_notes(name_pattern: str = None, tag: str = None, note_typ
         raw_type = data.get("type")
         if note_type:
             if isinstance(raw_type, list):
-                if not any(t.lower() == note_type.lower() for t in raw_type if isinstance(t, str)):
+                if not any(
+                    t.lower() == note_type.lower()
+                    for t in raw_type
+                    if isinstance(t, str)
+                ):
                     continue
             elif not isinstance(raw_type, str) or raw_type.lower() != note_type.lower():
                 continue
@@ -222,9 +236,11 @@ async def vault_search_notes(name_pattern: str = None, tag: str = None, note_typ
     if not results:
         return "No notes found matching the search criteria."
 
-    lines = [f"## Search Results\n"]
+    lines = ["## Search Results\n"]
     for name, data, degree in results:
-        lines.append(f"- {name} ({data['type']}) — {data['path']} — {degree} connections")
+        lines.append(
+            f"- {name} ({data['type']}) — {data['path']} — {degree} connections"
+        )
     return "\n".join(lines)
 
 

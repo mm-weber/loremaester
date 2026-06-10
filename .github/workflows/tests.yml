@@ -18,7 +18,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio mcp pydantic pyyaml pandas r2r pdfplumber
+          pip install -r requirements-dev.txt
+
+      - name: Lint and format check (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
 
       - name: Run tests
         run: |
