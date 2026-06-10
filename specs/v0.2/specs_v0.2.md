@@ -315,8 +315,8 @@ because it is not wired end-to-end.)
 ### R-4 — Migrate Python dependency declarations to `pyproject.toml` `[project]` — ⬜ OPEN (v0.2)
 
 **Context:** `requirements.txt` + `requirements-dev.txt` landed as the short-term single-source-of-truth fix
-for REVIEW.md item 6 (Python deps had been drifting across Dockerfile, CI, README, quickstart, and
-troubleshooting). PEP 621's `[project]` table in `pyproject.toml` is the more modern home for this
+for Python deps that had been drifting across Dockerfile, CI, README, quickstart, and
+troubleshooting. PEP 621's `[project]` table in `pyproject.toml` is the more modern home for this
 metadata and aligns the repo with the broader Python packaging ecosystem. This entry records the
 deferred follow-up.
 
@@ -325,7 +325,7 @@ deferred follow-up.
 - Single configuration file: the repo already has a `pyproject.toml` (currently pytest-config-only).
 - Clean separation of runtime vs test deps via `[project.optional-dependencies]` (or PEP 735
   `[dependency-groups]`).
-- Future-proof for ruff/black configuration (REVIEW.md item 7) and other tooling.
+- Future-proof for ruff/black configuration and other tooling.
 - Plays nicely with `uv sync` / `uv.lock` for reproducible installs.
 
 **Requirement (EARS):**

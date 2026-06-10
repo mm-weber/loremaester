@@ -23,16 +23,16 @@ may still change between minor versions.
   ongoing log noise). Aligned with the trust-narrowing posture above.
 
 ### Added
-- **`ruff` (lint + format) gated in CI** (REVIEW.md item 7): new
+- **`ruff` (lint + format) gated in CI**: new
   `[tool.ruff]` config in `pyproject.toml` with the starter ruleset
   (E, W, F, I, B, UP, SIM, RUF), `target-version = "py310"`, line length 88.
   `.github/workflows/tests.yml` runs `ruff check .` and `ruff format --check .`
   before pytest as a merge gate. `ruff` added to `requirements-dev.txt`
   (`>= 0.7`). The starter ruleset includes `RUF013` (implicit-Optional),
-  which catches the type-hint bugs REVIEW.md item 8 called out.
+  which catches the type-hint bugs corrected in the Fixed section below.
 - **`requirements.txt`** and **`requirements-dev.txt`** (new files): single
   source of truth for Python runtime and test dependencies. `mcp` and `r2r`
-  are pinned exactly (the volatile ones REVIEW.md item 6 called out); test
+  are pinned exactly (the volatile ones); test
   deps mix exact and floor pins. The Dockerfile, CI workflow, README,
   quickstart, troubleshooting, and CONTRIBUTING docs now all install via
   `pip install -r requirements*.txt`, replacing six divergent inline
@@ -72,8 +72,7 @@ may still change between minor versions.
   Python-pip-deps double-take. Documentation only; no code paths or
   tooling read from the directory. References updated in `README.md`,
   `docs/design.md`, `THIRD_PARTY_NOTICES.md`, and the four conductor
-  artifacts that cite the v0.2 spec as evidence. `REVIEW.md` is left
-  untouched as a frozen review snapshot.
+  artifacts that cite the v0.2 spec as evidence.
 - **`.devcontainer/Dockerfile`** and **`.devcontainer/devcontainer.json`**:
   build context expanded to the repo root via `"context": ".."` so the
   Dockerfile can `COPY requirements.txt requirements-dev.txt /tmp/` at
@@ -88,7 +87,7 @@ may still change between minor versions.
   `uv run --no-project` resolves it per invocation, so the manual host
   install was redundant.
 - **`mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py`** — defensive attribute
-  access dropped (REVIEW.md item 10): `search`, `list_documents`, and
+  access dropped: `search`, `list_documents`, and
   `list_collections` now use bare attribute access (`chunk.score`,
   `doc.title`, `coll.name`, etc.) instead of
   `getattr(obj, "...", default)`. This matches the sourcebooks server's
@@ -100,8 +99,8 @@ may still change between minor versions.
   so they continue to pass.
 
 ### Fixed
-- **Implicit-Optional type hints in three MCP tool signatures** (REVIEW.md
-  item 8): `mcp-servers/sourcebooks/server.py:18` (`search_lore`'s `book` and
+- **Implicit-Optional type hints in three MCP tool signatures**:
+  `mcp-servers/sourcebooks/server.py:18` (`search_lore`'s `book` and
   `content_type` params), `mcp-servers/vault-graph/server.py:169`
   (`vault_central_notes`'s `tag` param), and
   `mcp-servers/vault-graph/server.py:196` (`vault_search_notes`'s
@@ -109,8 +108,8 @@ may still change between minor versions.
   as `X: str | None = None`. These signatures are exposed to Claude as MCP
   tool schemas, so the fix corrects the schema the model sees as well as
   satisfying ruff's `RUF013`.
-- **Dead `"{n} of {n} chunks"` output in `r2r_mcp_wrapper.search()`**
-  (REVIEW.md item 11): the trailing summary line read
+- **Dead `"{n} of {n} chunks"` output in `r2r_mcp_wrapper.search()`**:
+  the trailing summary line read
   `f"Returned {len(chunks)} of {len(chunks)} chunks (limit: {limit})"` —
   both halves of "of" were the same variable, so it always printed
   `Returned N of N chunks`. The original intent was clearly "actual vs
