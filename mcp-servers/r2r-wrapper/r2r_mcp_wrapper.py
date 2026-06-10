@@ -53,9 +53,9 @@ async def search(
         lines = [f'## Search Results for: "{query}"\n']
 
         for i, chunk in enumerate(chunks, 1):
-            score = getattr(chunk, "score", 0.0)
-            text = getattr(chunk, "text", str(chunk))
-            metadata = getattr(chunk, "metadata", {}) or {}
+            score = chunk.score
+            text = chunk.text
+            metadata = chunk.metadata
             title = metadata.get("title", "Unknown")
             doc_type = metadata.get("document_type", "Unknown")
 
@@ -66,7 +66,7 @@ async def search(
             lines.append("")
             lines.append("---\n")
 
-        lines.append(f"Returned {len(chunks)} of {len(chunks)} chunks (limit: {limit})")
+        lines.append(f"Returned {len(chunks)} chunk(s); requested up to {limit}")
         return "\n".join(lines)
 
     except Exception as e:
@@ -157,10 +157,10 @@ async def list_documents(
 
         lines = ["## Documents\n"]
         for i, doc in enumerate(docs, 1):
-            title = getattr(doc, "title", "Untitled")
-            doc_type = getattr(doc, "document_type", "Unknown")
-            status = getattr(doc, "ingestion_status", "Unknown")
-            doc_id = getattr(doc, "id", "Unknown")
+            title = doc.title
+            doc_type = doc.document_type
+            status = doc.ingestion_status
+            doc_id = doc.id
 
             lines.append(f"{i}. **{title}**")
             lines.append(f"   - Type: {doc_type}")
@@ -217,10 +217,10 @@ async def list_collections(offset: int = 0, limit: int = 20) -> str:
 
         lines = ["## Collections\n"]
         for i, coll in enumerate(collections, 1):
-            name = getattr(coll, "name", "Unnamed")
-            doc_count = getattr(coll, "document_count", 0)
-            created_at = getattr(coll, "created_at", "Unknown")
-            coll_id = getattr(coll, "id", "Unknown")
+            name = coll.name
+            doc_count = coll.document_count
+            created_at = coll.created_at
+            coll_id = coll.id
 
             lines.append(f"{i}. **{name}**")
             lines.append(f"   - Documents: {doc_count}")

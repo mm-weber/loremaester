@@ -84,7 +84,8 @@ class TestSearch:
         assert "### Result 1 (score: 0.95)" in output
         assert "[Source: Doc | Type: pdf]" in output
         assert "chunk text" in output
-        assert "Returned 2 of 2 chunks" in output
+        assert "Returned 2 chunk(s)" in output
+        assert "requested up to 5" in output
 
     @patch("r2r_mcp_wrapper.R2RClient")
     async def test_search_default_limit_is_5(self, mock_client_cls):
@@ -458,7 +459,7 @@ class TestSmokeFlow:
         output = await search(query="mithril mining")
         assert "mithril mining" in output.lower() or "Mithril" in output
         assert "0.91" in output
-        assert "Returned 1 of 1 chunks" in output
+        assert "Returned 1 chunk(s)" in output
 
         # -- 4. delete_document --
         client.documents.delete = MagicMock(return_value=MagicMock())
@@ -527,7 +528,7 @@ class TestEdgeCases:
         client.retrieval.search = MagicMock(return_value=search_result)
 
         output = await search(query="nonexistent")
-        assert "Returned 0 of 0 chunks" in output
+        assert "Returned 0 chunk(s)" in output
         assert "Error" not in output
 
     @patch("r2r_mcp_wrapper.R2RClient")

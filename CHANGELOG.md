@@ -87,6 +87,17 @@ may still change between minor versions.
   block. The PEP 723 scripts that need `pdfplumber` declare it inline and
   `uv run --no-project` resolves it per invocation, so the manual host
   install was redundant.
+- **`mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py`** — defensive attribute
+  access dropped (REVIEW.md item 10): `search`, `list_documents`, and
+  `list_collections` now use bare attribute access (`chunk.score`,
+  `doc.title`, `coll.name`, etc.) instead of
+  `getattr(obj, "...", default)`. This matches the sourcebooks server's
+  style and intentionally chooses fail-loud-on-schema-drift over
+  silent-default-fallback. Rationale: the R2R dep may be replaced in
+  the future, and defensive getattrs only hide drift that we'd
+  otherwise want to discover and adapt to immediately. The wrapper's
+  unit tests already set every attribute explicitly on the test mocks,
+  so they continue to pass.
 
 ### Fixed
 - **Implicit-Optional type hints in three MCP tool signatures** (REVIEW.md
@@ -98,6 +109,14 @@ may still change between minor versions.
   as `X: str | None = None`. These signatures are exposed to Claude as MCP
   tool schemas, so the fix corrects the schema the model sees as well as
   satisfying ruff's `RUF013`.
+- **Dead `"{n} of {n} chunks"` output in `r2r_mcp_wrapper.search()`**
+  (REVIEW.md item 11): the trailing summary line read
+  `f"Returned {len(chunks)} of {len(chunks)} chunks (limit: {limit})"` —
+  both halves of "of" were the same variable, so it always printed
+  `Returned N of N chunks`. The original intent was clearly "actual vs
+  requested"; rewritten as `Returned {n} chunk(s); requested up to {limit}`
+  to restate that without the duplication. Test assertions updated to
+  match.
 
 ## [0.1.0] - 2026-06-08
 
