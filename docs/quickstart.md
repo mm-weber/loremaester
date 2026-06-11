@@ -1,4 +1,4 @@
-# Quickstart: Worldbuilding Assistant for Claude Code
+# Quickstart: Loremaester
 
 > **First time here?** If you want to see the product work end-to-end against bundled demo content (3 sourcebooks, the `Grunvyr_Campaign` vault scaffold, all four GM skills) before configuring your own vault, run through [`demo-walkthrough.md`](./demo-walkthrough.md) first. This quickstart is the reference for setting up *your own* content.
 

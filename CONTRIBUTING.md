@@ -1,4 +1,4 @@
-# Contributing to the Worldbuilding Assistant for Claude Code
+# Contributing to Loremaester
 
 Thanks for your interest in contributing. This is a small, focused project — contributions that match its philosophy land quickly.
 

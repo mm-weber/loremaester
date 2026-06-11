@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-The **Worldbuilding Assistant for Claude Code** is released under the MIT License (see
+**Loremaester** is released under the MIT License (see
 [`LICENSE`](LICENSE)). It does **not** vendor third-party source code — it *orchestrates and
 depends on* the components below, each governed by its own license. This file documents those
 components so users can comply with the relevant terms.

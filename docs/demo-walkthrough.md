@@ -61,8 +61,8 @@ Each step below is marked **(on the host)** or **(in the devcontainer)** so you 
 
 ### 1. Clone the repo
 ```bash
-git clone git@github.com:mm-weber/R2R-ClaudeCode-integration.git
-cd R2R-ClaudeCode-integration
+git clone git@github.com:mm-weber/loremaester.git
+cd loremaester
 ```
 
 ### 2. Open in the devcontainer
@@ -181,18 +181,18 @@ Edit `.mcp.json` so all three servers point at the right paths (replace your rep
   "mcpServers": {
     "r2r": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
+      "args": ["/workspaces/loremaester/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
       "env": {"R2R_API_BASE": "http://host.docker.internal:7272"}
     },
     "sourcebooks": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/sourcebooks/server.py"],
+      "args": ["/workspaces/loremaester/mcp-servers/sourcebooks/server.py"],
       "env": {"R2R_API_BASE": "http://host.docker.internal:7272"}
     },
     "vault-graph": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/vault-graph/server.py"],
-      "env": {"VAULT_PATH": "/workspaces/R2R-ClaudeCode-integration/examples/ttrpg/GM-Vault"}
+      "args": ["/workspaces/loremaester/mcp-servers/vault-graph/server.py"],
+      "env": {"VAULT_PATH": "/workspaces/loremaester/examples/ttrpg/GM-Vault"}
     }
   }
 }
@@ -320,7 +320,7 @@ To replace the Grunvyr_Campaign demo content with your own vault and sourcebooks
 - **Vol III ingest takes a few minutes** — `ingest_books.py` is OCRing 16 image pages client-side with the default tesseract backend (CPU); that's normal. For sharper/GPU OCR, opt into EasyOCR (see [`quickstart.md`](./quickstart.md)). The command blocks until OCR finishes and then ingests, so the two text-native books (which ingest near-instantly) will already show `ingestion: success` in `verify_ingestion.py --all`.
 - **Devcontainer build fails on pip install** — usually a network issue. Verify outbound HTTPS to pypi.org works from the host; try rebuilding (`Dev Containers: Rebuild Container`).
 - **R2R container can't reach Ollama** — verify the host can reach itself at `host.docker.internal:11434` from inside Docker. On Linux, the `--add-host=host.docker.internal:host-gateway` runArg in `devcontainer.json` handles this; on macOS, Docker Desktop maps it automatically.
-- **`/mcp` shows 0 servers** — check that the paths in your `.mcp.json` resolve inside the container. The workspace is mounted at `/workspaces/R2R-ClaudeCode-integration/` (not `/workspace/`).
+- **`/mcp` shows 0 servers** — check that the paths in your `.mcp.json` resolve inside the container. The workspace is mounted at `/workspaces/loremaester/` (not `/workspace/`).
 
 - **MCP servers load but searches fail (e.g. `search_lore` errors)** — the servers (in the devcontainer) can't reach R2R on the host. Confirm `curl http://host.docker.internal:7272/v3/health` works *from inside the devcontainer*, and that each `R2R_API_BASE` in `.mcp.json` is `http://host.docker.internal:7272` (not `localhost`).
 

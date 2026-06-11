@@ -1,10 +1,10 @@
-# Worldbuilding Assistant — Design Document
+# Loremaester: Design Document
 
 ## Project Vision
 
 Tabletop RPG game masters maintain rich, interconnected worldbuilding wikis in Obsidian and own libraries of scanned source books (PDFs). Today these two knowledge bases are siloed — the vault is navigable but manual, and the source books are searchable only through clunky PDF readers.
 
-The Worldbuilding Assistant bridges both sources through Claude Code. A GM opens their Obsidian vault as a workspace, and Claude can read, search, and write vault notes using its native file tools while simultaneously querying scanned source books via R2R semantic search. The result: Claude becomes a worldbuilding collaborator that knows the GM's canon *and* the published lore, and can generate new content that's consistent with both.
+Loremaester bridges both sources through Claude Code. A GM opens their Obsidian vault as a workspace, and Claude can read, search, and write vault notes using its native file tools while simultaneously querying scanned source books via R2R semantic search. The result: Claude becomes a worldbuilding collaborator that knows the GM's canon *and* the published lore, and can generate new content that's consistent with both.
 
 **Key constraint:** This project does NOT create an Obsidian vault. The GM brings their own vault — their existing worldbuilding is canon. We build the infrastructure around it.
 
@@ -162,7 +162,7 @@ MCP is Claude Code's native extension mechanism — stdio-based, composable, and
 This is a single self-contained repository. R2R is consumed as a Docker image (`sciphiai/r2r`) and pip package (`r2r` for the SDK client). No separate R2R fork or clone is needed.
 
 ```
-R2R-ClaudeCode-integration/
+loremaester/
 ├── docker/                    # Docker Compose deployment configs
 │   ├── compose.yaml           # Light mode (recommended): R2R + Postgres + MinIO
 │   ├── compose.infra.yaml     # Shared infrastructure (postgres, hatchet, minio)

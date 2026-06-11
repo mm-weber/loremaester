@@ -1,6 +1,6 @@
 # Attribution
 
-The **Worldbuilding Assistant for Claude Code** is released under the [MIT License](LICENSE). It **orchestrates** the software below rather than vendoring it. This file credits that work; for the exact license terms and redistribution notes (including the **MinIO AGPL-3.0** caveat), see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+**Loremaester** is released under the [MIT License](LICENSE). It **orchestrates** the software below rather than vendoring it. This file credits that work; for the exact license terms and redistribution notes (including the **MinIO AGPL-3.0** caveat), see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Core software
 
@@ -28,4 +28,4 @@ To be clear and fair about provenance: this is an **independent implementation**
 
 ## This project
 
-**Worldbuilding Assistant for Claude Code** — © its contributors, MIT-licensed. Built to run on [Claude Code](https://claude.com/claude-code) (Anthropic).
+**Loremaester** — © its contributors, MIT-licensed. Built to run on [Claude Code](https://claude.com/claude-code) (Anthropic).
