@@ -67,7 +67,7 @@ Full walk-through, including host prereqs and verification steps: [`docs/demo-wa
 ### Architecture
 
 <p align="center">
-  <img src="docs/images/architecture.png" alt="Loremaester architecture" width="100%">
+  <img src="docs/images/architecture.svg" alt="Loremaester architecture" width="100%">
 </p>
 
 R2R runs on the host (heavy services: pgvector, optionally Unstructured.io + Hatchet for Full Mode); Claude Code runs in a hardened devcontainer with MCP servers reaching R2R over the docker bridge via `host.docker.internal:7272`. Full component rationale in [`docs/design.md`](docs/design.md).
