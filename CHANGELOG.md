@@ -23,6 +23,14 @@ may still change between minor versions.
   ongoing log noise). Aligned with the trust-narrowing posture above.
 
 ### Added
+- **`R2R_TIMEOUT` env var (default 1800s)** for the ingest client. Large scanned
+  box sets can take longer than the R2R SDK's 300s default to chunk+embed
+  server-side; `scripts/ingest_books.py` now reads `R2R_TIMEOUT` and passes it to
+  `R2RClient`, so big books no longer fail with `Request failed: timed out` (raise
+  it further for very large corpora). The `r2r` MCP wrapper honors it too (default
+  300s there, since search is fast). Documented in `docs/troubleshooting.md` and
+  `docs/quickstart.md`. `UV_HTTP_TIMEOUT` is unrelated; it governs uv's package
+  downloads only.
 - **`ruff` (lint + format) gated in CI**: new
   `[tool.ruff]` config in `pyproject.toml` with the starter ruleset
   (E, W, F, I, B, UP, SIM, RUF), `target-version = "py310"`, line length 88.
