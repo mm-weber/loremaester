@@ -1,5 +1,5 @@
 {
-  "name": "R2R-ClaudeCode-integration",
+  "name": "Loremaester",
   "build": {
     "dockerfile": "Dockerfile",
     // Build context is the repo root (not .devcontainer/) so the Dockerfile
@@ -84,6 +84,6 @@
     "GIT_SSH_COMMAND": "ssh -o StrictHostKeyChecking=accept-new"
   },
 
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/R2R-ClaudeCode-integration,type=bind,consistency=delegated",
-  "workspaceFolder": "/workspaces/R2R-ClaudeCode-integration"
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/loremaester,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspaces/loremaester"
 }

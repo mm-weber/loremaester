@@ -1,13 +1,13 @@
 # Security Policy
 
-We take the security of the **Worldbuilding Assistant for Claude Code** seriously. Thank you for helping keep it and its users safe.
+We take the security of **Loremaester** seriously. Thank you for helping keep it and its users safe.
 
 ## Reporting a Vulnerability
 
 Please report vulnerabilities **privately** — do not open a public issue.
 
-- **Preferred:** open a [GitHub Security Advisory](https://github.com/mm-weber/R2R-ClaudeCode-integration/security/advisories/new) on this repository.
-- **Email:** `weber_manuel1@gmx.net` with the subject **"R2R-ClaudeCode security"**.
+- **Preferred:** open a [GitHub Security Advisory](https://github.com/mm-weber/loremaester/security/advisories/new) on this repository.
+- **Email:** `weber_manuel1@gmx.net` with the subject **"Loremaester security"**.
 
 Please include:
 

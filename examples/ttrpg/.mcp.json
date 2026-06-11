@@ -2,18 +2,18 @@
   "mcpServers": {
     "r2r": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
+      "args": ["/workspaces/loremaester/mcp-servers/r2r-wrapper/r2r_mcp_wrapper.py"],
       "env": {"R2R_API_BASE": "http://host.docker.internal:7272"}
     },
     "sourcebooks": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/sourcebooks/server.py"],
+      "args": ["/workspaces/loremaester/mcp-servers/sourcebooks/server.py"],
       "env": {"R2R_API_BASE": "http://host.docker.internal:7272"}
     },
     "vault-graph": {
       "command": "python3",
-      "args": ["/workspaces/R2R-ClaudeCode-integration/mcp-servers/vault-graph/server.py"],
-      "env": {"VAULT_PATH": "/workspaces/R2R-ClaudeCode-integration/examples/ttrpg/GM-Vault"}
+      "args": ["/workspaces/loremaester/mcp-servers/vault-graph/server.py"],
+      "env": {"VAULT_PATH": "/workspaces/loremaester/examples/ttrpg/GM-Vault"}
     }
   }
 }

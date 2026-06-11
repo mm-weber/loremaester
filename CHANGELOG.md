@@ -148,5 +148,5 @@ First public release.
   `specs/v0.2/specs_v0.2.md` for the v0.2 backlog (R-3 collection support + the
   sourcebooks MCP design review).
 
-[Unreleased]: https://github.com/mm-weber/R2R-ClaudeCode-integration/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/mm-weber/R2R-ClaudeCode-integration/releases/tag/v0.1.0
+[Unreleased]: https://github.com/mm-weber/loremaester/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/mm-weber/loremaester/releases/tag/v0.1.0

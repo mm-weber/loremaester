@@ -84,10 +84,10 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
 
 ENV DEVCONTAINER=true
 
-RUN mkdir -p /workspaces/R2R-ClaudeCode-integration /home/node/.claude && \
+RUN mkdir -p /workspaces/loremaester /home/node/.claude && \
   chown -R node:node /workspaces /home/node/.claude
 
-WORKDIR /workspaces/R2R-ClaudeCode-integration
+WORKDIR /workspaces/loremaester
 
 # git-delta
 ARG GIT_DELTA_VERSION=0.18.2

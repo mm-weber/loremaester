@@ -1,4 +1,10 @@
-# Worldbuilding Assistant for Claude Code
+<h1 align="center">Loremaester</h1>
+
+<p align="center"><em>A worldbuilding assistant for Claude Code</em></p>
+
+<p align="center">
+  <img src="docs/images/header.gif" alt="Loremaester" width="100%">
+</p>
 
 **Half your canon is on a shelf of scanned PDFs you can't search.
 The other half is in an Obsidian vault Claude can't fully navigate.
@@ -27,7 +33,7 @@ that use it: `worldbuilding`, `session-creation`, `chronik`,
 
 ## Retrieval is a tool here, not the product
 
-Most RAG systems make the LLM a prisoner of the retriever. **The Worldbuilding Assistant makes retrieval a tool the LLM chooses to use.**
+Most RAG systems make the LLM a prisoner of the retriever. **Loremaester makes retrieval a tool the LLM chooses to use.**
 
 Classic RAG caps answer quality at whatever the embedding model coughs up in one shot. If the search misses, the generator hallucinates confidently over bad context. The LLM has no agency over what it sees.
 
@@ -60,22 +66,9 @@ Full walk-through, including host prereqs and verification steps: [`docs/demo-wa
 
 ### Architecture
 
-```
-  HOST MACHINE                                    DEVCONTAINER (hardened)
- ┌───────────────────────────────────┐           ┌────────────────────────────────┐
- │                                   │           │  Claude Code                   │
- │  Ollama (:11434)                  │           │    ├─ r2r MCP server           │
- │  └─ mxbai-embed-large             │           │    ├─ sourcebooks MCP server   │
- │                                   │           │    ├─ vault-graph MCP server   │
- │  R2R Server (:7272)               │◄─────────►│    └─ 4 GM skills              │
- │  ├─ PostgreSQL + pgvector         │  host.    │       (worldbuilding,          │
- │  ├─ Unstructured.io (Full Mode)   │  docker.  │        session-creation,       │
- │  └─ Hatchet (Full Mode)           │  internal │        chronik, vault-scout)   │
- │                                   │           │                                │
- │  R2R Dashboard (:7273)            │           │  Obsidian vault (bind mount)   │
- └───────────────────────────────────┘           │  .graph.json                   │
-                                                 └────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/images/architecture.png" alt="Loremaester architecture" width="100%">
+</p>
 
 R2R runs on the host (heavy services: pgvector, optionally Unstructured.io + Hatchet for Full Mode); Claude Code runs in a hardened devcontainer with MCP servers reaching R2R over the docker bridge via `host.docker.internal:7272`. Full component rationale in [`docs/design.md`](docs/design.md).
 
