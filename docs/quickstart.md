@@ -459,6 +459,12 @@ the CUDA `torch` wheel is multiple GB, and uv's default 30-second per-request HT
 timeout aborts the download on most connections — 600 s (10 min) gives it room (raise
 it further on a slow link). Without it, the GPU run fails before it can ingest anything.
 
+A second, unrelated timeout governs the **ingest request** to R2R (not the download):
+`R2R_TIMEOUT` (seconds, default 1800). Large scanned box sets can take longer than the
+SDK's old 300 s default to chunk and embed server-side, so raise `R2R_TIMEOUT` (e.g.
+`R2R_TIMEOUT=3600`) if a big book still fails with `R2RException: Request failed: timed
+out`. `UV_HTTP_TIMEOUT` does not affect it.
+
 `OCR_ENGINE` selects the engine (`tesseract`, the default | `easyocr`); the
 legacy `KREUZBERG_OCR_ENGINE` is still honored as a fallback. Language codes
 differ by engine: tesseract takes ISO 639-3 three-letter codes

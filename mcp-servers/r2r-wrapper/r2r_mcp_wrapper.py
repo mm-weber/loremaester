@@ -11,7 +11,11 @@ mcp = FastMCP("R2R")
 def _get_client() -> R2RClient:
     """Get an R2R client instance."""
     base_url = os.environ.get("R2R_API_BASE", "http://localhost:7272")
-    return R2RClient(base_url)
+    # Honor R2R_TIMEOUT for parity with scripts/ingest_books.py, but default to
+    # the SDK's 300s (not the ingest script's long default): MCP search is fast,
+    # and a 30-minute default would let a hung call block Claude.
+    timeout = float(os.environ.get("R2R_TIMEOUT", "300"))
+    return R2RClient(base_url, timeout=timeout)
 
 
 @mcp.tool()

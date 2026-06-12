@@ -116,6 +116,23 @@ everything skipped with **0 failed**.
 delete the existing document(s) in R2R first (`r2r documents delete <id>`, or via the dashboard),
 then re-run.
 
+### Ingestion fails on large books: `R2RException: Request failed: timed out`
+**Cause:** The R2R client's HTTP timeout. Large multi-volume scans produce a lot of text, and
+chunking + embedding it server-side (Ollama) can take longer than the timeout, so the client
+gives up mid-ingest. `scripts/ingest_books.py` defaults this to 1800 s; the bare R2R SDK default
+is 300 s. `UV_HTTP_TIMEOUT` does **not** affect it; that only governs uv's package downloads.
+
+**Fix:** Raise `R2R_TIMEOUT` (seconds) for the run, e.g.:
+```bash
+R2R_TIMEOUT=3600 OCR_ENGINE=easyocr uv run --no-project --python 3.12 \
+  --with easyocr --with 'torch==2.9.1+cu126' \
+  --extra-index-url https://download.pytorch.org/whl/cu126 \
+  --index-strategy unsafe-best-match \
+  scripts/ingest_books.py /path/to/sourcebooks/
+```
+The script continues past a failed book, so re-running with a higher `R2R_TIMEOUT` picks up the
+ones that timed out (already-ingested books are SKIPPED, so it stays idempotent).
+
 ### `torch` warns `CUDA initialization: driver too old (found version 12080)`
 
 **Cause:** The default PyPI `torch==2.9.1` wheel is built against CUDA 12.8 libs with a minimum-driver check that rejects even fresh CUDA-12.8 drivers (`12080`). After this warning fires, torch silently falls back to CPU and EasyOCR runs without GPU — an hour per book instead of minutes.

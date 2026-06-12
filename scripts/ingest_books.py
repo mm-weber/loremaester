@@ -21,6 +21,8 @@ robust, permissively licensed, dependency-light. Override via env:
     OCR_ENGINE    tesseract (default) | easyocr   (legacy KREUZBERG_OCR_ENGINE still honored)
     OCR_LANGUAGE  en (default). tesseract also accepts ISO 639-3 ("eng", "deu");
                   easyocr uses ISO 639-1 ("en", "de").
+    R2R_TIMEOUT   R2R client HTTP timeout in seconds (default 1800). Raise for
+                  very large corpora. UV_HTTP_TIMEOUT does not affect this.
 
 Set INGEST_DEBUG=1 to print a full traceback for each per-file failure
 (otherwise failures are summarized to one line). For easyocr, a torch/CUDA
@@ -47,6 +49,11 @@ from ocr_extract import extract_pdf, resolve_engine
 from r2r import R2RClient
 
 R2R_BASE = "http://localhost:7272"
+# R2R client HTTP timeout (seconds). Big scanned box sets can take longer than
+# the SDK's 300s default to chunk+embed server-side, so raise it for large
+# corpora. (UV_HTTP_TIMEOUT does NOT affect this; that only governs uv's
+# package downloads.)
+R2R_TIMEOUT = float(os.environ.get("R2R_TIMEOUT", "1800"))
 # OCR_ENGINE / OCR_LANGUAGE are canonical; the legacy KREUZBERG_* names are
 # still honored as a fallback so older commands keep working.
 OCR_ENGINE = os.environ.get(
@@ -198,7 +205,7 @@ def main():
         sys.exit(1)
 
     pdf_dir = Path(sys.argv[1])
-    client = R2RClient(R2R_BASE)
+    client = R2RClient(R2R_BASE, timeout=R2R_TIMEOUT)
 
     all_pdfs = sorted(pdf_dir.rglob("*.pdf"))
     if not all_pdfs:

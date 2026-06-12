@@ -490,25 +490,38 @@ class TestEnvironmentConfig:
             os.environ, {"R2R_API_BASE": "http://custom-host:9999"}, clear=False
         ):
             _get_client()
-        mock_client_cls.assert_called_once_with("http://custom-host:9999")
+        mock_client_cls.assert_called_once_with(
+            "http://custom-host:9999", timeout=300.0
+        )
 
     @patch("r2r_mcp_wrapper.R2RClient")
     def test_get_client_default_url(self, mock_client_cls):
         env = os.environ.copy()
         env.pop("R2R_API_BASE", None)
         env.pop("R2R_BASE_URL", None)
+        env.pop("R2R_TIMEOUT", None)
         with patch.dict(os.environ, env, clear=True):
             _get_client()
-        mock_client_cls.assert_called_once_with("http://localhost:7272")
+        mock_client_cls.assert_called_once_with("http://localhost:7272", timeout=300.0)
 
     @patch("r2r_mcp_wrapper.R2RClient")
     def test_old_env_var_R2R_BASE_URL_is_ignored(self, mock_client_cls):
         env = os.environ.copy()
         env.pop("R2R_API_BASE", None)
+        env.pop("R2R_TIMEOUT", None)
         env["R2R_BASE_URL"] = "http://old-host:1234"
         with patch.dict(os.environ, env, clear=True):
             _get_client()
-        mock_client_cls.assert_called_once_with("http://localhost:7272")
+        mock_client_cls.assert_called_once_with("http://localhost:7272", timeout=300.0)
+
+    @patch("r2r_mcp_wrapper.R2RClient")
+    def test_get_client_honors_R2R_TIMEOUT(self, mock_client_cls):
+        env = os.environ.copy()
+        env.pop("R2R_API_BASE", None)
+        env["R2R_TIMEOUT"] = "600"
+        with patch.dict(os.environ, env, clear=True):
+            _get_client()
+        mock_client_cls.assert_called_once_with("http://localhost:7272", timeout=600.0)
 
 
 # ---------------------------------------------------------------------------
