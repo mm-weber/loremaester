@@ -233,3 +233,58 @@ class TestExtractPdfFigures:
         result = extract_pdf("/x.pdf", engine="tesseract")
         assert result.content == "[Page 1]\nbody text"
         assert mock_ocr_image.call_count == 0
+
+
+class TestGpuRelease:
+    @patch("ocr_extract._HAS_EASYOCR", True)
+    @patch("ocr_extract._release_cuda")
+    @patch("ocr_extract.easyocr.Reader", create=True)
+    @patch("ocr_extract.render_pages")
+    def test_easyocr_path_frees_gpu_after_book(
+        self, mock_render, mock_reader_cls, mock_release
+    ):
+        mock_render.return_value = [MagicMock()]
+        reader = MagicMock()
+        reader.readtext.return_value = [(None, "text", 0.9)]
+        mock_reader_cls.return_value = reader
+        ocr_pdf("/x.pdf", engine="easyocr")
+        mock_release.assert_called_once()  # easyocr path returns the GPU per book
+
+    @patch("ocr_extract._release_cuda")
+    @patch("ocr_extract.ocr_image")
+    @patch("ocr_extract.render_pages")
+    def test_tesseract_path_skips_gpu_release(
+        self, mock_render, mock_ocr_image, mock_release
+    ):
+        mock_render.return_value = [MagicMock()]
+        mock_ocr_image.return_value = PageOcrResult(1, "text", 0.9)
+        ocr_pdf("/x.pdf", engine="tesseract")
+        mock_release.assert_not_called()  # no GPU reader to free
+
+    def test_release_cuda_empties_cache_when_cuda_available(self):
+        import sys
+        import types
+
+        from ocr_extract import _release_cuda
+
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True, empty_cache=MagicMock()
+        )
+        with patch.dict(sys.modules, {"torch": fake_torch}):
+            _release_cuda()
+        fake_torch.cuda.empty_cache.assert_called_once()
+
+    def test_release_cuda_noop_without_cuda(self):
+        import sys
+        import types
+
+        from ocr_extract import _release_cuda
+
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: False, empty_cache=MagicMock()
+        )
+        with patch.dict(sys.modules, {"torch": fake_torch}):
+            _release_cuda()
+        fake_torch.cuda.empty_cache.assert_not_called()

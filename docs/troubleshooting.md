@@ -86,6 +86,18 @@ See [the SSH section in quickstart.md](./quickstart.md#git-over-ssh-host-agent-f
 
 **Fix:** Re-ingest with a different OCR engine (delete the existing document in R2R first — otherwise the re-run is idempotent and the book is **SKIPPED**; see the idempotency note in [quickstart.md](./quickstart.md)). `scripts/ocr_extract.py` (driven via `scripts/ingest_books.py`) defaults to tesseract (CPU); for sharper results on noisy scans opt into EasyOCR (GPU via torch+CUDA — see the bulk-ingestion section of [quickstart.md](./quickstart.md)) by setting `OCR_ENGINE=easyocr`. Quality varies per engine — EasyOCR handles TTRPG scans well; tesseract is solid on clean text but can struggle on multi-column layouts. Set `OCR_LANGUAGE` to match the document (tesseract uses ISO 639-3, e.g. `eng`/`deu`; easyocr uses ISO 639-1, e.g. `en`/`de`).
 
+### Ingestion fails: `input length exceeds the context length` (Light Mode)
+
+**Cause:** A chunk is larger than the embedding model's context window (mxbai-embed-large is 512 tokens). Light Mode's built-in `r2r` parser splits by `chunk_size` (characters, default 1024); on dense OCR text a 1024-char chunk can tokenize past 512 tokens. The Ollama embedding path does not truncate oversized inputs, so it hard-fails instead of trimming. (Full Mode is unaffected: its `unstructured_local` provider honors `max_characters`.)
+
+**Fix:** Lower `chunk_size` in `docker/user_configs/r2r-light.toml` under `[ingestion]` (this repo ships `chunk_size = 512`, `chunk_overlap = 64`), restart R2R to reload the config, delete the failed document in R2R, then re-ingest. The built-in parser ignores Unstructured's `max_characters`/`new_after_n_chars`, so use `chunk_size`/`chunk_overlap` (characters) instead. If an extreme-density chunk still exceeds, drop `chunk_size` to 384.
+
+### Ingestion fails: `model failed to load` / resource limitations (Light Mode, GPU memory)
+
+**Cause:** Ollama could not fit the embedding model in GPU memory. During `scripts/ingest_books.py` with `OCR_ENGINE=easyocr` the GPU is shared: easyocr holds VRAM for OCR while Ollama needs it to load `mxbai-embed-large` and run embedding batches. On a small or shared card (for example a 6 GB GTX 1060) the biggest books tip it over. Peak embedding load is `batch_size * concurrent_request_limit` texts in flight.
+
+**Fix:** This repo lowers `r2r-light.toml` `batch_size` to 32 and `concurrent_request_limit` to 2, and `scripts/ocr_extract.py` frees easyocr's VRAM after each book; restart R2R to reload the config, then re-ingest. Complementary host-side knobs on the Ollama service, `OLLAMA_NUM_PARALLEL=1` and `OLLAMA_MAX_LOADED_MODELS=1`, keep Ollama's own footprint small. Confirm with `nvidia-smi` during a run (watch the python/easyocr vs ollama VRAM split) and `journalctl -u ollama` for the underlying CUDA error. If it still fails, lower `batch_size` further or OCR on CPU with `OCR_ENGINE=tesseract`.
+
 ### Image PDF ingested with no text / "easyocr produced no text"
 
 **Cause:** `scripts/ocr_extract.py` renders each page with pypdfium2 and OCRs it per page. It does *not* silently return empty text — if *every* page comes back blank it raises a clear, document-identifying error naming the offending PDF. When this happens on the easyocr path it is almost always a GPU/torch problem: torch failed to initialize CUDA and the run produced nothing usable. (Before easyocr runs, the script prints a torch/CUDA banner — check it to confirm whether the GPU was actually picked up.)

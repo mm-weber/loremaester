@@ -151,6 +151,21 @@ def make_reader(language="eng"):
     return easyocr.Reader([language], gpu=True)
 
 
+def _release_cuda():
+    """Return cached GPU blocks to the CUDA driver so a co-resident process
+    (Ollama embedding on the same GPU) can use them. The ingest flow is serial
+    (OCR a book, then embed it), so freeing easyocr's VRAM at the end of OCR keeps
+    Ollama from failing to load its model on a small or shared card. No-op without
+    CUDA or on the tesseract path."""
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+
+
 def _finalize(pages, pdf_path):
     """Build the OcrExtraction from per-page results; raise if every page is empty."""
     if not any(p.text.strip() for p in pages):
@@ -182,6 +197,9 @@ def ocr_pdf(pdf_path, engine="tesseract", language="eng", page_range=None):
         )
         for i, img in enumerate(images)
     ]
+    if reader is not None:
+        del reader
+        _release_cuda()
     return _finalize(pages, pdf_path)
 
 
@@ -247,4 +265,7 @@ def extract_pdf(pdf_path, engine="tesseract", language="eng"):
                         reader=reader,
                     )
                 )
+    if reader is not None:
+        del reader
+        _release_cuda()
     return _finalize(pages, pdf_path)

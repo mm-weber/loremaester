@@ -15,20 +15,34 @@
 provider = "ollama"
 base_model = "mxbai-embed-large"
 base_dimension = 1_024
-batch_size = 128
-concurrent_request_limit = 8
+# Kept small for a single, possibly shared GPU: the peak in-flight texts sent to
+# Ollama is batch_size * concurrent_request_limit. Large values (e.g. 128 * 8)
+# spike VRAM and can make Ollama fail with "model failed to load" on big books,
+# especially when easyocr also holds the GPU. See docs/troubleshooting.md.
+batch_size = 32
+concurrent_request_limit = 2
 
 [completion_embedding]
 provider = "ollama"
 base_model = "mxbai-embed-large"
 base_dimension = 1_024
-batch_size = 128
-concurrent_request_limit = 8
+batch_size = 32
+concurrent_request_limit = 2
 
 [ingestion]
 # Built-in R2R parsing — no Unstructured.io container required. Text-native PDFs
 # parse directly; route image-only PDFs through scripts/ingest_books.py instead.
 provider = "r2r"
+# chunk_size/chunk_overlap are in CHARACTERS for the built-in parser. It does NOT
+# read Unstructured's max_characters/new_after_n_chars (those apply only to Full
+# Mode's unstructured_local provider). Keep chunks under mxbai-embed-large's
+# 512-token window: the Ollama embedding path does not truncate oversized inputs,
+# so a too-large chunk hard-fails with "input length exceeds the context length"
+# (seen on dense OCR text, e.g. tsr02609). 512 chars mirrors Full Mode's
+# max_characters; drop to 384 if an extreme-density chunk still exceeds.
+chunk_size = 512
+chunk_overlap = 64
+chunking_strategy = "recursive"
 # No completion provider is configured, so skip the LLM-dependent steps.
 skip_document_summary = true
 automatic_extraction = false

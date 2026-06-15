@@ -110,6 +110,24 @@ may still change between minor versions.
   so they continue to pass.
 
 ### Fixed
+- **Light Mode embedding sized for small or shared GPUs.**
+  `docker/user_configs/r2r-light.toml` lowers `[embedding]`/`[completion_embedding]`
+  `batch_size` 128 -> 32 and `concurrent_request_limit` 8 -> 2 (peak in-flight texts
+  to Ollama is `batch_size * concurrent_request_limit`), and `scripts/ocr_extract.py`
+  now frees easyocr's GPU memory after each book (`torch.cuda.empty_cache()`).
+  Together these stop Ollama failing with `model failed to load` (resource
+  limitations) when a big book is OCR'd on the same GPU Ollama embeds on. See
+  docs/troubleshooting.md.
+- **Light Mode chunk size capped to fit the embedding context window.**
+  `docker/user_configs/r2r-light.toml` now sets `[ingestion] chunk_size = 512`
+  (characters), `chunk_overlap = 64`, `chunking_strategy = "recursive"`. Light
+  Mode's built-in `r2r` parser ignores Unstructured's
+  `max_characters`/`new_after_n_chars` (those apply only to Full Mode's
+  `unstructured_local` provider) and was running on the 1024-char default, so a
+  dense OCR chunk could exceed mxbai-embed-large's 512-token window and fail
+  ingestion with `input length exceeds the context length` (the Ollama embedding
+  path does not truncate oversized inputs). Restart R2R to reload the config,
+  then re-ingest the affected book.
 - **Implicit-Optional type hints in three MCP tool signatures**:
   `mcp-servers/sourcebooks/server.py:18` (`search_lore`'s `book` and
   `content_type` params), `mcp-servers/vault-graph/server.py:169`
