@@ -18,13 +18,15 @@
 | [pytest](https://github.com/pytest-dev/pytest) / pytest-asyncio | pytest-dev | Test suite | MIT |
 | [Ollama](https://github.com/ollama/ollama) + `mxbai-embed-large` | Ollama; Mixedbread AI | Local embedding model server + model | MIT (Ollama); see model card |
 
-Runtime Docker images (Postgres/pgvector, MinIO, Hatchet, RabbitMQ, Unstructured.io) are pulled unchanged — see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for their licenses. The one-off `scripts/ocr_preprocess.py` helper (not on the default path) additionally uses [pdf2image](https://github.com/Belval/pdf2image) (MIT; needs the system **poppler**) and optionally [surya](https://github.com/VikParuchuri/surya) (copyleft — consult upstream).
+Runtime Docker images (Postgres/pgvector, MinIO, Hatchet, RabbitMQ, Unstructured.io) are pulled unchanged, see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for their licenses.
+
+The one-off `scripts/ocr_preprocess.py` helper (not on the default path) additionally uses [pdf2image](https://github.com/Belval/pdf2image) (MIT; needs the system **poppler**) and optionally [surya](https://github.com/VikParuchuri/surya) (copyleft — consult upstream).
 
 ## On the "LLM Wiki" pattern
 
-This project's shape — an LLM that reads raw sources and maintains a structured, interlinked Markdown knowledge base — is a close cousin of the **"LLM Wiki"** pattern [Andrej Karpathy described publicly](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
+This project's shape, an LLM that reads raw sources and maintains a structured, interlinked Markdown knowledge base, is a close cousin of the **"LLM Wiki"** pattern [Andrej Karpathy described publicly](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
 
-To be clear and fair about provenance: this is an **independent implementation**, and its development **predates** that gist. The initial commit in this repository is dated **2026-03-06** — roughly a month before the gist (**2026-04-04**) — and no code or content from it was used. It's a natural, widespread pattern that several people have arrived at independently. Still, a hat tip to Karpathy for articulating it crisply and helping popularize it. 🎩
+To be clear and fair about provenance: this is an **independent implementation**, and its development **predates** that gist. The initial commit in this repository is dated **2026-03-06**, roughly a month before the gist (**2026-04-04**) and no code or content from it was used. It's a natural, widespread pattern that several people have arrived at independently. Still, hats off to Karpathy for articulating it crisply and helping popularize it.
 
 ## This project
 
