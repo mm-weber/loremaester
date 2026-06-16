@@ -91,11 +91,21 @@ Full walk-through, including host prereqs and verification steps: [`docs/demo-wa
 
 ### Architecture
 
+Two views: where things run, and how a request is answered.
+
+**Deployment.** R2R, Ollama, and Postgres/pgvector run on the host; Claude Code and the three MCP servers run in a hardened devcontainer, reaching R2R over the docker bridge at `host.docker.internal:7272`.
+
 <p align="center">
-  <img src="docs/images/architecture.svg" alt="Loremaester architecture" width="75%">
+  <img src="docs/images/architecture-deployment.svg" alt="Loremaester deployment: host and hardened devcontainer" width="100%">
 </p>
 
-R2R runs on the host (heavy services: pgvector, optionally Unstructured.io + Hatchet for Full Mode); Claude Code runs in a hardened devcontainer with MCP servers reaching R2R over the docker bridge via `host.docker.internal:7272`. Full component rationale in [`docs/design.md`](docs/design.md).
+**Request flow.** A user query goes to Claude Code, which orchestrates: it calls the MCP tools (R2R search + vault-graph), gets chunks and notes back as context, reasons over them, writes any new canon to the vault, and answers. Retrieval is a leaf tool, not the product.
+
+<p align="center">
+  <img src="docs/images/architecture-flow.svg" alt="Loremaester request flow" width="75%">
+</p>
+
+Full component rationale in [`docs/design.md`](docs/design.md).
 
 ### 3 MCP servers, 14 tools
 
