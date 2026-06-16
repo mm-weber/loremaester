@@ -175,6 +175,10 @@ This is a v0.1 release. Those are current gaps:
 - **[Security policy](SECURITY.md):** how to report a vulnerability privately.
 - **[Attribution](ATTRIBUTION.md):** credits for the software this project builds on, plus the convergent-design note on Karpathy's LLM Wiki pattern.
 
+## Acknowledgments
+
+Special thanks to **[Dustin Fennell](https://github.com/dwfennell)** for test-running the project on macOS with Docker Desktop and reviewing it from his perspective. He added all the pieces needed to make the macOS path run smoothly.
+
 ## License
 
 This project's own code is released under the **MIT License**. See [LICENSE](LICENSE).
