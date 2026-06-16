@@ -37,7 +37,7 @@ First, what this project **is**: a self-hosted toolkit that turns Claude Code in
 
 ## Security
 
-Please report vulnerabilities privately, see [`SECURITY.md`](SECURITY.md), not the public issue tracker.
+Feel free to create issues openly when it comes to security, see [`SECURITY.md`](SECURITY.md), it is fine to use the public issue tracker.
 
 ## License
 
