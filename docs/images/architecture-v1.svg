@@ -1,0 +1,250 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="ui-monospace, &#39;JetBrains Mono&#39;, &#39;SF Mono&#39;, Menlo, Consolas, monospace">
+  
+  <defs>
+    <linearGradient id="panelHead" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15223c"></stop>
+      <stop offset="1" stop-color="#0e1626"></stop>
+    </linearGradient>
+    <linearGradient id="accentAzure" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4c84f0" stop-opacity="0"></stop>
+      <stop offset="0.5" stop-color="#4c84f0"></stop>
+      <stop offset="1" stop-color="#4c84f0" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="accentClay" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d97757" stop-opacity="0"></stop>
+      <stop offset="0.5" stop-color="#d97757"></stop>
+      <stop offset="1" stop-color="#d97757" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="accentPurple" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0"></stop>
+      <stop offset="0.5" stop-color="#8b5cf6"></stop>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="titleRule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4c84f0" stop-opacity="0"></stop>
+      <stop offset="0.5" stop-color="#34d3c0"></stop>
+      <stop offset="1" stop-color="#4c84f0" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="bridgeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4c84f0"></stop>
+      <stop offset="1" stop-color="#d97757"></stop>
+    </linearGradient>
+    <linearGradient id="mountGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d97757"></stop>
+      <stop offset="1" stop-color="#8b5cf6"></stop>
+    </linearGradient>
+    <radialGradient id="lift" cx="50%" cy="38%" r="62%">
+      <stop offset="0" stop-color="#101d33"></stop>
+      <stop offset="1" stop-color="#070b14"></stop>
+    </radialGradient>
+    <radialGradient id="vignette" cx="50%" cy="48%" r="62%">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"></stop>
+      <stop offset="0.74" stop-color="#000000" stop-opacity="0"></stop>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.45"></stop>
+    </radialGradient>
+    <filter id="soft" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="4"></feGaussianBlur>
+    </filter>
+    <filter id="titleGlow" x="-40%" y="-60%" width="180%" height="220%">
+      <feGaussianBlur stdDeviation="9"></feGaussianBlur>
+    </filter>
+  </defs>
+
+  
+  <rect width="1920" height="1080" fill="url(#lift)"></rect>
+  <g opacity="0.5" stroke="#6f86b0" stroke-width="1">
+    <line x1="240" y1="150" x2="430" y2="250" opacity="0.10"></line>
+    <line x1="430" y1="250" x2="360" y2="430" opacity="0.10"></line>
+    <line x1="1600" y1="170" x2="1500" y2="320" opacity="0.10"></line>
+    <line x1="1500" y1="320" x2="1680" y2="400" opacity="0.10"></line>
+    <line x1="980" y1="120" x2="1120" y2="220" opacity="0.10"></line>
+    <line x1="200" y1="860" x2="330" y2="940" opacity="0.10"></line>
+    <line x1="1620" y1="880" x2="1740" y2="800" opacity="0.10"></line>
+  </g>
+  <g fill="#7fa6ff">
+    <circle cx="240" cy="150" r="3" opacity="0.30"></circle>
+    <circle cx="430" cy="250" r="2.5" opacity="0.22"></circle>
+    <circle cx="360" cy="430" r="2.5" opacity="0.18"></circle>
+    <circle cx="1600" cy="170" r="3" opacity="0.28"></circle>
+    <circle cx="1500" cy="320" r="2.5" opacity="0.20"></circle>
+    <circle cx="1680" cy="400" r="2.5" opacity="0.18"></circle>
+    <circle cx="980" cy="120" r="2.5" opacity="0.22"></circle>
+    <circle cx="1120" cy="220" r="2" opacity="0.16"></circle>
+    <circle cx="200" cy="860" r="2.5" opacity="0.20"></circle>
+    <circle cx="330" cy="940" r="2" opacity="0.16"></circle>
+    <circle cx="1620" cy="880" r="2.5" opacity="0.20"></circle>
+    <circle cx="1740" cy="800" r="2" opacity="0.16"></circle>
+  </g>
+
+  
+  <text x="960" y="86" text-anchor="middle" font-family="&#39;Cormorant Garamond&#39;, Georgia, &#39;Times New Roman&#39;, serif" font-size="46" font-weight="600" fill="#e7edf9" opacity="0.4" filter="url(#titleGlow)">Loremaester</text>
+  <text x="960" y="86" text-anchor="middle" font-family="&#39;Cormorant Garamond&#39;, Georgia, &#39;Times New Roman&#39;, serif" font-size="46" font-weight="600" fill="#e7edf9">Loremaester</text>
+  <rect x="830" y="104" width="260" height="2" fill="url(#titleRule)"></rect>
+  <text x="960" y="146" text-anchor="middle" font-family="&#39;Cormorant Garamond&#39;, Georgia, &#39;Times New Roman&#39;, serif" font-size="28" font-style="italic" fill="#a6b4d2">Two engines, one shared world.</text>
+
+  
+  <g>
+    <rect x="112" y="184" width="752" height="446" rx="16" fill="#0e1626" stroke="rgba(170,200,255,0.17)"></rect>
+    
+    <path d="M128 184 H848 a16 16 0 0 1 16 16 V248 H112 V200 a16 16 0 0 1 16 -16 Z" fill="url(#panelHead)"></path>
+    <line x1="112" y1="248" x2="864" y2="248" stroke="rgba(170,200,255,0.09)"></line>
+    <rect x="113" y="184" width="750" height="2" fill="url(#accentAzure)"></rect>
+    <text x="138" y="226" font-size="20" fill="#4c84f0">❖</text>
+    <text x="172" y="225" font-size="20" letter-spacing="3.6" fill="#a6b4d2">HOST MACHINE</text>
+
+    
+    <rect x="135" y="295" width="14" height="14" rx="2" transform="rotate(45 142 302)" fill="#34d3c0" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="135" y="295" width="14" height="14" rx="2" transform="rotate(45 142 302)" fill="#34d3c0"></rect>
+    <text x="162" y="312" font-size="27" font-weight="500" fill="#e7edf9">Ollama</text>
+    <rect x="272" y="293" width="86" height="28" rx="6" fill="#34d3c0" opacity="0.08"></rect>
+    <rect x="272" y="293" width="86" height="28" rx="6" fill="none" stroke="#34d3c0" stroke-opacity="0.25"></rect>
+    <text x="284" y="313" font-size="18" fill="#34d3c0">:11434</text>
+    
+    <text x="160" y="352" font-size="23" fill="#65728e">└─</text>
+    <circle cx="204" cy="345" r="4.5" fill="#34d3c0"></circle>
+    <text x="220" y="352" font-size="23" fill="#a6b4d2">mxbai-embed-large</text>
+
+    <line x1="146" y1="380" x2="830" y2="380" stroke="rgba(170,200,255,0.09)"></line>
+
+    
+    <rect x="135" y="403" width="14" height="14" rx="2" transform="rotate(45 142 410)" fill="#4c84f0" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="135" y="403" width="14" height="14" rx="2" transform="rotate(45 142 410)" fill="#4c84f0"></rect>
+    <text x="162" y="420" font-size="27" font-weight="500" fill="#e7edf9">R2R Server</text>
+    <rect x="350" y="401" width="74" height="28" rx="6" fill="#4c84f0" opacity="0.08"></rect>
+    <rect x="350" y="401" width="74" height="28" rx="6" fill="none" stroke="#4c84f0" stroke-opacity="0.25"></rect>
+    <text x="362" y="421" font-size="18" fill="#4c84f0">:7272</text>
+    
+    <text x="160" y="458" font-size="23" fill="#65728e">├─</text>
+    <circle cx="204" cy="451" r="4.5" fill="#4c84f0"></circle>
+    <text x="220" y="458" font-size="23" fill="#a6b4d2">PostgreSQL + pgvector</text>
+    <text x="160" y="490" font-size="23" fill="#65728e">├─</text>
+    <circle cx="204" cy="483" r="4.5" fill="#4c84f0"></circle>
+    <text x="220" y="490" font-size="23" fill="#a6b4d2">Unstructured.io · Full Mode</text>
+    <text x="160" y="522" font-size="23" fill="#65728e">└─</text>
+    <circle cx="204" cy="515" r="4.5" fill="#4c84f0"></circle>
+    <text x="220" y="522" font-size="23" fill="#a6b4d2">Hatchet · Full Mode</text>
+
+    <line x1="146" y1="550" x2="830" y2="550" stroke="rgba(170,200,255,0.09)"></line>
+
+    
+    <rect x="135" y="573" width="14" height="14" rx="2" transform="rotate(45 142 580)" fill="#6f86b0" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="135" y="573" width="14" height="14" rx="2" transform="rotate(45 142 580)" fill="#6f86b0"></rect>
+    <text x="162" y="590" font-size="27" font-weight="500" fill="#e7edf9">R2R Dashboard</text>
+    <rect x="408" y="571" width="74" height="28" rx="6" fill="#6f86b0" opacity="0.10"></rect>
+    <rect x="408" y="571" width="74" height="28" rx="6" fill="none" stroke="#6f86b0" stroke-opacity="0.30"></rect>
+    <text x="420" y="591" font-size="18" fill="#8aa0c8">:7273</text>
+  </g>
+
+  
+  <g>
+    <rect x="1056" y="184" width="752" height="446" rx="16" fill="#0e1626" stroke="rgba(170,200,255,0.17)"></rect>
+    <path d="M1072 184 H1792 a16 16 0 0 1 16 16 V248 H1056 V200 a16 16 0 0 1 16 -16 Z" fill="url(#panelHead)"></path>
+    <line x1="1056" y1="248" x2="1808" y2="248" stroke="rgba(170,200,255,0.09)"></line>
+    <rect x="1057" y="184" width="750" height="2" fill="url(#accentClay)"></rect>
+    <text x="1082" y="226" font-size="20" fill="#d97757">❖</text>
+    <text x="1116" y="225" font-size="20" letter-spacing="3.6" fill="#a6b4d2">DEVCONTAINER</text>
+    
+    <rect x="1672" y="200" width="112" height="32" rx="16" fill="#d97757" opacity="0.10"></rect>
+    <rect x="1672" y="200" width="112" height="32" rx="16" fill="none" stroke="#d97757" stroke-opacity="0.33"></rect>
+    <text x="1728" y="221" text-anchor="middle" font-size="16" letter-spacing="0.96" fill="#d97757">hardened</text>
+
+    
+    <rect x="1079" y="303" width="14" height="14" rx="2" transform="rotate(45 1086 310)" fill="#d97757" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="1079" y="303" width="14" height="14" rx="2" transform="rotate(45 1086 310)" fill="#d97757"></rect>
+    <text x="1106" y="320" font-size="27" font-weight="500" fill="#e7edf9">Claude Code</text>
+    
+    <text x="1104" y="360" font-size="23" fill="#65728e">├─</text>
+    <circle cx="1148" cy="353" r="4.5" fill="#4c84f0"></circle>
+    <text x="1164" y="360" font-size="23" fill="#a6b4d2">r2r MCP server</text>
+    <text x="1104" y="392" font-size="23" fill="#65728e">├─</text>
+    <circle cx="1148" cy="385" r="4.5" fill="#4c84f0"></circle>
+    <text x="1164" y="392" font-size="23" fill="#a6b4d2">sourcebooks MCP server</text>
+    <text x="1104" y="424" font-size="23" fill="#65728e">├─</text>
+    <circle cx="1148" cy="417" r="4.5" fill="#4c84f0"></circle>
+    <text x="1164" y="424" font-size="23" fill="#a6b4d2">vault-graph MCP server</text>
+    <text x="1104" y="456" font-size="23" fill="#65728e">└─</text>
+    <circle cx="1148" cy="449" r="4.5" fill="#34d3c0"></circle>
+    <text x="1164" y="456" font-size="23" fill="#a6b4d2">4 GM skills</text>
+    <text x="1164" y="484" font-size="17" fill="#65728e">worldbuilding · session-creation · chronik · vault-scout</text>
+
+    <line x1="1090" y1="512" x2="1774" y2="512" stroke="rgba(170,200,255,0.09)"></line>
+
+    
+    <rect x="1079" y="545" width="14" height="14" rx="2" transform="rotate(45 1086 552)" fill="#8b5cf6" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="1079" y="545" width="14" height="14" rx="2" transform="rotate(45 1086 552)" fill="#8b5cf6"></rect>
+    <text x="1106" y="562" font-size="27" font-weight="500" fill="#e7edf9">Obsidian vault</text>
+    <text x="1350" y="562" font-size="22" font-style="italic" font-family="&#39;Cormorant Garamond&#39;, Georgia, serif" fill="#65728e">/vault → bind mount</text>
+  </g>
+
+  
+  <g>
+    <line x1="864" y1="407" x2="1056" y2="407" stroke="url(#bridgeGrad)" stroke-width="2.5" stroke-dasharray="2 10" stroke-linecap="round" opacity="0.9"></line>
+    <path d="M880 398 L866 407 L880 416" fill="none" stroke="#4c84f0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    <path d="M1040 398 L1054 407 L1040 416" fill="none" stroke="#d97757" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    <circle cx="864" cy="407" r="8" fill="#4c84f0" filter="url(#soft)" opacity="0.7"></circle>
+    <circle cx="864" cy="407" r="7" fill="#4c84f0"></circle>
+    <circle cx="1056" cy="407" r="8" fill="#d97757" filter="url(#soft)" opacity="0.7"></circle>
+    <circle cx="1056" cy="407" r="7" fill="#d97757"></circle>
+    <circle cx="960" cy="407" r="4" fill="#34d3c0"></circle>
+    <rect x="838" y="356" width="244" height="28" rx="6" fill="#070b14" opacity="0.85"></rect>
+    <text x="960" y="376" text-anchor="middle" font-size="21" fill="#a6b4d2">host.docker.internal</text>
+    <text x="960" y="447" text-anchor="middle" font-size="16" letter-spacing="2.2" fill="#65728e">MCP · HTTP</text>
+  </g>
+
+  
+  <g>
+    <line x1="1312" y1="630" x2="1312" y2="706" stroke="url(#mountGrad)" stroke-width="2.5" stroke-dasharray="2 10" stroke-linecap="round" opacity="0.9"></line>
+    <path d="M1303 690 L1312 704 L1321 690" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    <circle cx="1312" cy="668" r="4" fill="#34d3c0"></circle>
+    <rect x="1330" y="654" width="146" height="28" rx="6" fill="#070b14" stroke="rgba(170,200,255,0.09)"></rect>
+    <text x="1342" y="674" font-size="16" letter-spacing="0.9" fill="#a6b4d2">bind mount · rw</text>
+  </g>
+
+  
+  <g>
+    <rect x="112" y="706" width="1696" height="300" rx="16" fill="#0e1626" stroke="rgba(170,200,255,0.17)"></rect>
+    <path d="M128 706 H1792 a16 16 0 0 1 16 16 V766 H112 V722 a16 16 0 0 1 16 -16 Z" fill="url(#panelHead)"></path>
+    <line x1="112" y1="766" x2="1808" y2="766" stroke="rgba(170,200,255,0.09)"></line>
+    <rect x="113" y="706" width="1694" height="2" fill="url(#accentPurple)"></rect>
+    <text x="138" y="746" font-size="20" fill="#8b5cf6">◈</text>
+    <text x="172" y="745" font-size="20" letter-spacing="3.6" fill="#a6b4d2">OBSIDIAN GM VAULT</text>
+    <text x="560" y="745" font-size="22" font-style="italic" font-family="&#39;Cormorant Garamond&#39;, Georgia, serif" fill="#65728e">your TTRPG world, on your host</text>
+    <rect x="1670" y="720" width="114" height="32" rx="16" fill="#8b5cf6" opacity="0.10"></rect>
+    <rect x="1670" y="720" width="114" height="32" rx="16" fill="none" stroke="#8b5cf6" stroke-opacity="0.33"></rect>
+    <text x="1727" y="741" text-anchor="middle" font-size="16" letter-spacing="0.96" fill="#a98bf0">host disk</text>
+
+    
+    <line x1="960" y1="794" x2="960" y2="978" stroke="rgba(170,200,255,0.09)"></line>
+
+    
+    <text x="148" y="822" font-size="15" letter-spacing="2.4" fill="#65728e">A CONSISTENTLY BUILT WORLD AT YOUR FINGERTIPS</text>
+    <rect x="151" y="853" width="13" height="13" rx="2" transform="rotate(45 157.5 859.5)" fill="#8b5cf6" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="151" y="853" width="13" height="13" rx="2" transform="rotate(45 157.5 859.5)" fill="#8b5cf6"></rect>
+    <text x="178" y="869" font-size="27" font-weight="500" fill="#e7edf9">Obsidian.app</text>
+    <text x="176" y="908" font-size="23" fill="#65728e">├─</text>
+    <circle cx="220" cy="901" r="4.5" fill="#8b5cf6"></circle>
+    <text x="236" y="908" font-size="23" fill="#a6b4d2">Graph view + backlinks</text>
+    <text x="176" y="940" font-size="23" fill="#65728e">├─</text>
+    <circle cx="220" cy="933" r="4.5" fill="#8b5cf6"></circle>
+    <text x="236" y="940" font-size="23" fill="#a6b4d2">Manual edits, your canon</text>
+    <text x="176" y="972" font-size="23" fill="#65728e">└─</text>
+    <circle cx="220" cy="965" r="4.5" fill="#34d3c0"></circle>
+    <text x="236" y="972" font-size="23" fill="#a6b4d2">Session prep, run your game at the table</text>
+
+    
+    <text x="1000" y="822" font-size="15" letter-spacing="2.4" fill="#65728e">THE WORLD · PLAIN FILES</text>
+    <rect x="1003" y="853" width="13" height="13" rx="2" transform="rotate(45 1009.5 859.5)" fill="#6f86b0" filter="url(#soft)" opacity="0.7"></rect>
+    <rect x="1003" y="853" width="13" height="13" rx="2" transform="rotate(45 1009.5 859.5)" fill="#6f86b0"></rect>
+    <text x="1030" y="869" font-size="27" font-weight="500" fill="#e7edf9">wiki/</text>
+    <text x="1132" y="869" font-size="22" font-style="italic" font-family="&#39;Cormorant Garamond&#39;, Georgia, serif" fill="#65728e">markdown</text>
+    <text x="1028" y="908" font-size="23" fill="#65728e">├─</text>
+    <circle cx="1072" cy="901" r="4.5" fill="#34d3c0"></circle>
+    <text x="1088" y="908" font-size="23" fill="#a6b4d2">sessions · npcs · places</text>
+    <text x="1028" y="940" font-size="23" fill="#65728e">└─</text>
+    <circle cx="1072" cy="933" r="4.5" fill="#8b5cf6"></circle>
+    <text x="1088" y="940" font-size="23" fill="#a6b4d2">.graph.json</text>
+  </g>
+
+  
+  <rect width="1920" height="1080" fill="url(#vignette)" pointer-events="none"></rect>
+</svg>

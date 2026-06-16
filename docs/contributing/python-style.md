@@ -12,7 +12,7 @@ Conventions for this repo's Python (PEP 723 scripts + MCP servers).
 - Permissive licenses only on the shipped path (MIT / Apache / BSD). No Elastic-2.0 / AGPL / GPL in
   defaults — flag anything copyleft in `THIRD_PARTY_NOTICES.md`.
 
-## Defensive, honest code
+## Defensive code
 - Use `getattr(obj, "attr", default)` against external SDK / result objects whose schema may drift.
 - Never swallow a failure into a success or empty result — surface the cause (file, page, dependency).
 - Gate verbose diagnostics behind an env flag (e.g. `INGEST_DEBUG`).

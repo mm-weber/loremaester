@@ -92,7 +92,7 @@ Full walk-through, including host prereqs and verification steps: [`docs/demo-wa
 ### Architecture
 
 <p align="center">
-  <img src="docs/images/architecture.svg" alt="Loremaester architecture" width="100%">
+  <img src="docs/images/architecture.svg" alt="Loremaester architecture" width="60%">
 </p>
 
 R2R runs on the host (heavy services: pgvector, optionally Unstructured.io + Hatchet for Full Mode); Claude Code runs in a hardened devcontainer with MCP servers reaching R2R over the docker bridge via `host.docker.internal:7272`. Full component rationale in [`docs/design.md`](docs/design.md).
@@ -152,7 +152,7 @@ Full setup with your own vault and sourcebooks: [`docs/quickstart.md`](docs/quic
 
 ## What's not included (yet)
 
-This is a v0.1 release. The honest gaps:
+This is a v0.1 release. Those are current gaps:
 
 - **Windows hosts.** Linux and macOS are the supported and validated platforms for v0.1. The Ollama install path and `host.docker.internal` networking diverge on Windows and haven't been tested.
 - **Non-TTRPG domain adaptation.** The `sourcebooks` MCP server's metadata schema (`book_title` / `chapter` / `page_range`) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic) is on the v0.2 roadmap.
