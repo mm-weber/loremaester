@@ -34,6 +34,8 @@ Set up R2R semantic search with Ollama embeddings, ingest your PDF sourcebooks (
 
 R2R is used **only for search and ingestion** — embedding, vector storage, and retrieval. All reasoning and generation is handled by Claude Code via MCP servers. No completion/LLM models are needed in R2R or Ollama. You only need an **embedding model** (`mxbai-embed-large`).
 
+> The three MCP servers expose 14 tools in total. For the full per-tool reference (parameters, returns, internals), see [`mcp-tools.md`](mcp-tools.md).
+
 ### Components
 
 | # | Component | What it does |

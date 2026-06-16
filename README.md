@@ -99,6 +99,8 @@ R2R runs on the host (heavy services: pgvector, optionally Unstructured.io + Hat
 
 ### 3 MCP servers, 14 tools
 
+> **Full per-tool reference** (parameters, returns, and internals): [`docs/mcp-tools.md`](docs/mcp-tools.md).
+
 | Server | Tools | Role |
 |---|---|---|
 | **`r2r`** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | Generic CRUD + search against R2R. |
