@@ -20,7 +20,7 @@ Claude Code's built-in `Read`, `Write`, `Grep`, and `Glob` tools operate directl
 
 ### 2. R2R Semantic Search → Scanned Source Books
 
-Source books are scanned/image-based PDFs that can't be read with file tools. They're ingested into R2R (a RAG engine, used here for retrieval only) for chunking and vector indexing; scanned pages are OCR'd to text first — client-side per-page by default (`scripts/ingest_books.py`, which also captures the scanned pages and figures of *mixed* PDFs), or server-side via Unstructured.io in Full Mode. Claude queries them through MCP tools that wrap R2R's Python SDK, getting back relevant passages with book/chapter/page metadata.
+Source books are scanned/image-based PDFs that can't be read with file tools. They're ingested into R2R (a RAG engine) for chunking and vector indexing and retrieval; scanned pages are OCR'd to text first — client-side per-page by default (`scripts/ingest_books.py`, which also captures the scanned pages and figures of *mixed* PDFs), or server-side via Unstructured.io in Full Mode. Claude queries them through MCP tools that wrap R2R's Python SDK, getting back relevant passages with book/chapter/page metadata.
 
 ### 3. MCP Servers → Integration Layer
 

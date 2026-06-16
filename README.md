@@ -21,15 +21,40 @@ that use it: `worldbuilding`, `session-creation`, `chronik`,
 
 ## What you get
 
-1. **Keep your story straight: cross-reference your vault and your scanned sourcebooks in one prompt, end-to-end.** Claude reads your vault as canon (walking your `[[wikilink]]` graph via the `vault-graph` MCP server), queries sourcebooks via hybrid semantic + keyword search, drafts a new NPC / location / session consistent with both, writes it to the right vault folder with correct frontmatter and `[[wikilinks]]`, and refreshes the graph. No tool switching, no copy-pasting.
+1. **Keep your story straight: cross-reference your vault and your scanned sourcebooks in one prompt, end-to-end.** Claude:
+    - reads your vault as canon (walking your wikilink graph via the `vault-graph` MCP server)
+    - queries sourcebooks via hybrid semantic + keyword search
+    - drafts a new NPC / location / session consistent with both
+    - writes it to the right vault folder with correct frontmatter and wikilinks, and refreshes the graph.
 
-2. **Four opinionated GM skills (`worldbuilding`, `session-creation`, `chronik`, `vault-scout`) that auto-trigger on your prompts**, driving 14 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
+    No tool switching, no copy-pasting.
 
-3. **Drop a folder of PDFs (text-native, mixed, or image-only) and walk away.** The bulk ingester auto-classifies each PDF, routes text-native straight to R2R, OCRs scanned ones per-page with `pypdfium2` + `tesseract` (CPU default) or opt-in **EasyOCR on CUDA** (auto-falls back if no GPU), and skips books already ingested. Stored in PostgreSQL + pgvector; retrieved via R2R's **hybrid semantic + keyword search with reciprocal rank fusion (RRF)**. Every result carries book / chapter / page citations.
+2. **Four opinionated GM skills (`worldbuilding`, `session-creation`, `chronik`, `vault-scout`) that auto-trigger on your prompts**
 
-4. **Hardened by default.** Default-DROP egress firewall with a small allowlist (GitHub, npm, PyPI, Anthropic); VS Code Server telemetry disabled; container images pinned to SHA256 digests (devcontainer base + the full compose stack); Docker-default seccomp; no Docker-in-Docker; agent runs unprivileged. Threat model and design rationale: [`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md).
+    Driving 14 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
 
-5. **Bring your own Obsidian vault, or start with the bundled `Grunvyr_Campaign` scaffold.** From `git clone` to a playable session in 30 minutes. The [demo walkthrough](docs/demo-walkthrough.md) ships three sourcebooks (one image-only as the OCR exhibit), an empty campaign vault, and six prompts that exercise every layer end-to-end.
+3. **Drop a folder of PDFs (text-native, mixed, or image-only) and walk away.** 
+
+    The bulk ingester:
+    - auto-classifies each PDF
+    - routes text-native straight to R2R, OCRs scanned ones per-page with `pypdfium2` + `tesseract` (CPU default) 
+    - or opt-in **EasyOCR on CUDA** (auto-falls back if no GPU)
+    - and skips books already ingested.
+  
+    Stored in PostgreSQL + pgvector; retrieved via R2R's **hybrid semantic + keyword search with reciprocal rank fusion (RRF)**.
+
+4. **Hardened by default.** 
+
+    - Default-DROP egress firewall with a small allowlist (GitHub, npm, PyPI, Anthropic); VS Code Server telemetry disabled
+    - Container images pinned to SHA256 digests (devcontainer base + the full compose stack)
+    - Docker-default seccomp
+    - Agent runs unprivileged.
+    
+    Threat model and design rationale: [`.devcontainer/SecurityReview.md`](.devcontainer/SecurityReview.md).
+
+5. **Bring your own Obsidian vault, or start with the bundled `Grunvyr_Campaign` scaffold.**
+    - From `git clone` to a playable session in 30 minutes.
+    - The [demo walkthrough](docs/demo-walkthrough.md) ships three sourcebooks (one image-only as the OCR exhibit), an empty campaign vault, and six prompts that exercise every layer end-to-end.
 
 ## Retrieval is a tool here, not the product
 
@@ -66,13 +91,25 @@ Full walk-through, including host prereqs and verification steps: [`docs/demo-wa
 
 ### Architecture
 
+Two views: where things run, and how a request is answered.
+
+**Deployment.** R2R, Ollama, and Postgres/pgvector run on the host; Claude Code and the three MCP servers run in a hardened devcontainer, reaching R2R over the docker bridge at `host.docker.internal:7272`.
+
 <p align="center">
-  <img src="docs/images/architecture.svg" alt="Loremaester architecture" width="100%">
+  <img src="docs/images/architecture-deployment.svg" alt="Loremaester deployment: host and hardened devcontainer" width="100%">
 </p>
 
-R2R runs on the host (heavy services: pgvector, optionally Unstructured.io + Hatchet for Full Mode); Claude Code runs in a hardened devcontainer with MCP servers reaching R2R over the docker bridge via `host.docker.internal:7272`. Full component rationale in [`docs/design.md`](docs/design.md).
+**Request flow.** A user query goes to Claude Code, which orchestrates: it calls the MCP tools (R2R search + vault-graph), gets chunks and notes back as context, reasons over them, writes any new canon to the vault, and answers. Retrieval is a leaf tool, not the product.
+
+<p align="center">
+  <img src="docs/images/architecture-flow.svg" alt="Loremaester request flow" width="75%">
+</p>
+
+Full component rationale in [`docs/design.md`](docs/design.md).
 
 ### 3 MCP servers, 14 tools
+
+> **Full per-tool reference** (parameters, returns, and internals): [`docs/mcp-tools.md`](docs/mcp-tools.md).
 
 | Server | Tools | Role |
 |---|---|---|
@@ -125,7 +162,7 @@ Full setup with your own vault and sourcebooks: [`docs/quickstart.md`](docs/quic
 
 ## What's not included (yet)
 
-This is a v0.1 release. The honest gaps:
+This is a v0.1 release. Those are current gaps:
 
 - **Windows hosts.** Linux and macOS are the supported and validated platforms for v0.1. The Ollama install path and `host.docker.internal` networking diverge on Windows and haven't been tested.
 - **Non-TTRPG domain adaptation.** The `sourcebooks` MCP server's metadata schema (`book_title` / `chapter` / `page_range`) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic) is on the v0.2 roadmap.

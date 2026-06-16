@@ -218,3 +218,8 @@ __marimo__/
 
 # Local Claude Code run-state inside the example vault
 examples/ttrpg/.claude/
+
+# Internal dev artifacts — kept on disk locally, excluded from the public repo/release
+/tasks/
+/docs/superpowers/
+/conductor/
