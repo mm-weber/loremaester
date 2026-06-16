@@ -4,7 +4,7 @@ A 30-minute hands-on tour. By the end you will have:
 
 - Booted the R2R stack (Light Mode) on the host, driven by Claude Code from the devcontainer.
 - Ingested three bundled sourcebooks — two text-native, one image-only (OCR'd during ingest).
-- Watched all four bundled GM skills work against the empty `Grunvyr_Campaign` scaffold: search sourcebooks, draft an NPC, prep a session, run a mechanical vault sweep, and update a campaign chronicle from player notes.
+- Watched all four bundled GM skills work against the empty `Grunvyr_Campaign` scaffold: search sourcebooks, draft an NPC, prep a session, mass-create the wikilinked notes, run a mechanical vault sweep, and update a campaign chronicle from player notes.
 
 If you're here to set up your own vault and sourcebooks instead, skip this and go to [`quickstart.md`](./quickstart.md) — it's the configuration reference for own-content deployment. For component deep-dives see [`design.md`](./design.md); for known failure modes see [`troubleshooting.md`](./troubleshooting.md).
 
@@ -149,7 +149,7 @@ The Grunvyr_Campaign scaffold starts empty — no NPCs, no locations, no faction
 uv run --no-project scripts/build_vault_graph.py examples/ttrpg/GM-Vault
 ```
 
-You should see `Graph built: 0 notes, 0 edges → examples/ttrpg/GM-Vault/.graph.json`. We'll populate the vault during Demos C and D — the graph rebuilds itself then.
+You should see `Graph built: 0 notes, 0 edges → examples/ttrpg/GM-Vault/.graph.json`. We'll populate the vault during Demos C, D, and E — the graph rebuilds itself then.
 
 ### 8. Wire up the MCP servers and install the GM skills (in the devcontainer)
 
@@ -209,7 +209,7 @@ claude
 
 The vault's `CLAUDE.md` (at `examples/ttrpg/GM-Vault/CLAUDE.md`) tells Claude the campaign layout, frontmatter schemas, and which skills are available. Run `/mcp` inside Claude to confirm all three servers are connected with 14 tools total (r2r: 5, sourcebooks: 3, vault-graph: 6).
 
-### 9. The demo — A through F
+### 9. The demo — A through G
 
 Run these prompts in order. Each one demonstrates a different capability.
 
@@ -264,20 +264,20 @@ Prompt:
 **Proves**: The session-creation skill orchestrates vault + sourcebook + brainstorming into a structured Lazy-DM session prep. It composes with `worldbuilding` (calls it for new NPC/location creation as needed).
 
 
-#### Demo E — Session-creation skill drafts Session 1
+#### Demo E — Worldbuilding skill mass-creates the wikilinked notes
 
 Prompt:
 
 > Create compact notes for all wikilinks mentioned.
 
-**Expected**: The `sourcebooks` mcp will be called. You'll see:
-1. Several sourcebook queries to gather the context needed to create new NPC, faction and location notes.
-Vault graph queries (mostly empty) to find related notes.
-2. Sourcebook research on the clans, NPCs and factions.
-3. Several files written to `examples/ttrpg/GM-Vault/Grunvyr_Campaign/` , to the folders `./NPC/`, `./Locations/` and `./Factions/`
-4. This lays the foundation for the next demo which will call a Haiku sub-agent if a sufficient number of files are present. 
+**Expected**: The `worldbuilding` skill triggers and calls the `sourcebooks` MCP. You'll see:
+1. Vault graph queries (mostly empty) to find related notes.
+2. Several sourcebook queries to gather the context needed to create the new NPC, faction, and location notes.
+3. Sourcebook research on the clans, NPCs, and factions.
+4. Several files written under `examples/ttrpg/GM-Vault/Grunvyr_Campaign/`, into `./NPC/`, `./Locations/`, and `./Factions/`.
+5. This lays the foundation for the next demo, which dispatches a Haiku sub-agent once enough files are present. 
 
-**Proves**: Mass creation of new Obsidian notes that populate the wikilinks for the one single NPC file and call the sourcebooks to fill any knowledge gaps.
+**Proves**: Mass creation of new Obsidian notes that populate the wikilinks for the one single NPC file and call the `sourcebooks` to fill any knowledge gaps.
 
 
 

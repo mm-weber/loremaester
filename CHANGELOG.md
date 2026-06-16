@@ -62,6 +62,15 @@ may still change between minor versions.
   skipped.
 
 ### Changed
+- **`docs/demo-walkthrough.md`**: added a seventh demo, **Demo E**
+  ("Worldbuilding skill mass-creates the wikilinked notes"), driven by the
+  prompt "Create compact notes for all wikilinks mentioned." It sits between
+  the session-prep demo (D) and the vault-scout sweep, exercising bulk creation
+  of `NPC/`, `Locations/`, and `Factions/` notes from sourcebook research and
+  seeding enough files for the Haiku-dispatched vault-scout demo that follows.
+  The former vault-scout and chronik demos shift from E/F to F/G, and the
+  step-9 heading ("A through G"), the Step 7 vault-population note, and the
+  "What you just saw" table are renumbered to match.
 - **`.devcontainer/devcontainer.json`**: SSH-agent mount source now reads
   `${localEnv:SSH_AUTH_SOCK_HOST:/run/host-services/ssh-auth.sock}`. The default
   is the path Docker Desktop forwards the host agent on, so **macOS / Docker
