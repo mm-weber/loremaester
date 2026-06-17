@@ -54,7 +54,7 @@ that use it: `worldbuilding`, `session-creation`, `chronik`,
 
 5. **Bring your own Obsidian vault, or start with the bundled `Grunvyr_Campaign` scaffold.**
     - From `git clone` to a playable session in 30 minutes.
-    - The [demo walkthrough](docs/demo-walkthrough.md) ships three sourcebooks (one image-only as the OCR exhibit), an empty campaign vault, and six prompts that exercise every layer end-to-end.
+    - The [demo walkthrough](docs/demo-walkthrough.md) ships three sourcebooks (one image-only as the OCR exhibit), an empty campaign vault, and seven prompts that exercise every layer end-to-end.
 
 ## Retrieval is a tool here, not the product
 
@@ -72,9 +72,14 @@ Vector search is necessary. It was never sufficient. This is what it looks like 
 
 ## See it in 30 minutes
 
-You don't need your own vault or sourcebook collection to evaluate this. The repo ships a complete working demo: three Grunvyr sourcebooks (one image-only as the OCR proof point), an empty `Grunvyr_Campaign` vault scaffold, and six demo prompts that exercise every layer of the system. **From `git clone` to ready-to-play session prep in your vault: about 30 minutes. The assistant does the toil; you review and run the table.**
+You don't need your own vault or sourcebook collection to evaluate this. The repo ships a complete working demo: three Grunvyr sourcebooks (one image-only as the OCR proof point), an empty `Grunvyr_Campaign` vault scaffold, and seven demo prompts that exercise every layer of the system. **From `git clone` to ready-to-play session prep in your vault: about 30 minutes. The assistant does the toil; you review and run the table.**
 
-What the six prompts prove:
+<p align="center">
+  <img src="docs/images/demo.gif" alt="Loremaester demo walkthrough" width="100%">
+</p>
+<p align="center"><em>The 30-minute demo on the bundled Grunvyr campaign.</em></p>
+
+What the seven prompts prove:
 
 | # | Prompt | What it proves |
 |---|---|---|
@@ -82,8 +87,9 @@ What the six prompts prove:
 | B | Summarize Volume III. | OCR ingestion of the image-only sourcebook (per-page hybrid, pypdfium2 + tesseract). |
 | C | Draft a master-smith NPC for `Grunvyr_Campaign`. | The `worldbuilding` skill fuses vault canon + sourcebook research and writes a frontmatter-correct note. |
 | D | Prepare Session 1 using the 8 Steps of the Lazy DM. | `session-creation` orchestrates vault + sourcebook + brainstorming into a Lazy-DM session folder. |
-| E | Tabulate every NPC by name, faction, level. | `vault-scout` dispatches Haiku for the mechanical sweep so the main agent stays on judgment work. |
-| F | Update the Campaign Chronicle from player notes. | `chronik` preserves who-told-whom-what across NPC interactions (information-exchange matrix). |
+| E | Create compact notes for all wikilinks mentioned. | The `worldbuilding` skill mass-creates the wikilinked NPC/faction/location notes, calling `sourcebooks` to fill gaps. |
+| F | Tabulate every NPC by name, faction, level. | `vault-scout` dispatches Haiku for the mechanical sweep so the main agent stays on judgment work. |
+| G | Update the Campaign Chronicle from player notes. | `chronik` preserves who-told-whom-what across NPC interactions (information-exchange matrix). |
 
 Full walk-through, including host prereqs and verification steps: [`docs/demo-walkthrough.md`](docs/demo-walkthrough.md).
 
