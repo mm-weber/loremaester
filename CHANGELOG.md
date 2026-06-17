@@ -8,21 +8,27 @@ may still change between minor versions.
 
 ## [Unreleased]
 
-### Security
-- **`.devcontainer/init-firewall.sh`**: dropped `vscode.blob.core.windows.net`
-  and `update.code.visualstudio.com` from the egress allowlist. The standard
-  VS Code Desktop + Reopen-in-Container flow installs the VS Code Server via
-  a client-side tunnel and handles version coordination, so the container
-  itself needs neither direct CDN access nor an update-check endpoint.
-  Narrowing the trust surface; re-add if an extension fails to fetch assets
-  at runtime (symptom: denied iptables hits to the respective domain).
-- **`.devcontainer/devcontainer.json`**: added
-  `"telemetry.telemetryLevel": "off"` to `customizations.vscode.settings`.
-  Stops VS Code Server's periodic POSTs to `mobile.events.data.microsoft.com`
-  (which were continuously failing against the egress firewall and generating
-  ongoing log noise). Aligned with the trust-narrowing posture above.
+## [0.1.0] - 2026-06-17
+
+First public release.
 
 ### Added
+- **MCP servers (3 servers, 14 tools):** `r2r` (search, ingest, list, delete, collections);
+  `sourcebooks` (search_lore, list_books, get_chapter — with book/chapter/page citations);
+  `vault-graph` (Obsidian `[[wikilink]]` graph navigation — 6 tools).
+- **Claude Code skills (4):** worldbuilding, session-creation, chronik, vault-scout (in `skills/`),
+  plus a with-skill/without-skill evaluation harness in `evals/`.
+- **Client-side OCR + ingestion pipeline:** `detect_pdf_type.py` 3-tier classification; per-page
+  hybrid extraction (`ocr_extract.py`) — embedded text layer where present, tesseract (default) or
+  easyocr (GPU opt-in) where absent, plus region-targeted figure OCR; easyocr→tesseract auto-fallback;
+  idempotent re-ingest and SHA1 dedup in `ingest_books.py`. Fully permissive (MIT/Apache/BSD) stack.
+- **Deployment:** Docker Compose Light Mode (Postgres + MinIO + R2R + dashboard) and Full Mode
+  (+ Unstructured.io, Hatchet); sandboxed VS Code devcontainer with an egress firewall.
+- **Vault tooling:** `[[wikilink]]` graph builder (`build_vault_graph.py`) and post-ingestion checks
+  (`verify_ingestion.py`).
+- **Docs & demo:** quickstart, demo-walkthrough, design, troubleshooting; community-health files
+  (Code of Conduct, Contributing, Security, Attribution, Third-Party Notices); a bundled TTRPG demo
+  under `examples/ttrpg/`.
 - **`R2R_TIMEOUT` env var (default 1800s)** for the ingest client. Large scanned
   box sets can take longer than the R2R SDK's 300s default to chunk+embed
   server-side; `scripts/ingest_books.py` now reads `R2R_TIMEOUT` and passes it to
@@ -155,27 +161,19 @@ may still change between minor versions.
   to restate that without the duplication. Test assertions updated to
   match.
 
-## [0.1.0] - 2026-06-08
-
-First public release.
-
-### Added
-- **MCP servers (3 servers, 14 tools):** `r2r` (search, ingest, list, delete, collections);
-  `sourcebooks` (search_lore, list_books, get_chapter — with book/chapter/page citations);
-  `vault-graph` (Obsidian `[[wikilink]]` graph navigation — 6 tools).
-- **Claude Code skills (4):** worldbuilding, session-creation, chronik, vault-scout (in `skills/`),
-  plus a with-skill/without-skill evaluation harness in `evals/`.
-- **Client-side OCR + ingestion pipeline:** `detect_pdf_type.py` 3-tier classification; per-page
-  hybrid extraction (`ocr_extract.py`) — embedded text layer where present, tesseract (default) or
-  easyocr (GPU opt-in) where absent, plus region-targeted figure OCR; easyocr→tesseract auto-fallback;
-  idempotent re-ingest and SHA1 dedup in `ingest_books.py`. Fully permissive (MIT/Apache/BSD) stack.
-- **Deployment:** Docker Compose Light Mode (Postgres + MinIO + R2R + dashboard) and Full Mode
-  (+ Unstructured.io, Hatchet); sandboxed VS Code devcontainer with an egress firewall.
-- **Vault tooling:** `[[wikilink]]` graph builder (`build_vault_graph.py`) and post-ingestion checks
-  (`verify_ingestion.py`).
-- **Docs & demo:** quickstart, demo-walkthrough, design, troubleshooting; community-health files
-  (Code of Conduct, Contributing, Security, Attribution, Third-Party Notices); a bundled TTRPG demo
-  under `examples/ttrpg/`.
+### Security
+- **`.devcontainer/init-firewall.sh`**: dropped `vscode.blob.core.windows.net`
+  and `update.code.visualstudio.com` from the egress allowlist. The standard
+  VS Code Desktop + Reopen-in-Container flow installs the VS Code Server via
+  a client-side tunnel and handles version coordination, so the container
+  itself needs neither direct CDN access nor an update-check endpoint.
+  Narrowing the trust surface; re-add if an extension fails to fetch assets
+  at runtime (symptom: denied iptables hits to the respective domain).
+- **`.devcontainer/devcontainer.json`**: added
+  `"telemetry.telemetryLevel": "off"` to `customizations.vscode.settings`.
+  Stops VS Code Server's periodic POSTs to `mobile.events.data.microsoft.com`
+  (which were continuously failing against the egress firewall and generating
+  ongoing log noise). Aligned with the trust-narrowing posture above.
 
 ### Known limitations
 - Linux/macOS hosts only (Windows unsupported); single-stack deployment is supported (the multi-instance
