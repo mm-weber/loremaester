@@ -30,7 +30,7 @@ image PDFs can instead be OCR'd server-side by R2R/Unstructured.io in Docker Ful
 > **Removed during v0.1 prep:** the earlier `kreuzberg` OCR wrapper (Elastic License 2.0,
 > source-available) was dropped — it was both a functional liability (multi-page EasyOCR returned
 > empty text) and a non-permissive dependency. The OCR stack is now fully permissive. History:
-> `specs/v0.2/specs_v0.2.md` (R-1 / R-1E) and Conductor track `remove-kreuzberg_20260606`.
+> `specs/v0.2/v0.2-milestone-plan.md` (R-1 / R-1E) and Conductor track `remove-kreuzberg_20260606`.
 
 The one-off `scripts/ocr_preprocess.py` helper (NOT on the default ingest path) instead uses
 `pdf2image` (MIT — requires the system **poppler** tool, GPL) with `pytesseract`/`surya`; surya is

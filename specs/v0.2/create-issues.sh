@@ -171,11 +171,11 @@ BODY
 )" --label security --label area:mcp-servers
 
 # ---------------------------------------------------------------------------
-# Backlog (from specs_v0.2.md)
+# Backlog (from specs/v0.2/v0.2-milestone-plan.md)
 # ---------------------------------------------------------------------------
 
 create_issue "BL-1: sourcebooks MCP design-review fixes" "$(cat <<'BODY'
-**Context.** Design-review findings for `mcp-servers/sourcebooks/server.py` (`specs_v0.2.md` issues 1-7). Covers #2-#7 and structural items B and C.
+**Context.** Design-review findings for `mcp-servers/sourcebooks/server.py` (`specs/v0.2/v0.2-milestone-plan.md` issues 1-7). Covers #2-#7 and structural items B and C.
 
 **Requirements.**
 - `list_books` SHALL NOT silently truncate at 100 documents (paginate or expose a `limit`; at minimum warn on truncation). [#2]
@@ -188,12 +188,12 @@ create_issue "BL-1: sourcebooks MCP design-review fixes" "$(cat <<'BODY'
 
 **Acceptance.** A failing-first test per behavior; no silent truncation; empty-result messages present; docstrings enriched. Tests hermetic per `CONTRIBUTING.md`.
 
-Refs: `specs_v0.2.md` issues 2-7, B, C. Coordinate with SEC-5 and BL-2 (same files).
+Refs: `specs/v0.2/v0.2-milestone-plan.md` issues 2-7, B, C. Coordinate with SEC-5 and BL-2 (same files).
 BODY
 )" --label area:mcp-servers --label type:enhancement
 
 create_issue "BL-2: shared cached R2R client across MCP servers" "$(cat <<'BODY'
-**Context.** All three MCP servers construct a new `R2RClient` per call (`specs_v0.2.md` issue #1, structural A).
+**Context.** All three MCP servers construct a new `R2RClient` per call (`specs/v0.2/v0.2-milestone-plan.md` issue #1, structural A).
 
 **Requirements.**
 - A shared `r2r_utils.get_client()` SHALL provide a cached module-level client (after confirming `R2RClient.__init__` cost).
@@ -201,7 +201,7 @@ create_issue "BL-2: shared cached R2R client across MCP servers" "$(cat <<'BODY'
 
 **Acceptance.** Single client reused per process; tests pass; no behavior change.
 
-Refs: `specs_v0.2.md` issue #1, structural A.
+Refs: `specs/v0.2/v0.2-milestone-plan.md` issue #1, structural A.
 BODY
 )" --label area:mcp-servers --label type:refactor
 
@@ -212,7 +212,7 @@ create_issue "BL-3: R-3 end-to-end collection support (optional)" "$(cat <<'BODY
 
 **Acceptance.** End-to-end collection scoping works; docs updated.
 
-Refs: `specs_v0.2.md` R-3. Priority low / stretch.
+Refs: `specs/v0.2/v0.2-milestone-plan.md` R-3. Priority low / stretch.
 BODY
 )" --label area:mcp-servers
 
@@ -223,7 +223,7 @@ create_issue "BL-4: R-4 migrate Python deps to pyproject.toml [project]" "$(cat 
 
 **Acceptance.** `pip install -e ".[test]"` installs all deps; CI green; `requirements*.txt` removed.
 
-Refs: `specs_v0.2.md` R-4.
+Refs: `specs/v0.2/v0.2-milestone-plan.md` R-4.
 BODY
 )" --label area:packaging --label type:chore
 
@@ -234,7 +234,7 @@ create_issue "BL-5: R-5 activate Dependabot supply-chain updates" "$(cat <<'BODY
 
 **Acceptance.** Active `.github/dependabot.yml` on `main`; Dependabot enabled; first update PRs appear.
 
-Refs: `specs_v0.2.md` R-5. The supply-chain lever the security lists reference; cross-link SEC-0.
+Refs: `specs/v0.2/v0.2-milestone-plan.md` R-5. The supply-chain lever the security lists reference; cross-link SEC-0.
 BODY
 )" --label area:ci --label type:chore
 
