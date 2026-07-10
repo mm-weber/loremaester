@@ -172,7 +172,7 @@ This is a v0.1 release. Those are current gaps:
 
 - **Windows hosts.** Linux and macOS are the supported and validated platforms for v0.1. The Ollama install path and `host.docker.internal` networking diverge on Windows and haven't been tested.
 - **Non-TTRPG domain adaptation.** The `sourcebooks` MCP server's metadata schema (`book_title` / `chapter` / `page_range`) and the worldbuilding skill template assume TTRPG vocabulary. Adapting to other domains (legal, engineering, academic) is on the v0.2 roadmap.
-- **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`specs/v0.2/specs_v0.2.md`](specs/v0.2/specs_v0.2.md).
+- **End-to-end collection scoping.** The generic `r2r` MCP wrapper supports `collection_ids`, but the `sourcebooks` server and the `ingest_books.py` / `verify_ingestion.py` CLIs don't yet scope by collection. Per-corpus isolation needs this wiring; tracked as R-3 in [`specs/v0.2/v0.2-milestone-plan.md`](specs/v0.2/v0.2-milestone-plan.md).
 
 ## Contributing & community
 

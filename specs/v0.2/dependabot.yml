@@ -7,7 +7,7 @@
 # commented, in .github/. It lives here as a ready-to-use config until v0.2.
 #
 # Tracked as "R-5 - Supply-chain auto-updates (Dependabot)" in
-# specs/v0.2/specs_v0.2.md.
+# specs/v0.2/v0.2-milestone-plan.md.
 #
 # TO ACTIVATE (v0.2):
 #   1. git mv specs/v0.2/dependabot.yml .github/dependabot.yml
