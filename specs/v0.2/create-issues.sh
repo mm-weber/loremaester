@@ -29,7 +29,7 @@ if gh api "repos/$REPO/milestones?state=all" --jq '.[].title' | grep -qxF "$MILE
 else
   gh api "repos/$REPO/milestones" \
     -f title="$MILESTONE" -f state="open" \
-    -f description="Hardening and polish: agent blast-radius reduction plus the sourcebooks MCP design review, pyproject migration, and Dependabot." >/dev/null
+    -f description="Hardening and polish: agent blast-radius reduction (credentials, hardened mounts, recoverable vault, scoped MCP verbs) plus the sourcebooks MCP design review, pyproject migration, and Dependabot." >/dev/null
   echo ">> created milestone: $MILESTONE"
 fi
 
