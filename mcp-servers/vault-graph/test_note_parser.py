@@ -42,3 +42,23 @@ def test_r19_headings_only_outside_code_and_frontmatter():
         (1, "Title", 4),
         (3, "Deep", 11),
     ]
+
+
+def test_r21_link_forms_in_body_and_frontmatter():
+    text = (
+        "---\n"
+        'faction: "[[Iron Guard]]"\n'
+        "---\n"
+        "Meets [[Captain Aldric]] and [[Mira|the smith]].\n"
+        "| [[Old Mill\\|the mill]] | ruin |\n"
+        "See [[Harbor#Docks]], [[Harbor#^dock-1]] and ![[Map Note]].\n"
+    )
+    assert [(link.target, link.line) for link in parse_note(text).links] == [
+        ("Iron Guard", 2),
+        ("Captain Aldric", 4),
+        ("Mira", 4),
+        ("Old Mill", 5),
+        ("Harbor", 6),
+        ("Harbor", 6),
+        ("Map Note", 6),
+    ]

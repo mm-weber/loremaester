@@ -13,6 +13,12 @@ class Heading:
     line: int  # 1-based
 
 
+@dataclass(frozen=True)
+class Link:
+    target: str  # as written: "Note" or "Folder/Note", without text, heading or block
+    line: int  # 1-based
+
+
 @dataclass
 class ParsedNote:
     lines: list[str]
@@ -20,6 +26,7 @@ class ParsedNote:
     aliases: list[str] = field(default_factory=list)
     kinds: list[str] = field(default_factory=list)
     headings: list[Heading] = field(default_factory=list)
+    links: list[Link] = field(default_factory=list)
 
 
 def _aliases(frontmatter: str) -> list[str]:
