@@ -111,3 +111,13 @@ def test_r32_names_compare_after_nfc_lowercase_trim_and_md(tmp_path):
     assert index.resolve_link(" mira.MD ", "Home.md") == "NPCs/Mira.md"
     assert index.resolve_link("CAFÉ", "Home.md") == cafe
     assert index.resolve_note("café").path == cafe
+
+
+def test_r34_target_with_slash_matches_root_path_or_path_end(tmp_path):
+    _write(tmp_path, "World/NPCs/Mira.md")
+    _write(tmp_path, "Old/Mira.md")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.resolve_link("World/NPCs/Mira", "Home.md") == "World/NPCs/Mira.md"
+    assert index.resolve_link("NPCs/Mira", "Home.md") == "World/NPCs/Mira.md"
+    assert index.resolve_link("rld/NPCs/Mira", "Home.md") is None
