@@ -15,3 +15,9 @@ def test_r18_aliases_from_aliases_and_alias_keys():
     assert listed.aliases == ["Ally", "The Captain"]
     assert parse_note("---\naliases: Ally\n---\n").aliases == ["Ally"]
     assert parse_note("---\nalias: [Old Name]\n---\n").aliases == ["Old Name"]
+
+
+def test_r17_invalid_yaml_keeps_frontmatter_without_aliases():
+    note = parse_note("---\naliases: [unclosed\ntype: npc\n---\nBody.\n")
+    assert note.frontmatter == (1, 4)
+    assert note.aliases == []
