@@ -229,3 +229,12 @@ def test_r24_item_run_follows_indentation_whatever_the_line_kind():
     assert note.block(4) == [4, 5]
     assert note.block(6) == [6, 7, 8, 9]
     assert note.block(13) == [10, 11, 12, 13]
+
+
+def test_r25_ancestors_are_found_across_quotes_and_tables():
+    text = (
+        "- Parent\n  > a quote\n  - Child [[X]]\n- Other\n  | a | b |\n  - Sub [[X]]\n"
+    )
+    note = parse_note(text)
+    assert note.block(3) == [1, 3]
+    assert note.block(6) == [4, 6]
