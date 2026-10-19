@@ -569,6 +569,31 @@ def _map(
     return out
 
 
+def _overview(
+    order: list[str], other: dict[str, list[int]], listed: set[str], unlinked: bool
+) -> list[str]:
+    """Mentioning notes per top-level folder, and the other kind's count (R49)."""
+    counts = DOT.join(f"{folder} {count}" for folder, count in _folder_counts(order))
+    verb = "name it" if unlinked else "link here"
+    first = f"{len(order)} notes {verb}" + (f": {counts}" if counts else "")
+    other_count = sum(1 for rel in other if rel in listed)
+    if unlinked:
+        return [first, f"Linked: {other_count} notes link here"]
+    return [first, f"Unlinked: {other_count} notes name it without a link"]
+
+
+def _excerpt_summary(
+    order: list[str], built: dict[str, list[_Excerpt]], picked: list[_Excerpt]
+) -> str:
+    """Notes with excerpts, and the excerpt tokens shown against all of them (R51)."""
+    shown = sum(excerpt.cost for excerpt in picked)
+    total = sum(excerpt.cost for rel in order for excerpt in built[rel])
+    notes = len({excerpt.rel for excerpt in picked})
+    return (
+        f"Excerpts for {notes} notes (~{_fmt(shown)} of ~{_fmt(total)} tokens for all)"
+    )
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -639,24 +664,24 @@ async def vault_mentions(
     found = index.resolve_note(note)
     skip = _setting("VAULT_SKIP_FOLDERS")
     listed, unmatched = _listed_notes(index, paths, skip)
-    if unlinked:
-        endings = tuple(_setting("VAULT_NAME_ENDINGS"))
-        all_mentions = index.unlinked_mentions(found, endings)
-    else:
-        all_mentions = index.linked_mentions(found)
+    linked = index.linked_mentions(found)
+    plain = index.unlinked_mentions(found, tuple(_setting("VAULT_NAME_ENDINGS")))
+    all_mentions, other = (plain, linked) if unlinked else (linked, plain)
     mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}
-    kind = "Unlinked" if unlinked else "Linked"
-    out = [f"## {kind} mentions: {note} ({found.path or 'no note yet'})"]
-    out += _resolution_lines(found)
-    out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
-    skipped = _skipped_counts(all_mentions, listed, skip)
-    if skipped:
-        out.append("Skipped folders: " + DOT.join(skipped))
     order = _order(list(mentions))
     built = {
         rel: _excerpts(rel, index.notes[rel].parsed, mentions[rel]) for rel in order
     }
     picked = _fill(order, built, budget_tokens)
+    kind = "Unlinked" if unlinked else "Linked"
+    out = [f"## {kind} mentions: {note} ({found.path or 'no note yet'})"]
+    out += _resolution_lines(found)
+    out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
+    out += _overview(order, other, listed, unlinked)
+    skipped = _skipped_counts(all_mentions, listed, skip)
+    if skipped:
+        out.append("Skipped folders: " + DOT.join(skipped))
+    out.append(_excerpt_summary(order, built, picked))
     for excerpt in picked:
         out += ["", excerpt.label, *excerpt.lines]
     shown = {(excerpt.rel, line) for excerpt in picked for line in excerpt.shown}
