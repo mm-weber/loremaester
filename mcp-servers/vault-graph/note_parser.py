@@ -55,6 +55,9 @@ class ParsedNote:
     headings: list[Heading] = field(default_factory=list)
     links: list[Link] = field(default_factory=list)
 
+    def section(self, heading_line: int) -> tuple[int, int]:
+        return (0, 0)
+
 
 def _aliases(frontmatter: str) -> list[str]:
     """Aliases from the `aliases` and `alias` keys, each a list or one string (R18)."""

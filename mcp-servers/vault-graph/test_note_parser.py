@@ -88,3 +88,12 @@ def test_r22_heading_links_attachments_and_markdown_links_are_not_links():
         "Dr. Smith",
         "Session 3.5",
     ]
+
+
+def test_r30_section_runs_to_next_heading_with_same_or_fewer_hashes():
+    note = parse_note("# Top\nintro\n## A\na\n### A1\na1\n## B\nb\n# Next\n")
+    assert note.section(1) == (1, 8)
+    assert note.section(3) == (3, 6)
+    assert note.section(5) == (5, 6)
+    assert note.section(7) == (7, 8)
+    assert note.section(9) == (9, 9)
