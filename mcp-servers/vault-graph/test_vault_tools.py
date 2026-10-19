@@ -512,6 +512,28 @@ async def test_r49_r51_overview_counts_folders_other_kind_and_excerpts(vault):
     assert "Linked: 3 notes link here" in unlinked
 
 
+async def test_r49_r51_overview_figures_follow_listed_notes_and_budget(
+    vault, monkeypatch
+):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Sessions/S1.md", "[[Mira]] one\n")
+    _write(vault, "Sessions/S2.md", "[[Mira]] two\n")
+    tight = (await server.vault_mentions("Mira", budget_tokens=5)).splitlines()
+    assert "Excerpts for 1 notes (~8 of ~16 tokens for all)" in tight
+    monkeypatch.setenv("VAULT_SKIP_FOLDERS", "Rules")
+    _write(vault, "Rules/R2.md", "Mira rules.\n")
+    _write(vault, "Gossip.md", "Mira is busy.\n")
+    skipped = (await server.vault_mentions("Mira")).splitlines()
+    assert "Unlinked: 1 notes name it without a link" in skipped
+    _write(vault, "NPCs/Hermit.md")
+    alone = (await server.vault_mentions("Hermit")).splitlines()
+    assert alone[2:] == [
+        "0 notes link here",
+        "Unlinked: 0 notes name it without a link",
+        "Excerpts for 0 notes (~0 of ~0 tokens for all)",
+    ]
+
+
 async def test_r78_r79_unknown_names_get_close_names(vault):
     _write(vault, "NPCs/Captain Aldric.md", "---\naliases: [Aldric]\n---\nx\n")
     _write(vault, "NPCs/Mira.md")
