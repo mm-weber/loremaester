@@ -578,3 +578,13 @@ async def test_r80_missing_vault_root_is_an_error_naming_it(tmp_path, monkeypatc
 def test_r68_equal_natural_keys_still_order_one_way():
     tied = ["Sessions/Session 09.md", "Sessions/Session 9.md"]
     assert server._order(tied) == server._order(tied[::-1])
+
+
+async def test_r59_fewer_than_four_notes_split_the_whole_budget(vault):
+    _write(vault, "NPCs/Mira.md")
+    for name in ("s1", "s2"):
+        body = "\n\n".join(f"[[Mira]] {name}p{k} " + "h" * 100 for k in range(14))
+        _write(vault, f"Log/{name}.md", body + "\n")
+    result = await server.vault_mentions("Mira", budget_tokens=400)
+    assert all(f"{name}p5 " in result for name in ("s1", "s2"))
+    assert not any(f"{name}p6 " in result for name in ("s1", "s2"))
