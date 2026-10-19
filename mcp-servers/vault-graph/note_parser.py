@@ -56,7 +56,12 @@ class ParsedNote:
     links: list[Link] = field(default_factory=list)
 
     def section(self, heading_line: int) -> tuple[int, int]:
-        return (0, 0)
+        """First and last line of the section a heading opens (R30)."""
+        level = next(h.level for h in self.headings if h.line == heading_line)
+        for heading in self.headings:
+            if heading.line > heading_line and heading.level <= level:
+                return heading_line, heading.line - 1
+        return heading_line, len(self.lines)
 
 
 def _aliases(frontmatter: str) -> list[str]:
