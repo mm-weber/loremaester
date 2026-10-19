@@ -146,3 +146,18 @@ def test_r25_nested_item_block_adds_ancestor_first_lines():
         "  - Members\n"
     )
     assert parse_note(text).block(4) == [1, 3, 4, 5]
+
+
+def test_r26_table_row_block_keeps_header_and_separator():
+    text = (
+        "| Name | Role |\n"
+        "|---|---|\n"
+        "| Mira | smith |\n"
+        "| [[X]] | captain |\n"
+        "\n"
+        "| no | separator |\n"
+        "| [[X]] | row |\n"
+    )
+    note = parse_note(text)
+    assert note.block(4) == [1, 2, 4]
+    assert note.block(7) == [6, 7]
