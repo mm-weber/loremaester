@@ -59,7 +59,9 @@ class VaultIndex:
                 file = Path(folder, name)
                 rel = file.relative_to(self.root).as_posix()
                 try:
-                    if not file.resolve().is_relative_to(root):
+                    # realpath, as Path.resolve() raises RuntimeError on a symlink
+                    # loop before Python 3.13; stat() then fails with OSError
+                    if not Path(os.path.realpath(file)).is_relative_to(root):
                         continue
                     stat = file.stat()
                     old = self.notes.get(rel)
