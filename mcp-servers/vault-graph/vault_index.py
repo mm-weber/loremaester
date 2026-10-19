@@ -123,6 +123,8 @@ class VaultIndex:
         """Source note -> lines of its links to the note (R41)."""
         mentions: dict[str, list[int]] = {}
         for rel, note in self.notes.items():
+            if rel == found.path:
+                continue  # R44
             for link in note.parsed.links:
                 if self.resolve_link(link.target, rel) == found.path:
                     lines = mentions.setdefault(rel, [])
