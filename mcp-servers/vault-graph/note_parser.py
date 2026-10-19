@@ -118,14 +118,17 @@ class ParsedNote:
         lines = list(range(item, max(end, line) + 1))
         depth = base
         for number in range(item - 1, 0, -1):  # R25: ancestors, nearest first
-            kind = self.kinds[number - 1]
-            if kind not in ("item", "cont", "blank"):
-                break
-            if kind == "item" and _indent(self.lines[number - 1]) < depth:
+            text = self.lines[number - 1]
+            if not text.strip():
+                continue
+            indent = _indent(text)
+            if self.kinds[number - 1] == "item" and indent < depth:
                 lines.append(number)
-                depth = _indent(self.lines[number - 1])
+                depth = indent
                 if depth == 0:
                     break
+            elif indent == 0:
+                break  # a line at the margin ends the list
         return sorted(lines)
 
     def _table_block(self, line: int) -> list[int]:
