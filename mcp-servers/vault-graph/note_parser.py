@@ -87,26 +87,35 @@ class ParsedNote:
             end += 1
         return list(range(start, end + 1))
 
+    def _owner(self, line: int) -> int:
+        """The list item whose run holds `line` (R24)."""
+        if self.kinds[line - 1] == "item":
+            return line
+        limit = _indent(self.lines[line - 1])
+        for number in range(line - 1, 0, -1):
+            text = self.lines[number - 1]
+            if not text.strip():
+                continue
+            indent = _indent(text)
+            if self.kinds[number - 1] == "item" and indent < limit:
+                return number
+            if indent == 0:
+                break
+            limit = min(limit, indent)
+        return line
+
     def _item_block(self, line: int) -> list[int]:
         """The list item holding `line` plus its deeper lines (R24)."""
-        item = line
-        if self.kinds[line - 1] == "cont":
-            depth = _indent(self.lines[line - 1])
-            item = next(
-                number
-                for number in range(line - 1, 0, -1)
-                if self.kinds[number - 1] == "item"
-                and _indent(self.lines[number - 1]) < depth
-            )
+        item = self._owner(line)
         base = _indent(self.lines[item - 1])
         end = item
         while (
             end < len(self.lines)
-            and self.kinds[end] in ("item", "cont")
+            and self.lines[end].strip()
             and _indent(self.lines[end]) > base
         ):
             end += 1
-        lines = list(range(item, end + 1))
+        lines = list(range(item, max(end, line) + 1))
         depth = base
         for number in range(item - 1, 0, -1):  # R25: ancestors, nearest first
             kind = self.kinds[number - 1]
@@ -238,14 +247,18 @@ def _classify(lines: list[str], body_start: int) -> list[str]:
         if opener:
             fence = opener.group(1)[0]
             kinds.append("code")
-            list_indent = None
+            if list_indent is not None and _indent(line) <= list_indent:
+                list_indent = None
             continue
         kind = _kind(line)
         if kind == "item":
             indent = _indent(line)
             list_indent = indent if list_indent is None else min(list_indent, indent)
-        elif kind == "para" and list_indent is not None and _indent(line) > list_indent:
-            kind = "cont"
+        elif (
+            list_indent is not None and kind != "blank" and _indent(line) > list_indent
+        ):
+            if kind == "para":
+                kind = "cont"  # other kinds keep their own kind inside the list
         else:
             list_indent = None
         kinds.append(kind)
