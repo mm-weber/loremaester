@@ -66,7 +66,7 @@ class ParsedNote:
     def block(self, line: int) -> list[int]:
         """Lines of the Markdown block holding `line` (R23-R29)."""
         kind = self.kinds[line - 1]
-        if kind == "para":
+        if kind in ("para", "quote"):
             return self._run(line, kind)
         if kind in ("item", "cont"):
             return self._item_block(line)
