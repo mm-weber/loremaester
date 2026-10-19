@@ -17,6 +17,11 @@ def normalize(name: str) -> str:
     return name.removesuffix(".md").strip()
 
 
+def _depth_then_path(rel: str) -> tuple[int, str]:
+    """Sort key: fewest path segments first, then alphabetical (R35, R38)."""
+    return rel.count("/"), rel
+
+
 @dataclass
 class Note:
     path: str  # vault-relative POSIX path, with .md
@@ -87,9 +92,12 @@ class VaultIndex:
         ]
 
     def resolve_link(self, target: str, source: str) -> str | None:
-        """The note a link in `source` points to, or None (R32, R33)."""
+        """The note a link in `source` points to, or None (R32-R35)."""
         matches = self._candidates(normalize(target))
-        return matches[0] if matches else None
+        folder = PurePosixPath(source).parent
+        same_folder = [rel for rel in matches if PurePosixPath(rel).parent == folder]
+        ordered = sorted(same_folder or matches, key=_depth_then_path)
+        return ordered[0] if ordered else None
 
     def resolve_note(self, name: str) -> Resolution:
         """The note a tool's `note` argument names (R32)."""
