@@ -81,3 +81,12 @@ async def test_r72_outline_without_sections_says_how_to_get_in(vault):
     assert "For all of it: Read the file." in result
     assert "Headings:" not in result
     assert "[cut at 1,500 characters; the lead ends at L2]" in result
+
+
+async def test_r38_r39_ambiguous_note_picks_shallowest_and_names_others(vault):
+    _write(vault, "Archive/Old/Mira.md", "old")
+    _write(vault, "NPCs/Mira.md", "current")
+    _write(vault, "Zeta/Mira.md", "zeta")
+    result = await server.vault_read_note("Mira")
+    assert result.endswith("current")
+    assert "Other matches: Zeta/Mira.md, Archive/Old/Mira.md" in result
