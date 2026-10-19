@@ -493,3 +493,20 @@ async def test_r62_r63_map_groups_by_folder_and_ends_with_pull_hints(vault):
         for entry in entries:
             assert entry.startswith(group.group(1) + "/")
             assert re.search(r"\.md L[\d,]+$", entry)
+
+
+async def test_r49_r51_overview_counts_folders_other_kind_and_excerpts(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Sessions/S1.md", "[[Mira]] one\n")
+    _write(vault, "Sessions/S2.md", "[[Mira]] two\n")
+    _write(vault, "Places/Forge.md", "[[Mira]] three\n")
+    _write(vault, "Gossip.md", "Mira is busy.\n")
+    _write(vault, "Talk.md", "Mira again.\n")
+    linked = await server.vault_mentions("Mira")
+    assert "3 notes link here: Sessions 2 · Places 1" in linked
+    assert "Unlinked: 2 notes name it without a link" in linked
+    summary = r"^Excerpts for 3 notes \(~[\d.]+k? of ~[\d.]+k? tokens for all\)$"
+    assert re.search(summary, linked, re.M)
+    unlinked = await server.vault_mentions("Mira", unlinked=True)
+    assert "2 notes name it: (root) 2" in unlinked
+    assert "Linked: 3 notes link here" in unlinked
