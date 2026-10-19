@@ -120,3 +120,10 @@ async def test_r73_r75_read_section_returns_each_matching_section_labelled(vault
     assert f"## {path}:7-8{sep}Session 12{sep}Day 2{sep}Log (~" in result
     for line in ("Fought the troll.", "- Who sent it?", "Rested."):
         assert line in result
+
+
+async def test_r74_heading_match_ignores_case_whitespace_and_hashes(vault):
+    _write(vault, "Note.md", "# Top\n## Open Threads\nthread one\n")
+    result = await server.vault_read_section("Note", "  ## open threads ")
+    assert "## Note.md:2-3" in result
+    assert "thread one" in result
