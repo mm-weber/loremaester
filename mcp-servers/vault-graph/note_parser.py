@@ -64,7 +64,20 @@ class ParsedNote:
         return heading_line, len(self.lines)
 
     def block(self, line: int) -> list[int]:
-        return []
+        """Lines of the Markdown block holding `line` (R23-R29)."""
+        kind = self.kinds[line - 1]
+        if kind == "para":
+            return self._run(line, kind)
+        return [line]
+
+    def _run(self, line: int, kind: str) -> list[int]:
+        """The run of adjacent lines of one kind around `line`."""
+        start = end = line
+        while start > 1 and self.kinds[start - 2] == kind:
+            start -= 1
+        while end < len(self.lines) and self.kinds[end] == kind:
+            end += 1
+        return list(range(start, end + 1))
 
 
 def _aliases(frontmatter: str) -> list[str]:
@@ -86,6 +99,28 @@ def _aliases(frontmatter: str) -> list[str]:
 
 _HEADING = re.compile(r"^(#{1,6})[ \t]+(.*?)\s*$")
 _FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+_LIST_ITEM = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])[ \t]")
+_THEMATIC_BREAK = re.compile(
+    r"^[ \t]*(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$"
+)
+
+
+def _kind(line: str) -> str:
+    """Kind of a line outside code and frontmatter (spec 6.0 Terms)."""
+    if not line.strip():
+        return "blank"
+    if _THEMATIC_BREAK.match(line):
+        return "break"
+    if _HEADING.match(line):
+        return "heading"
+    if _LIST_ITEM.match(line):
+        return "item"
+    first = line.lstrip()[0]
+    if first == "|":
+        return "table"
+    if first == ">":
+        return "quote"
+    return "para"
 
 
 def _classify(lines: list[str], body_start: int) -> list[str]:
@@ -101,10 +136,8 @@ def _classify(lines: list[str], body_start: int) -> list[str]:
         elif opener:
             fence = opener.group(1)[0]
             kinds.append("code")
-        elif _HEADING.match(line):
-            kinds.append("heading")
         else:
-            kinds.append("text")
+            kinds.append(_kind(line))
     return kinds
 
 
