@@ -24,3 +24,14 @@ def test_r07_index_has_every_md_file_outside_dot_folders(tmp_path):
     index = VaultIndex(tmp_path)
     index.refresh()
     assert sorted(index.notes) == ["Deep/Er/Note.md", "Home.md", "NPCs/Mira.md"]
+
+
+def test_r08_symlink_out_of_the_vault_is_not_read(tmp_path):
+    vault = tmp_path / "vault"
+    outside = _write(tmp_path, "outside/Secret.md", "secret text")
+    _write(vault, "Inside.md")
+    (vault / "Leak.md").symlink_to(outside)
+    (vault / "LeakDir").symlink_to(outside.parent, target_is_directory=True)
+    index = VaultIndex(vault)
+    index.refresh()
+    assert sorted(index.notes) == ["Inside.md"]
