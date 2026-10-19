@@ -639,9 +639,13 @@ async def vault_mentions(
     found = index.resolve_note(note)
     skip = _setting("VAULT_SKIP_FOLDERS")
     listed, unmatched = _listed_notes(index, paths, skip)
-    all_mentions = index.linked_mentions(found)
+    if unlinked:
+        all_mentions = index.unlinked_mentions(found)
+    else:
+        all_mentions = index.linked_mentions(found)
     mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}
-    out = [f"## Linked mentions: {note} ({found.path or 'no note yet'})"]
+    kind = "Unlinked" if unlinked else "Linked"
+    out = [f"## {kind} mentions: {note} ({found.path or 'no note yet'})"]
     out += _resolution_lines(found)
     out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
     skipped = _skipped_counts(all_mentions, listed, skip)

@@ -4,6 +4,7 @@ Requirement numbers refer to specs/v0.2/surgical-search.md.
 """
 
 import os
+import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -141,6 +142,25 @@ class VaultIndex:
                     lines = mentions.setdefault(rel, [])
                     if link.line not in lines:
                         lines.append(link.line)
+        return mentions
+
+    def unlinked_mentions(self, found: Resolution) -> dict[str, list[int]]:
+        """Source note -> lines that name the note in plain text (R52)."""
+        if found.path is None:
+            return {}
+        terms = [PurePosixPath(found.path).stem, *self.notes[found.path].parsed.aliases]
+        pattern = re.compile("|".join(re.escape(term) for term in terms))
+        mentions: dict[str, list[int]] = {}
+        for rel, note in self.notes.items():
+            if rel == found.path:
+                continue
+            lines = [
+                number
+                for number, text in enumerate(note.parsed.lines, start=1)
+                if pattern.search(text)
+            ]
+            if lines:
+                mentions[rel] = lines
         return mentions
 
     def covered_by(self, entry: str) -> dict[str, str]:
