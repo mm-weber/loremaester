@@ -62,3 +62,16 @@ def test_r21_link_forms_in_body_and_frontmatter():
         ("Harbor", 6),
         ("Map Note", 6),
     ]
+
+
+def test_r20_no_links_inside_code():
+    text = (
+        "```\n"
+        "[[In Fence]]\n"
+        "```\n"
+        "~~~\n"
+        "[[In Tilde Fence]]\n"
+        "~~~\n"
+        "Text `[[In Inline Code]]` and [[Real Link]].\n"
+    )
+    assert [link.target for link in parse_note(text).links] == ["Real Link"]
