@@ -619,8 +619,18 @@ async def vault_mentions(
     built = {
         rel: _excerpts(rel, index.notes[rel].parsed, mentions[rel]) for rel in order
     }
-    for excerpt in _fill(order, built, budget_tokens):
+    picked = _fill(order, built, budget_tokens)
+    for excerpt in picked:
         out += ["", excerpt.label, *excerpt.lines]
+    shown = {(excerpt.rel, line) for excerpt in picked for line in excerpt.shown}
+    rows = [
+        (rel, [line for line in mentions[rel] if (rel, line) not in shown])
+        for rel in order
+    ]
+    rows = [(rel, lines) for rel, lines in rows if lines]
+    if rows:
+        out += ["", "Not shown, pull with paths=[...]:"]
+        out += [f"{rel} L{','.join(map(str, lines))}" for rel, lines in rows]
     return _respond(out)
 
 
