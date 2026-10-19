@@ -510,3 +510,16 @@ async def test_r49_r51_overview_counts_folders_other_kind_and_excerpts(vault):
     unlinked = await server.vault_mentions("Mira", unlinked=True)
     assert "2 notes name it: (root) 2" in unlinked
     assert "Linked: 3 notes link here" in unlinked
+
+
+async def test_r78_r79_unknown_names_get_close_names(vault):
+    _write(vault, "NPCs/Captain Aldric.md", "---\naliases: [Aldric]\n---\nx\n")
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "NPCs/Miriam.md")
+    note = await server.vault_read_note("Mir")
+    assert note.startswith("Error: no note matches 'Mir'. Close names: Mira, Miriam")
+    section = await server.vault_read_section("Captian Aldric", "x")
+    expected = "Error: no note matches 'Captian Aldric'. Close names: Captain Aldric"
+    assert section.startswith(expected)
+    mentions = await server.vault_mentions("Mirra")
+    assert "No note matches 'Mirra'. Close names: Mira" in mentions
