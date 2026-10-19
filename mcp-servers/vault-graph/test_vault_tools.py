@@ -90,3 +90,11 @@ async def test_r38_r39_ambiguous_note_picks_shallowest_and_names_others(vault):
     result = await server.vault_read_note("Mira")
     assert result.endswith("current")
     assert "Other matches: Zeta/Mira.md, Archive/Old/Mira.md" in result
+
+
+async def test_r36_r37_note_argument_matches_aliases_and_says_so(vault):
+    text = "---\naliases: [Aldric]\n---\nGate captain.\n"
+    _write(vault, "NPCs/Captain Aldric.md", text)
+    result = await server.vault_read_note("aldric")
+    assert result.endswith("Gate captain.")
+    assert 'Found by alias "aldric" of NPCs/Captain Aldric.md' in result
