@@ -230,3 +230,11 @@ async def test_r65_paths_limit_mentions_to_matching_folders_and_notes(vault):
     assert "Sessions/Session 36/Prep.md:1" in result
     assert "Places/Forge.md:1" in result
     assert "Session 37" not in result
+
+
+async def test_r66_paths_entry_without_matches_is_reported(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Log.md", "[[Mira]]\n")
+    result = await server.vault_mentions("Mira", paths=["Sesions", "Log"])
+    assert 'No note or folder matches paths entry "Sesions".' in result
+    assert "Log.md:1" in result
