@@ -123,6 +123,8 @@ Full component rationale in [`docs/design.md`](docs/design.md).
 | **`sourcebooks`** | `search_lore`, `list_books`, `get_chapter` | Worldbuilding-aware lore queries with `book_title` / `chapter` / `page_range` citations. |
 | **`vault-graph`** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph`, `vault_mentions`, `vault_read_note`, `vault_read_section` | Obsidian `[[wikilink]]` graph navigation and refresh, plus Linked Mentions-style excerpts and section reads straight from the vault. |
 
+`vault_mentions` takes two optional settings: `VAULT_SKIP_FOLDERS` (folders whose notes are not listed as mention sources) and `VAULT_NAME_ENDINGS` (word endings for unlinked mentions in inflected languages). See [`docs/quickstart.md`](docs/quickstart.md).
+
 ### 4 Claude Code skills
 
 | Skill | What it does | When it fires |
