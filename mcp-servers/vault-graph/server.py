@@ -317,6 +317,7 @@ def _respond(lines: list[str]) -> str:
 
 CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
 WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
+SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
 
 
 def _cut(lines: list[str]) -> tuple[list[str], bool]:
@@ -395,8 +396,26 @@ async def vault_read_note(note: str) -> str:
 
 @mcp.tool()
 async def vault_read_section(note: str, headings: str | list[str]) -> str:
-    """Read sections of a vault note."""
-    return ""
+    """Read whole sections of a note by heading: one heading or a list. Every
+    matching section comes back untruncated, labelled path:start-end and its
+    heading path."""
+    index = _index()
+    found = index.resolve_note(note)
+    if found.path is None:
+        return _respond([f"Error: no note matches '{note}'."])
+    parsed = index.notes[found.path].parsed
+    wanted = [headings] if isinstance(headings, str) else list(headings)
+    out: list[str] = []
+    for heading in parsed.headings:
+        if heading.text not in wanted:
+            continue
+        start, end = parsed.section(heading.line)
+        body = parsed.lines[start - 1 : end]
+        chain = [*parsed.heading_path(heading.line), heading.text]
+        label = SEP.join([f"{found.path}:{start}-{end}", *chain])
+        size = _tokens("\n".join(body))
+        out += [*([""] if out else []), f"## {label} (~{_fmt(size)} tokens)", *body]
+    return _respond([*out[:1], *_resolution_lines(found), *out[1:]])
 
 
 if __name__ == "__main__":

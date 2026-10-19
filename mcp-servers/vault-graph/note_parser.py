@@ -63,6 +63,19 @@ class ParsedNote:
                 return heading_line, heading.line - 1
         return heading_line, len(self.lines)
 
+    def heading_path(self, line: int) -> list[str]:
+        """Texts of the headings whose sections hold `line`, outermost first; a
+        heading on `line` itself is left out (R31)."""
+        chain: list[Heading] = []
+        for heading in self.headings:
+            if heading.line > line:
+                break
+            while chain and chain[-1].level >= heading.level:
+                chain.pop()
+            if heading.line < line:
+                chain.append(heading)
+        return [heading.text for heading in chain]
+
     def lead(self) -> tuple[int, int] | None:
         """Lines of the lead (spec 6.0 Terms), or None when there is none."""
         start = self.frontmatter[1] + 1 if self.frontmatter else 1
