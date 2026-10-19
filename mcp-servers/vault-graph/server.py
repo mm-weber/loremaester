@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+from note_parser import ParsedNote
 from vault_index import VaultIndex
 
 mcp = FastMCP("Vault Graph")
@@ -314,6 +315,47 @@ def _respond(lines: list[str]) -> str:
     return "\n".join(lines)
 
 
+CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
+WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
+
+
+def _cut(lines: list[str]) -> tuple[list[str], bool]:
+    """Lines that fit CUT_LIMIT characters, cut at the last line end within the
+    limit (mid-line when the first line alone is longer); True when cut."""
+    text = "\n".join(lines)
+    if len(text) <= CUT_LIMIT:
+        return lines, False
+    end = text.rfind("\n", 0, CUT_LIMIT + 1)
+    return (text[:end] if end > 0 else text[:CUT_LIMIT]).split("\n"), True
+
+
+def _verbatim(title: str, lines: list[str], first: int, last: int) -> list[str]:
+    """A titled block of note lines for an outline, cut at CUT_LIMIT (R70, R71)."""
+    kept, cut = _cut(lines)
+    out = [f"{title}, L{first}-{last}:", *(f"  {line}" for line in kept)]
+    if cut:
+        out.append(f"  [cut at 1,500 characters; the {title.lower()} ends at L{last}]")
+    return out
+
+
+def _outline(path: str, parsed: ParsedNote, size: int) -> list[str]:
+    """Outline of a large note: frontmatter, lead and headings (R70, R71)."""
+    out = [f"## Outline: {path} ({len(parsed.lines)} lines, ~{_fmt(size)} tokens)"]
+    if parsed.frontmatter:
+        first, last = parsed.frontmatter
+        out += _verbatim("Frontmatter", parsed.lines[first : last - 1], first, last)
+    lead = parsed.lead()
+    if lead:
+        out += _verbatim("Lead", parsed.lines[lead[0] - 1 : lead[1]], *lead)
+    out.append("Headings:")
+    for heading in parsed.headings:
+        start, end = parsed.section(heading.line)
+        tokens = _tokens("\n".join(parsed.lines[start - 1 : end]))
+        marks = "  " * (heading.level - 1) + "#" * heading.level
+        out.append(f"  L{start}-{end}  {marks} {heading.text}  ~{_fmt(tokens)}")
+    return out
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -323,8 +365,12 @@ async def vault_read_note(note: str) -> str:
     found = index.resolve_note(note)
     if found.path is None:
         return _respond([f"Error: no note matches '{note}'."])
-    text = "\n".join(index.notes[found.path].parsed.lines)
-    return _respond([f"## {found.path} (~{_fmt(_tokens(text))} tokens, whole)", text])
+    parsed = index.notes[found.path].parsed
+    text = "\n".join(parsed.lines)
+    size = _tokens(text)
+    if size < WHOLE_LIMIT:
+        return _respond([f"## {found.path} (~{_fmt(size)} tokens, whole)", text])
+    return _respond(_outline(found.path, parsed, size))
 
 
 if __name__ == "__main__":

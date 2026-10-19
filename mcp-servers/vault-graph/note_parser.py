@@ -63,6 +63,22 @@ class ParsedNote:
                 return heading_line, heading.line - 1
         return heading_line, len(self.lines)
 
+    def lead(self) -> tuple[int, int] | None:
+        """Lines of the lead (spec 6.0 Terms), or None when there is none."""
+        start = self.frontmatter[1] + 1 if self.frontmatter else 1
+        while start <= len(self.lines) and not self.lines[start - 1].strip():
+            start += 1
+        headings = [h for h in self.headings if h.line >= start]
+        if headings and headings[0].line == start and headings[0].level == 1:
+            start += 1
+            headings = headings[1:]
+        end = headings[0].line - 1 if headings else len(self.lines)
+        while start <= end and not self.lines[start - 1].strip():
+            start += 1
+        while end >= start and not self.lines[end - 1].strip():
+            end -= 1
+        return (start, end) if start <= end else None
+
     def block(self, line: int) -> list[int]:
         """Lines of the Markdown block holding `line` (R23-R29)."""
         kind = self.kinds[line - 1]
