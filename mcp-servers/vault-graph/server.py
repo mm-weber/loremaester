@@ -549,7 +549,7 @@ def _natural_key(rel: str) -> list[str | int]:
 def _order(rels: list[str]) -> list[str]:
     """Listing order: top-level folders take turns, the one with most notes first (R67, R68)."""
     queues: dict[str, list[str]] = {}
-    for rel in sorted(rels, key=_natural_key, reverse=True):
+    for rel in sorted(rels, key=lambda rel: (_natural_key(rel), rel), reverse=True):
         queues.setdefault(_top_folder(rel), []).append(rel)
     ordered = [queues[folder] for folder, _ in _folder_counts(rels)]
     order: list[str] = []
