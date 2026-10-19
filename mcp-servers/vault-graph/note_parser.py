@@ -1,5 +1,6 @@
 """Pure line scanner for Obsidian notes (spec: specs/v0.2/surgical-search.md)."""
 
+import re
 from dataclasses import dataclass, field
 
 import yaml
@@ -17,6 +18,7 @@ class ParsedNote:
     lines: list[str]
     frontmatter: tuple[int, int] | None = None
     aliases: list[str] = field(default_factory=list)
+    kinds: list[str] = field(default_factory=list)
     headings: list[Heading] = field(default_factory=list)
 
 
@@ -37,6 +39,30 @@ def _aliases(frontmatter: str) -> list[str]:
     return found
 
 
+_HEADING = re.compile(r"^(#{1,6})[ \t]+(.*?)\s*$")
+_FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+
+
+def _classify(lines: list[str], body_start: int) -> list[str]:
+    """One kind per line: frontmatter, code, heading or text (spec 6.0 Terms)."""
+    kinds = ["frontmatter"] * body_start
+    fence = ""
+    for line in lines[body_start:]:
+        opener = _FENCE.match(line)
+        if fence:
+            if opener and opener.group(1)[0] == fence:
+                fence = ""
+            kinds.append("code")
+        elif opener:
+            fence = opener.group(1)[0]
+            kinds.append("code")
+        elif _HEADING.match(line):
+            kinds.append("heading")
+        else:
+            kinds.append("text")
+    return kinds
+
+
 def parse_note(text: str) -> ParsedNote:
     """Parse a note's text. No file access: vault_index.py reads the files."""
     lines = text.splitlines()
@@ -47,4 +73,9 @@ def parse_note(text: str) -> ParsedNote:
                 note.frontmatter = (1, index + 1)  # R16
                 note.aliases = _aliases("\n".join(lines[1:index]))
                 break
+    note.kinds = _classify(lines, note.frontmatter[1] if note.frontmatter else 0)
+    for number, (line, kind) in enumerate(zip(lines, note.kinds, strict=True), start=1):
+        if kind == "heading":
+            hashes, title = _HEADING.match(line).groups()
+            note.headings.append(Heading(len(hashes), title, number))  # R19
     return note
