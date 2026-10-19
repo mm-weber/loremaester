@@ -12,7 +12,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 from note_parser import ParsedNote
-from vault_index import Resolution, VaultIndex
+from vault_index import Resolution, VaultIndex, normalize
 
 mcp = FastMCP("Vault Graph")
 
@@ -320,6 +320,7 @@ def _respond(lines: list[str]) -> str:
 CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
 WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
 SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
+DOT = " · "  # between items on one line
 GAP = "…"  # stands for skipped non-blank lines inside an excerpt (R47)
 
 
@@ -429,21 +430,52 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     return excerpts
 
 
+def _setting(name: str) -> list[str]:
+    """Comma-separated values of an environment variable; empty when unset (R6)."""
+    return [
+        part.strip() for part in os.environ.get(name, "").split(",") if part.strip()
+    ]
+
+
 def _listed_notes(
-    index: VaultIndex, paths: list[str] | None
+    index: VaultIndex, paths: list[str] | None, skip: list[str]
 ) -> tuple[set[str], list[str]]:
     """Notes vault_mentions may list, and the paths entries that match nothing
-    (spec 6.0 Listed notes; R65, R66)."""
+    (spec 6.0 Listed notes; R2, R65, R66)."""
+    skip_keys = [normalize(folder).strip("/") for folder in skip]
+
+    def skipped(key: str) -> bool:
+        return any(
+            key == folder or key.startswith(folder + "/") for folder in skip_keys
+        )
+
     if not paths:
-        return set(index.notes), []
+        return {rel for rel in index.notes if not skipped(normalize(rel))}, []
     listed: set[str] = set()
     unmatched: list[str] = []
     for entry in paths:
         covered = index.covered_by(entry)
         if not covered:
             unmatched.append(entry)
-        listed |= set(covered)
+        listed |= {rel for rel in covered if not skipped(normalize(rel))}
     return listed, unmatched
+
+
+def _skipped_counts(
+    mentions: dict[str, list[int]], listed: set[str], skip: list[str]
+) -> list[str]:
+    """`Folder n` for each skipped folder whose mentioning notes are not listed (R50)."""
+    counts = []
+    for folder in skip:
+        key = normalize(folder).strip("/")
+        hidden = [
+            rel
+            for rel in mentions
+            if rel not in listed and normalize(rel).startswith(key + "/")
+        ]
+        if hidden:
+            counts.append(f"{folder} {len(hidden)}")
+    return counts
 
 
 @mcp.tool()
@@ -514,15 +546,16 @@ async def vault_mentions(
     mention not shown, and paths=[folder or note] pulls more."""
     index = _index()
     found = index.resolve_note(note)
-    listed, unmatched = _listed_notes(index, paths)
-    mentions = {
-        rel: lines
-        for rel, lines in index.linked_mentions(found).items()
-        if rel in listed
-    }
+    skip = _setting("VAULT_SKIP_FOLDERS")
+    listed, unmatched = _listed_notes(index, paths, skip)
+    all_mentions = index.linked_mentions(found)
+    mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}
     out = [f"## Linked mentions: {note} ({found.path or 'no note yet'})"]
     out += _resolution_lines(found)
     out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
+    skipped = _skipped_counts(all_mentions, listed, skip)
+    if skipped:
+        out.append("Skipped folders: " + DOT.join(skipped))
     for rel in sorted(mentions):
         for excerpt in _excerpts(rel, index.notes[rel].parsed, mentions[rel]):
             out += ["", excerpt.label, *excerpt.lines]
