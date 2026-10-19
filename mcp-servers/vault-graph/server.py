@@ -10,7 +10,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 from note_parser import ParsedNote
-from vault_index import VaultIndex
+from vault_index import Resolution, VaultIndex
 
 mcp = FastMCP("Vault Graph")
 
@@ -364,6 +364,14 @@ def _outline(path: str, parsed: ParsedNote, size: int) -> list[str]:
     return out
 
 
+def _resolution_lines(found: Resolution) -> list[str]:
+    """How a note argument was matched (R37, R39)."""
+    lines = []
+    if found.others:
+        lines.append(f"Other matches: {', '.join(found.others)}")
+    return lines
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -377,8 +385,10 @@ async def vault_read_note(note: str) -> str:
     text = "\n".join(parsed.lines)
     size = _tokens(text)
     if size < WHOLE_LIMIT:
-        return _respond([f"## {found.path} (~{_fmt(size)} tokens, whole)", text])
-    return _respond(_outline(found.path, parsed, size))
+        title = f"## {found.path} (~{_fmt(size)} tokens, whole)"
+        return _respond([title, *_resolution_lines(found), text])
+    outline = _outline(found.path, parsed, size)
+    return _respond([outline[0], *_resolution_lines(found), *outline[1:]])
 
 
 if __name__ == "__main__":
