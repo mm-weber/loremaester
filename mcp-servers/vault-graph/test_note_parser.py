@@ -134,3 +134,15 @@ def test_r24_list_item_block_takes_its_deeper_lines():
     assert note.block(2) == [2, 3, 4]
     assert note.block(3) == [2, 3, 4]
     assert note.block(7) == [7, 8]
+
+
+def test_r25_nested_item_block_adds_ancestor_first_lines():
+    text = (
+        "- Faction\n"
+        "  details\n"
+        "  - Leaders\n"
+        "    - [[X]] leads\n"
+        "      since spring\n"
+        "  - Members\n"
+    )
+    assert parse_note(text).block(4) == [1, 3, 4, 5]
