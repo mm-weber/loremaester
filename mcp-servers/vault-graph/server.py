@@ -449,6 +449,8 @@ def _fill(
             break
         picked += built[rel]
         used += cost
+    if not picked and order:
+        picked = built[order[0]][:1]  # R61
     return picked
 
 
