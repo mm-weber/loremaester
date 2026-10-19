@@ -397,6 +397,16 @@ async def test_r60_filling_stops_at_the_first_note_that_does_not_fit(vault):
     assert _labels(result) == ["Log/s06.md", "Log/s05.md", "Log/s04.md", "Log/s03.md"]
 
 
+async def test_r61_at_least_one_excerpt_is_shown(vault):
+    _write(vault, "NPCs/Mira.md")
+    body = "[[Mira]] first " + "x" * 600 + "\n\n[[Mira]] second\n"
+    _write(vault, "Log/s2.md", body)
+    _write(vault, "Log/s1.md", "[[Mira]] other\n")
+    result = await server.vault_mentions("Mira", budget_tokens=1)
+    assert _labels(result) == ["Log/s2.md"]
+    assert "[[Mira]] second" not in result
+
+
 async def test_r62_r63_map_groups_by_folder_and_ends_with_pull_hints(vault):
     _write(vault, "NPCs/Mira.md")
     for rel in ("Sessions/S1.md", "Sessions/S2.md", "Places/Forge.md"):
