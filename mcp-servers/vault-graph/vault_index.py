@@ -5,7 +5,7 @@ Requirement numbers refer to specs/v0.2/surgical-search.md.
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from note_parser import ParsedNote, parse_note
 
@@ -56,4 +56,6 @@ class VaultIndex:
             del self.notes[rel]  # R9: deleted since the last refresh
 
     def resolve_link(self, target: str, source: str) -> str | None:
-        return None
+        """The note a link in `source` points to, or None (R33)."""
+        matches = sorted(rel for rel in self.notes if PurePosixPath(rel).stem == target)
+        return matches[0] if matches else None
