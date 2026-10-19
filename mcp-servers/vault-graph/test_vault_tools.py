@@ -163,3 +163,11 @@ async def test_r44_links_from_the_note_to_itself_are_not_listed(vault):
     result = await server.vault_mentions("Mira")
     assert "Log.md:1" in result
     assert "NPCs/Mira.md:1" not in result
+
+
+async def test_r42_links_naming_an_alias_count_for_the_aliased_note(vault):
+    text = "---\naliases: [Aldric]\n---\nCaptain.\n"
+    _write(vault, "NPCs/Captain Aldric.md", text)
+    _write(vault, "Log.md", "Saw [[Aldric]] at the gate.\n")
+    result = await server.vault_mentions("Captain Aldric")
+    assert "Log.md:1" in result
