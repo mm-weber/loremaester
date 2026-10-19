@@ -182,6 +182,7 @@ def _aliases(frontmatter: str) -> list[str]:
 
 _HEADING = re.compile(r"^(#{1,6})[ \t]+(.*?)\s*$")
 _FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})")
+_LINE_BREAK = re.compile(r"\r\n|\r|\n")
 _LIST_ITEM = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])[ \t]")
 _THEMATIC_BREAK = re.compile(
     r"^[ \t]*(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$"
@@ -282,7 +283,9 @@ def _links_in(line: str, number: int) -> list[Link]:
 
 def parse_note(text: str) -> ParsedNote:
     """Parse a note's text. No file access: vault_index.py reads the files."""
-    lines = text.splitlines()
+    lines = _LINE_BREAK.split(text)
+    if lines and not lines[-1]:
+        lines.pop()  # a final line break ends the last line; it starts no new one
     note = ParsedNote(lines=lines)
     if lines and lines[0].strip() == "---":
         for index in range(1, len(lines)):
