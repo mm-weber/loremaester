@@ -45,3 +45,29 @@ async def test_r69_small_note_comes_back_whole(vault):
     assert "NPCs/Mira.md" in result
     assert "whole" in result
     assert result.endswith("---\ntype: npc\n---\nMira forges blades.")
+
+
+async def test_r70_r71_large_note_comes_back_as_outline_with_lead(vault):
+    body = "x" * 3000
+    text = (
+        "---\ntype: npc\naliases: [Aldric]\n---\n"
+        "# Captain Aldric\n"
+        "Captain of the north gate.\n"
+        "\n"
+        "## Background\n"
+        f"{body}\n"
+        "### Youth\n"
+        f"{body}\n"
+        "## Rivals\n"
+        f"{body}\n"
+    )
+    _write(vault, "NPCs/Captain Aldric.md", text)
+    result = await server.vault_read_note("Captain Aldric")
+    assert body not in result
+    assert "## Outline: NPCs/Captain Aldric.md (13 lines, ~2.3k tokens)" in result
+    assert "Frontmatter, L1-4:\n  type: npc\n  aliases: [Aldric]\n" in result
+    assert "Lead, L6-6:\n  Captain of the north gate.\n" in result
+    assert "  L5-13  # Captain Aldric  ~2.3k" in result
+    assert "  L8-11    ## Background  ~1.5k" in result
+    assert "  L10-11      ### Youth  ~753" in result
+    assert "  L12-13    ## Rivals  ~753" in result
