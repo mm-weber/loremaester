@@ -188,3 +188,11 @@ async def test_r31_r45_excerpt_label_has_path_line_and_heading_path(vault):
     sep = " \u203a "
     label = f"Sessions/S1.md:4{sep}Session 1{sep}Scenes{sep}Arrival"
     assert f"{label}\nMeet [[Mira]]." in result
+
+
+async def test_r46_blocks_sharing_a_line_form_one_excerpt(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Log.md", "First [[Mira]] line\nsecond [[Mira]] line\n")
+    result = await server.vault_mentions("Mira")
+    assert result.count("Log.md:") == 1
+    assert "Log.md:1\nFirst [[Mira]] line\nsecond [[Mira]] line" in result
