@@ -1,6 +1,7 @@
 """Tests for vault_index (spec: specs/v0.2/surgical-search.md)."""
 
 import os
+import unicodedata
 
 from vault_index import VaultIndex
 
@@ -99,3 +100,14 @@ def test_r33_target_without_slash_matches_file_name(tmp_path):
     index.refresh()
     assert index.resolve_link("Mira", "Sessions/Log.md") == "NPCs/Mira.md"
     assert index.resolve_link("Nobody", "Sessions/Log.md") is None
+
+
+def test_r32_names_compare_after_nfc_lowercase_trim_and_md(tmp_path):
+    cafe = unicodedata.normalize("NFD", "Café.md")
+    _write(tmp_path, cafe)
+    _write(tmp_path, "NPCs/Mira.md")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.resolve_link(" mira.MD ", "Home.md") == "NPCs/Mira.md"
+    assert index.resolve_link("CAFÉ", "Home.md") == cafe
+    assert index.resolve_note("café").path == cafe

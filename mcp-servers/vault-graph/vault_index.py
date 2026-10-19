@@ -18,6 +18,14 @@ class Note:
     parsed: ParsedNote
 
 
+@dataclass(frozen=True)
+class Resolution:
+    name: str  # the name as requested
+    path: str | None  # the note found, or None for an unwritten note
+    alias: str | None = None  # the alias that matched (R36, R37)
+    others: tuple[str, ...] = ()  # further matches (R38, R39)
+
+
 class VaultIndex:
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
@@ -59,3 +67,6 @@ class VaultIndex:
         """The note a link in `source` points to, or None (R33)."""
         matches = sorted(rel for rel in self.notes if PurePosixPath(rel).stem == target)
         return matches[0] if matches else None
+
+    def resolve_note(self, name: str) -> Resolution:
+        return Resolution(name, None)
