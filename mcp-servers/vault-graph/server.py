@@ -478,13 +478,11 @@ def _listed_notes(
     (spec 6.0 Listed notes; R2, R3, R65, R66)."""
     skip_keys = [normalize(folder).strip("/") for folder in skip]
 
-    def skipped(key: str) -> bool:
-        return any(
-            key == folder or key.startswith(folder + "/") for folder in skip_keys
-        )
+    def inside(key: str) -> bool:
+        return any(key.startswith(folder + "/") for folder in skip_keys)
 
     if not paths:
-        return {rel for rel in index.notes if not skipped(normalize(rel))}, []
+        return {rel for rel in index.notes if not inside(normalize(rel))}, []
     listed: set[str] = set()
     unmatched: list[str] = []
     for entry in paths:
@@ -494,7 +492,7 @@ def _listed_notes(
         listed |= {
             rel
             for rel, hit in covered.items()
-            if skipped(hit) or not skipped(normalize(rel))
+            if hit in skip_keys or inside(hit) or not inside(normalize(rel))
         }
     return listed, unmatched
 
