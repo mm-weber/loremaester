@@ -605,11 +605,20 @@ def _unknown(index: VaultIndex, name: str) -> str:
     return _respond([f"Error: no note matches '{name}'. {_close(index, name)}"])
 
 
+def _root_error() -> str | None:
+    """Error naming VAULT_PATH when it is missing or not a folder (R80)."""
+    if Path(VAULT_PATH).is_dir():
+        return None
+    return f"Error: vault root is missing or not a folder: {VAULT_PATH}"
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
     an outline of its frontmatter, lead and headings with line ranges and token
     estimates, to pick sections from with vault_read_section."""
+    if error := _root_error():
+        return error
     index = _index()
     found = index.resolve_note(note)
     if found.path is None:
@@ -635,6 +644,8 @@ async def vault_read_section(note: str, headings: str | list[str]) -> str:
     """Read whole sections of a note by heading: one heading or a list. Every
     matching section comes back untruncated, labelled path:start-end and its
     heading path."""
+    if error := _root_error():
+        return error
     index = _index()
     found = index.resolve_note(note)
     if found.path is None:
@@ -671,6 +682,8 @@ async def vault_mentions(
     with unlinked=True. Each mention comes with its Markdown block, labelled
     path:line and heading path. Excerpts fill budget_tokens; a map lists every
     mention not shown, and paths=[folder or note] pulls more."""
+    if error := _root_error():
+        return error
     index = _index()
     found = index.resolve_note(note)
     skip = _setting("VAULT_SKIP_FOLDERS")
