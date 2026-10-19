@@ -4,6 +4,7 @@ Spec: specs/v0.2/surgical-search.md.
 """
 
 import importlib.util
+import re
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,11 @@ def _write(root, rel, text=""):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     return path
+
+
+def _labels(result):
+    """Note paths of the excerpt labels, in response order."""
+    return re.findall(r"^(.+?\.md):\d+", result, re.M)
 
 
 async def test_r69_small_note_comes_back_whole(vault):
@@ -304,3 +310,19 @@ async def test_r04_read_tools_open_notes_in_skipped_folders(vault, monkeypatch):
     _write(vault, "Rules/Smithing.md", "# Smithing\n## Steel\nFold it.\n")
     assert (await server.vault_read_note("Smithing")).endswith("Fold it.")
     assert "Fold it." in await server.vault_read_section("Smithing", "Steel")
+
+
+async def test_r67_folders_take_turns_biggest_first(vault):
+    _write(vault, "NPCs/Mira.md")
+    for rel in (
+        "Sessions/S1.md",
+        "Sessions/S2.md",
+        "Sessions/S3.md",
+        "Places/A.md",
+        "Places/B.md",
+        "Hub.md",
+    ):
+        _write(vault, rel, "[[Mira]]\n")
+    labels = _labels(await server.vault_mentions("Mira"))
+    folders = [path.split("/")[0] if "/" in path else "(root)" for path in labels]
+    assert folders == ["Sessions", "Places", "(root)", "Sessions", "Places", "Sessions"]
