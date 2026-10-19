@@ -5,11 +5,19 @@ from dataclasses import dataclass, field
 import yaml
 
 
+@dataclass(frozen=True)
+class Heading:
+    level: int
+    text: str
+    line: int  # 1-based
+
+
 @dataclass
 class ParsedNote:
     lines: list[str]
     frontmatter: tuple[int, int] | None = None
     aliases: list[str] = field(default_factory=list)
+    headings: list[Heading] = field(default_factory=list)
 
 
 def _aliases(frontmatter: str) -> list[str]:

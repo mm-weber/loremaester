@@ -21,3 +21,24 @@ def test_r17_invalid_yaml_keeps_frontmatter_without_aliases():
     note = parse_note("---\naliases: [unclosed\ntype: npc\n---\nBody.\n")
     assert note.frontmatter == (1, 4)
     assert note.aliases == []
+
+
+def test_r19_headings_only_outside_code_and_frontmatter():
+    text = (
+        "---\n"
+        "# a YAML comment, not a heading\n"
+        "---\n"
+        "# Title\n"
+        "#tag at the start of a line\n"
+        "Underlined\n"
+        "==========\n"
+        "```\n"
+        "# inside code\n"
+        "```\n"
+        "###\tDeep\n"
+    )
+    headings = parse_note(text).headings
+    assert [(h.level, h.text, h.line) for h in headings] == [
+        (1, "Title", 4),
+        (3, "Deep", 11),
+    ]
