@@ -482,6 +482,31 @@ def _skipped_counts(
     return counts
 
 
+def _top_folder(rel: str) -> str:
+    """Top-level folder of a note; notes at the vault root form "(root)" (R67)."""
+    return rel.split("/", 1)[0] if "/" in rel else "(root)"
+
+
+def _folder_counts(rels: list[str]) -> list[tuple[str, int]]:
+    """(folder, notes) pairs, most notes first, ties by folder name (R67)."""
+    counts: dict[str, int] = {}
+    for rel in rels:
+        counts[_top_folder(rel)] = counts.get(_top_folder(rel), 0) + 1
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+
+
+def _order(rels: list[str]) -> list[str]:
+    """Listing order: top-level folders take turns, the one with most notes first (R67)."""
+    queues: dict[str, list[str]] = {}
+    for rel in sorted(rels):
+        queues.setdefault(_top_folder(rel), []).append(rel)
+    ordered = [queues[folder] for folder, _ in _folder_counts(rels)]
+    order: list[str] = []
+    for turn in range(max((len(queue) for queue in ordered), default=0)):
+        order += [queue[turn] for queue in ordered if turn < len(queue)]
+    return order
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -560,7 +585,7 @@ async def vault_mentions(
     skipped = _skipped_counts(all_mentions, listed, skip)
     if skipped:
         out.append("Skipped folders: " + DOT.join(skipped))
-    for rel in sorted(mentions):
+    for rel in _order(list(mentions)):
         for excerpt in _excerpts(rel, index.notes[rel].parsed, mentions[rel]):
             out += ["", excerpt.label, *excerpt.lines]
     return _respond(out)
