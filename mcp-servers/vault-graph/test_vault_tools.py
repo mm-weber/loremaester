@@ -71,3 +71,13 @@ async def test_r70_r71_large_note_comes_back_as_outline_with_lead(vault):
     assert "  L8-11    ## Background  ~1.5k" in result
     assert "  L10-11      ### Youth  ~753" in result
     assert "  L12-13    ## Rivals  ~753" in result
+
+
+async def test_r72_outline_without_sections_says_how_to_get_in(vault):
+    _write(vault, "Players/Notes.md", "# Notes\n" + "word " * 2000 + "\n")
+    result = await server.vault_read_note("Notes")
+    assert "No sections to pick from (one heading)." in result
+    assert 'vault_mentions("<name>", paths=["Players/Notes.md"])' in result
+    assert "For all of it: Read the file." in result
+    assert "Headings:" not in result
+    assert "[cut at 1,500 characters; the lead ends at L2]" in result
