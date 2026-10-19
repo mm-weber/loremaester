@@ -76,6 +76,7 @@ def test_r11_invalid_utf8_bytes_are_replaced(tmp_path):
 def test_rf2_unreadable_or_vanished_files_are_skipped(tmp_path):
     _write(tmp_path, "Good.md", "fine")
     (tmp_path / "Broken.md").symlink_to(tmp_path / "Missing.md")
+    (tmp_path / "Loop.md").symlink_to(tmp_path / "Loop.md")
     index = VaultIndex(tmp_path)
     index.refresh()
     assert sorted(index.notes) == ["Good.md"]
