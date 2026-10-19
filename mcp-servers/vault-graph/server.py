@@ -384,6 +384,7 @@ class _Excerpt:
     label: str  # path:line and heading path
     lines: list[str]  # the text shown
     mentions: list[int]  # mention lines inside the block
+    shown: list[int]  # mention lines visible after the cut (R48)
 
 
 def _render(parsed: ParsedNote, block: list[int]) -> list[tuple[int | None, str]]:
@@ -413,9 +414,18 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
         groups.append((block, mentions))
     excerpts = []
     for block, mentions in sorted(groups, key=lambda group: min(group[0])):
+        rows = _render(parsed, sorted(block))
+        texts, cut = _cut([text for _, text in rows])
+        visible = {number for number, _ in rows[: len(texts)] if number is not None}
+        shown = sorted(line for line in mentions if line in visible)
+        if cut:
+            moved = len(mentions) - len(shown)
+            texts.append(
+                f"[cut at 1,500 characters; the block ends at L{max(block)}; "
+                f"{moved} mention{'' if moved == 1 else 's'} moved to the map]"
+            )
         label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
-        lines = [text for _, text in _render(parsed, sorted(block))]
-        excerpts.append(_Excerpt(rel, label, lines, sorted(mentions)))
+        excerpts.append(_Excerpt(rel, label, texts, sorted(mentions), shown))
     return excerpts
 
 
