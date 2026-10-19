@@ -26,6 +26,7 @@ class VaultIndex:
     def refresh(self) -> None:
         """Index the vault's .md files, re-reading only changed ones (R7, R8, R10)."""
         root = self.root.resolve()
+        seen: set[str] = set()
         for folder, subfolders, files in os.walk(self.root):
             subfolders[:] = sorted(
                 name for name in subfolders if not name.startswith(".")
@@ -37,6 +38,7 @@ class VaultIndex:
                 if not file.resolve().is_relative_to(root):
                     continue
                 rel = file.relative_to(self.root).as_posix()
+                seen.add(rel)
                 stat = file.stat()
                 old = self.notes.get(rel)
                 if old and (old.mtime_ns, old.size) == (stat.st_mtime_ns, stat.st_size):
@@ -45,3 +47,5 @@ class VaultIndex:
                 self.notes[rel] = Note(
                     rel, stat.st_mtime_ns, stat.st_size, parse_note(text)
                 )
+        for rel in set(self.notes) - seen:
+            del self.notes[rel]  # R9: deleted since the last refresh
