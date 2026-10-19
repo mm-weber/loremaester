@@ -115,3 +115,22 @@ def test_r23_paragraph_block_is_the_run_of_plain_lines():
     assert note.block(3) == [2, 3, 4]
     assert note.block(7) == [7]
     assert note.block(9) == [9]
+
+
+def test_r24_list_item_block_takes_its_deeper_lines():
+    text = (
+        "- first item\n"
+        "- item with [[X]]\n"
+        "  continued text\n"
+        "\t- sub item\n"
+        "- next item\n"
+        "\n"
+        "- lone item [[X]]\n"
+        "  - child\n"
+        "\n"
+        "  after blank\n"
+    )
+    note = parse_note(text)
+    assert note.block(2) == [2, 3, 4]
+    assert note.block(3) == [2, 3, 4]
+    assert note.block(7) == [7, 8]
