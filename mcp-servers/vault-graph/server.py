@@ -367,6 +367,8 @@ def _outline(path: str, parsed: ParsedNote, size: int) -> list[str]:
 def _resolution_lines(found: Resolution) -> list[str]:
     """How a note argument was matched (R37, R39)."""
     lines = []
+    if found.alias:
+        lines.append(f'Found by alias "{found.alias}" of {found.path}')
     if found.others:
         lines.append(f"Other matches: {', '.join(found.others)}")
     return lines

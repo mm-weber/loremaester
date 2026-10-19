@@ -102,8 +102,19 @@ class VaultIndex:
         return ordered[0] if ordered else None
 
     def resolve_note(self, name: str) -> Resolution:
-        """The note a tool's `note` argument names (R32, R38, R39)."""
-        matches = sorted(self._candidates(normalize(name)), key=_depth_then_path)
+        """The note a tool's `note` argument names: by file name or path, else by
+        alias (R32, R36, R38, R39)."""
+        key = normalize(name)
+        matches = self._candidates(key)
+        alias = None
+        if not matches:
+            matches = [
+                rel
+                for rel, note in self.notes.items()
+                if key in {normalize(other) for other in note.parsed.aliases}
+            ]
+            alias = name.strip() if matches else None
+        matches.sort(key=_depth_then_path)
         if not matches:
             return Resolution(name, None)
-        return Resolution(name, matches[0], others=tuple(matches[1:]))
+        return Resolution(name, matches[0], alias, tuple(matches[1:]))
