@@ -178,3 +178,11 @@ def test_r55_unlinked_matching_skips_frontmatter_code_links_and_urls(tmp_path):
     index = VaultIndex(tmp_path)
     index.refresh()
     assert index.unlinked_mentions(index.resolve_note("Mira")) == {"Log.md": [10]}
+
+
+def test_r56_blocks_that_link_the_note_hold_no_unlinked_mentions(tmp_path):
+    _write(tmp_path, "NPCs/Mira.md")
+    _write(tmp_path, "Log.md", "[[Mira]] arrived.\nMira sat down.\n\nMira left.\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.unlinked_mentions(index.resolve_note("Mira")) == {"Log.md": [4]}
