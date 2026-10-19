@@ -223,6 +223,19 @@ async def test_r43_unwritten_note_lists_its_recorded_links(vault):
     assert "Log.md:1" in result
 
 
+async def test_r52_unlinked_mode_lists_plain_text_mentions(vault):
+    text = "---\naliases: [Old Guard]\n---\n# Captain Aldric\n"
+    _write(vault, "NPCs/Captain Aldric.md", text)
+    body = "The Captain Aldric arrived.\n\nThe Old Guard left.\n\nNobody else.\n"
+    _write(vault, "Log.md", body)
+    result = await server.vault_mentions("Captain Aldric", unlinked=True)
+    title = "## Unlinked mentions: Captain Aldric (NPCs/Captain Aldric.md)"
+    assert title in result
+    assert "Log.md:1" in result and "Log.md:3" in result
+    assert "Log.md:5" not in result
+    assert "NPCs/Captain Aldric.md:" not in result
+
+
 async def test_r31_r45_excerpt_label_has_path_line_and_heading_path(vault):
     _write(vault, "NPCs/Mira.md")
     text = "# Session 1\n## Scenes\n### Arrival\nMeet [[Mira]].\n"
