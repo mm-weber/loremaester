@@ -94,6 +94,16 @@ def test_rf3_byte_order_mark_and_crlf_keep_the_frontmatter(tmp_path):
     assert note.lines[3] == "Body [[Link]]"
 
 
+def test_rf4_names_with_regex_characters_match_literally(tmp_path):
+    _write(tmp_path, "NPCs/Mira (Elder).md", "---\naliases: [C++ Guild]\n---\n")
+    text = "Mira (Elder) spoke.\n\nThe C++ Guild met.\n\nMira Elder left.\n"
+    _write(tmp_path, "Log.md", text)
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    found = index.resolve_note("Mira (Elder)")
+    assert index.unlinked_mentions(found) == {"Log.md": [1, 3]}
+
+
 def test_r33_target_without_slash_matches_file_name(tmp_path):
     _write(tmp_path, "Sessions/Log.md", "[[Mira]]")
     _write(tmp_path, "NPCs/Mira.md")
