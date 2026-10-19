@@ -3,6 +3,7 @@
 Requirement numbers refer to specs/v0.2/surgical-search.md.
 """
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,11 +22,20 @@ class VaultIndex:
         self.notes: dict[str, Note] = {}
 
     def refresh(self) -> None:
-        """Index every .md file outside dot folders (R7)."""
+        """Index every .md file inside the vault, outside dot folders (R7, R8)."""
         self.notes = {}
-        for file in sorted(self.root.rglob("*.md")):
-            rel = file.relative_to(self.root).as_posix()
-            if any(part.startswith(".") for part in rel.split("/")):
-                continue
-            text = file.read_text(encoding="utf-8")
-            self.notes[rel] = Note(rel, parse_note(text))
+        root = self.root.resolve()
+        for folder, subfolders, files in os.walk(self.root):
+            subfolders[:] = sorted(
+                name for name in subfolders if not name.startswith(".")
+            )
+            for name in sorted(files):
+                if name.startswith(".") or not name.endswith(".md"):
+                    continue
+                file = Path(folder, name)
+                if not file.resolve().is_relative_to(root):
+                    continue
+                rel = file.relative_to(self.root).as_posix()
+                self.notes[rel] = Note(
+                    rel, parse_note(file.read_text(encoding="utf-8"))
+                )
