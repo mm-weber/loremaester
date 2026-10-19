@@ -277,3 +277,23 @@ async def test_r02_r50_skipped_folders_are_counted_not_listed(vault, monkeypatch
     for hidden in ("Rules/Smithing.md", "Rules/Deep/Forging.md", "Art/Prompts/"):
         assert hidden not in result
     assert "Skipped folders: Rules 2 · Art/Prompts 1" in result
+
+
+async def test_r03_paths_reaching_into_a_skipped_folder_list_it(vault, monkeypatch):
+    monkeypatch.setenv("VAULT_SKIP_FOLDERS", "Rules,Art/Prompts")
+    _write(vault, "NPCs/Mira.md")
+    for rel in (
+        "Rules/Smithing.md",
+        "Rules/Deep/Forging.md",
+        "Art/Prompts/Portrait.md",
+        "Art/Gallery.md",
+    ):
+        _write(vault, rel, "[[Mira]]\n")
+    by_folder = await server.vault_mentions("Mira", paths=["Rules"])
+    assert "Rules/Smithing.md:1" in by_folder
+    assert "Rules/Deep/Forging.md:1" in by_folder
+    by_note = await server.vault_mentions("Mira", paths=["Rules/Deep/Forging"])
+    assert "Rules/Deep/Forging.md:1" in by_note
+    by_parent = await server.vault_mentions("Mira", paths=["Art"])
+    assert "Art/Gallery.md:1" in by_parent
+    assert "Art/Prompts/Portrait.md:1" not in by_parent
