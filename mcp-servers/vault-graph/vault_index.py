@@ -38,6 +38,7 @@ class VaultIndex:
         self.root = Path(root)
         self.notes: dict[str, Note] = {}
         self._by_name: dict[str, list[str]] = {}
+        self._keys: dict[str, str] = {}
 
     def refresh(self) -> None:
         """Index the vault's notes, re-reading only added or changed files (R7-R11)."""
@@ -73,10 +74,17 @@ class VaultIndex:
         self._by_name = {}
         for rel in sorted(self.notes):
             self._by_name.setdefault(normalize(PurePosixPath(rel).stem), []).append(rel)
+        self._keys = {rel: normalize(rel) for rel in sorted(self.notes)}
 
     def _candidates(self, key: str) -> list[str]:
-        """Notes a normalized name matches by file name (R32, R33)."""
-        return list(self._by_name.get(key, []))
+        """Notes a normalized name matches: by file name, or by path when it has a
+        slash (R32-R34)."""
+        if "/" not in key:
+            return list(self._by_name.get(key, []))
+        exact = [rel for rel, rel_key in self._keys.items() if rel_key == key]
+        return exact or [
+            rel for rel, rel_key in self._keys.items() if rel_key.endswith("/" + key)
+        ]
 
     def resolve_link(self, target: str, source: str) -> str | None:
         """The note a link in `source` points to, or None (R32, R33)."""
