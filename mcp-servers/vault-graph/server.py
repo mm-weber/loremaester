@@ -444,10 +444,9 @@ async def vault_mentions(
     mention not shown, and paths=[folder or note] pulls more."""
     index = _index()
     found = index.resolve_note(note)
-    if found.path is None:
-        return _respond([f"Error: no note matches '{note}'."])
     mentions = index.linked_mentions(found)
-    out = [f"## Linked mentions: {note} ({found.path})", *_resolution_lines(found)]
+    out = [f"## Linked mentions: {note} ({found.path or 'no note yet'})"]
+    out += _resolution_lines(found)
     for rel in sorted(mentions):
         parsed = index.notes[rel].parsed
         for line in mentions[rel]:
