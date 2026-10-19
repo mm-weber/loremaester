@@ -4,10 +4,17 @@ Requirement numbers refer to specs/v0.2/surgical-search.md.
 """
 
 import os
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from note_parser import ParsedNote, parse_note
+
+
+def normalize(name: str) -> str:
+    """Compare form of a name: NFC, lowercase, trimmed, no trailing .md (R32)."""
+    name = unicodedata.normalize("NFC", name).strip().lower()
+    return name.removesuffix(".md").strip()
 
 
 @dataclass
@@ -30,6 +37,7 @@ class VaultIndex:
     def __init__(self, root: str | Path) -> None:
         self.root = Path(root)
         self.notes: dict[str, Note] = {}
+        self._by_name: dict[str, list[str]] = {}
 
     def refresh(self) -> None:
         """Index the vault's notes, re-reading only added or changed files (R7-R11)."""
@@ -62,11 +70,20 @@ class VaultIndex:
                 seen.add(rel)
         for rel in set(self.notes) - seen:
             del self.notes[rel]  # R9: deleted since the last refresh
+        self._by_name = {}
+        for rel in sorted(self.notes):
+            self._by_name.setdefault(normalize(PurePosixPath(rel).stem), []).append(rel)
+
+    def _candidates(self, key: str) -> list[str]:
+        """Notes a normalized name matches by file name (R32, R33)."""
+        return list(self._by_name.get(key, []))
 
     def resolve_link(self, target: str, source: str) -> str | None:
-        """The note a link in `source` points to, or None (R33)."""
-        matches = sorted(rel for rel in self.notes if PurePosixPath(rel).stem == target)
+        """The note a link in `source` points to, or None (R32, R33)."""
+        matches = self._candidates(normalize(target))
         return matches[0] if matches else None
 
     def resolve_note(self, name: str) -> Resolution:
-        return Resolution(name, None)
+        """The note a tool's `note` argument names (R32)."""
+        matches = self._candidates(normalize(name))
+        return Resolution(name, matches[0] if matches else None)
