@@ -441,7 +441,7 @@ def _listed_notes(
     index: VaultIndex, paths: list[str] | None, skip: list[str]
 ) -> tuple[set[str], list[str]]:
     """Notes vault_mentions may list, and the paths entries that match nothing
-    (spec 6.0 Listed notes; R2, R65, R66)."""
+    (spec 6.0 Listed notes; R2, R3, R65, R66)."""
     skip_keys = [normalize(folder).strip("/") for folder in skip]
 
     def skipped(key: str) -> bool:
@@ -457,7 +457,11 @@ def _listed_notes(
         covered = index.covered_by(entry)
         if not covered:
             unmatched.append(entry)
-        listed |= {rel for rel in covered if not skipped(normalize(rel))}
+        listed |= {
+            rel
+            for rel, hit in covered.items()
+            if skipped(hit) or not skipped(normalize(rel))
+        }
     return listed, unmatched
 
 
