@@ -439,15 +439,22 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
 def _fill(
     order: list[str], built: dict[str, list[_Excerpt]], budget: int
 ) -> list[_Excerpt]:
-    """Excerpts to show: notes in listing order until one would exceed the
-    remaining budget (R60)."""
+    """Excerpts to show, in listing order (R58-R61)."""
+    total = sum(excerpt.cost for rel in order for excerpt in built[rel])
+    cap = budget if total <= budget else budget // 4  # R59
     picked: list[_Excerpt] = []
     used = 0
     for rel in order:
-        cost = sum(excerpt.cost for excerpt in built[rel])
+        take: list[_Excerpt] = []
+        cost = 0
+        for excerpt in built[rel]:
+            if cost + excerpt.cost > cap:
+                break
+            take.append(excerpt)
+            cost += excerpt.cost
         if used + cost > budget:
-            break
-        picked += built[rel]
+            break  # R60
+        picked += take
         used += cost
     if not picked and order:
         picked = built[order[0]][:1]  # R61
