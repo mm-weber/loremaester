@@ -186,3 +186,11 @@ def test_r56_blocks_that_link_the_note_hold_no_unlinked_mentions(tmp_path):
     index = VaultIndex(tmp_path)
     index.refresh()
     assert index.unlinked_mentions(index.resolve_note("Mira")) == {"Log.md": [4]}
+
+
+def test_r57_unwritten_note_uses_the_requested_name(tmp_path):
+    _write(tmp_path, "Log.md", "The ghost ship sails.\n\n[[Ghost Ship]] docked.\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    found = index.resolve_note("Ghost Ship")
+    assert index.unlinked_mentions(found) == {"Log.md": [1]}
