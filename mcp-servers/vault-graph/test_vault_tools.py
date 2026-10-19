@@ -171,3 +171,10 @@ async def test_r42_links_naming_an_alias_count_for_the_aliased_note(vault):
     _write(vault, "Log.md", "Saw [[Aldric]] at the gate.\n")
     result = await server.vault_mentions("Captain Aldric")
     assert "Log.md:1" in result
+
+
+async def test_r43_unwritten_note_lists_its_recorded_links(vault):
+    _write(vault, "Log.md", "Heard of [[Ghost Ship]].\n")
+    result = await server.vault_mentions("Ghost Ship")
+    assert "## Linked mentions: Ghost Ship (no note yet)" in result
+    assert "Log.md:1" in result
