@@ -347,6 +347,14 @@ def _outline(path: str, parsed: ParsedNote, size: int) -> list[str]:
     lead = parsed.lead()
     if lead:
         out += _verbatim("Lead", parsed.lines[lead[0] - 1 : lead[1]], *lead)
+    if len(parsed.headings) < 2:
+        count = "one heading" if parsed.headings else "no headings"
+        return [
+            *out,
+            f"No sections to pick from ({count}).",
+            f'For specific names: vault_mentions("<name>", paths=["{path}"])',
+            "For all of it: Read the file.",
+        ]
     out.append("Headings:")
     for heading in parsed.headings:
         start, end = parsed.section(heading.line)
