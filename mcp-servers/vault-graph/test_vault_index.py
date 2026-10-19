@@ -53,6 +53,17 @@ def test_r09_refresh_reflects_added_changed_and_deleted_notes(tmp_path):
     assert index.notes["Keep.md"].parsed.lines == ["new text, longer"]
 
 
+def test_r09_a_same_size_edit_is_re_read(tmp_path):
+    path = _write(tmp_path, "Keep.md", "old text")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    before = path.stat()
+    path.write_text("new text", encoding="utf-8")
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns + 5_000_000_000))
+    index.refresh()
+    assert index.notes["Keep.md"].parsed.lines == ["new text"]
+
+
 def test_r10_unchanged_stat_means_no_reread(tmp_path):
     path = _write(tmp_path, "Note.md", "alpha")
     index = VaultIndex(tmp_path)
