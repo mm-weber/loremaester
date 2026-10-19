@@ -167,7 +167,7 @@ def _aliases(frontmatter: str) -> list[str]:
     """Aliases from the `aliases` and `alias` keys, each a list or one string (R18)."""
     try:
         data = yaml.safe_load(frontmatter)
-    except yaml.YAMLError:
+    except (yaml.YAMLError, ValueError):
         return []  # R17: the frontmatter text stays, no aliases
     if not isinstance(data, dict):
         return []
