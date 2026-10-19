@@ -150,3 +150,11 @@ def test_r53_unlinked_matching_is_case_insensitive_whole_words(tmp_path):
     index = VaultIndex(tmp_path)
     index.refresh()
     assert index.unlinked_mentions(index.resolve_note("Mira")) == {"Log.md": [1, 5]}
+
+
+def test_r54_titles_and_aliases_under_three_characters_are_ignored(tmp_path):
+    _write(tmp_path, "NPCs/Al.md", "---\naliases: [Big Al, Al]\n---\n")
+    _write(tmp_path, "Log.md", "Al waved.\n\nBig Al laughed.\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.unlinked_mentions(index.resolve_note("Al")) == {"Log.md": [3]}
