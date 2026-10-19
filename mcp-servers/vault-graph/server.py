@@ -423,6 +423,11 @@ async def vault_read_section(note: str, headings: str | list[str]) -> str:
         label = SEP.join([f"{found.path}:{start}-{end}", *chain])
         size = _tokens("\n".join(body))
         out += [*([""] if out else []), f"## {label} (~{_fmt(size)} tokens)", *body]
+    listing = ", ".join(f"{'#' * h.level} {h.text}" for h in parsed.headings)
+    for want in wanted:
+        if not any(_heading_key(h.text) == _heading_key(want) for h in parsed.headings):
+            message = f'No section matches "{want}". Headings: {listing}'
+            out += [*([""] if out else []), message]
     return _respond([*out[:1], *_resolution_lines(found), *out[1:]])
 
 
