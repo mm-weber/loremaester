@@ -74,10 +74,18 @@ _WIKILINK = re.compile(r"!?\[\[([^\[\]\n]+?)\]\]")
 _ALIAS_SEPARATOR = re.compile(r"\\?\|")
 
 
+_INLINE_CODE = re.compile(r"`+[^`\n]*`+")
+
+
+def _blank_out(match: re.Match[str]) -> str:
+    """Replace a match with spaces of the same length."""
+    return " " * len(match.group(0))
+
+
 def _links_in(line: str, number: int) -> list[Link]:
     """Wikilinks and embeds on one line, as link targets (R21)."""
     links = []
-    for match in _WIKILINK.finditer(line):
+    for match in _WIKILINK.finditer(_INLINE_CODE.sub(_blank_out, line)):
         target = _ALIAS_SEPARATOR.split(match.group(1), maxsplit=1)[0]
         links.append(Link(target.split("#", 1)[0].strip(), number))
     return links
@@ -98,5 +106,6 @@ def parse_note(text: str) -> ParsedNote:
         if kind == "heading":
             hashes, title = _HEADING.match(line).groups()
             note.headings.append(Heading(len(hashes), title, number))  # R19
-        note.links += _links_in(line, number)
+        if kind != "code":
+            note.links += _links_in(line, number)  # R20
     return note
