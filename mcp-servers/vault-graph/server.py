@@ -640,7 +640,8 @@ async def vault_mentions(
     skip = _setting("VAULT_SKIP_FOLDERS")
     listed, unmatched = _listed_notes(index, paths, skip)
     if unlinked:
-        all_mentions = index.unlinked_mentions(found)
+        endings = tuple(_setting("VAULT_NAME_ENDINGS"))
+        all_mentions = index.unlinked_mentions(found, endings)
     else:
         all_mentions = index.linked_mentions(found)
     mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}

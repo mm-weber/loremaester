@@ -23,13 +23,17 @@ def _depth_then_path(rel: str) -> tuple[int, str]:
     return rel.count("/"), rel
 
 
-def _term_pattern(terms: list[str]) -> re.Pattern[str]:
-    """Whole-word, case-insensitive match of any term (R53)."""
+def _term_pattern(terms: list[str], endings: tuple[str, ...] = ()) -> re.Pattern[str]:
+    """Whole-word, case-insensitive match of any term, plus at most one of the
+    configured endings (R5, R53)."""
     words = "|".join(
         re.escape(unicodedata.normalize("NFC", term))
         for term in sorted(terms, key=len, reverse=True)
     )
-    return re.compile(rf"(?<!\w)(?:{words})(?!\w)", re.IGNORECASE)
+    suffix = ""
+    if endings:
+        suffix = "(?:" + "|".join(re.escape(ending) for ending in endings) + ")?"
+    return re.compile(rf"(?<!\w)(?:{words}){suffix}(?!\w)", re.IGNORECASE)
 
 
 @dataclass
@@ -153,7 +157,9 @@ class VaultIndex:
                         lines.append(link.line)
         return mentions
 
-    def unlinked_mentions(self, found: Resolution) -> dict[str, list[int]]:
+    def unlinked_mentions(
+        self, found: Resolution, endings: tuple[str, ...] = ()
+    ) -> dict[str, list[int]]:
         """Source note -> lines that name the note in plain text (R52-R57)."""
         if found.path is None:
             terms = [found.name.strip()]  # R57
@@ -165,7 +171,7 @@ class VaultIndex:
         terms = [term for term in terms if len(term.strip()) >= 3]  # R54
         if not terms:
             return {}
-        pattern = _term_pattern(terms)
+        pattern = _term_pattern(terms, endings)
         mentions: dict[str, list[int]] = {}
         linked = self.linked_mentions(found)
         for rel, note in self.notes.items():
