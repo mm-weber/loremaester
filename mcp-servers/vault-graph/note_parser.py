@@ -70,6 +70,8 @@ class ParsedNote:
             return self._run(line, kind)
         if kind in ("item", "cont"):
             return self._item_block(line)
+        if kind == "table":
+            return self._table_block(line)
         return [line]
 
     def _run(self, line: int, kind: str) -> list[int]:
@@ -113,6 +115,20 @@ class ParsedNote:
                     break
         return sorted(lines)
 
+    def _table_block(self, line: int) -> list[int]:
+        """The table's first row, its separator row if any, and this row (R26)."""
+        first = line
+        while first > 1 and self.kinds[first - 2] == "table":
+            first -= 1
+        rows = {first, line}
+        if (
+            first < len(self.lines)
+            and self.kinds[first] == "table"
+            and _TABLE_SEPARATOR.match(self.lines[first])
+        ):
+            rows.add(first + 1)
+        return sorted(rows)
+
 
 def _aliases(frontmatter: str) -> list[str]:
     """Aliases from the `aliases` and `alias` keys, each a list or one string (R18)."""
@@ -137,6 +153,7 @@ _LIST_ITEM = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])[ \t]")
 _THEMATIC_BREAK = re.compile(
     r"^[ \t]*(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$"
 )
+_TABLE_SEPARATOR = re.compile(r"^[ \t]*\|[ \t|:-]*-[ \t|:-]*$")
 
 
 def _kind(line: str) -> str:
