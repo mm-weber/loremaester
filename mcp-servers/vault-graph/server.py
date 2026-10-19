@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import json
 import os
+import unicodedata
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -394,6 +395,12 @@ async def vault_read_note(note: str) -> str:
     return _respond([outline[0], *_resolution_lines(found), *outline[1:]])
 
 
+def _heading_key(text: str) -> str:
+    """Compare form of a heading: NFC, no surrounding whitespace or # marks,
+    lowercase (R74)."""
+    return unicodedata.normalize("NFC", text).strip().strip("#").strip().lower()
+
+
 @mcp.tool()
 async def vault_read_section(note: str, headings: str | list[str]) -> str:
     """Read whole sections of a note by heading: one heading or a list. Every
@@ -405,9 +412,10 @@ async def vault_read_section(note: str, headings: str | list[str]) -> str:
         return _respond([f"Error: no note matches '{note}'."])
     parsed = index.notes[found.path].parsed
     wanted = [headings] if isinstance(headings, str) else list(headings)
+    keys = {_heading_key(want) for want in wanted}
     out: list[str] = []
     for heading in parsed.headings:
-        if heading.text not in wanted:
+        if _heading_key(heading.text) not in keys:
             continue
         start, end = parsed.section(heading.line)
         body = parsed.lines[start - 1 : end]
