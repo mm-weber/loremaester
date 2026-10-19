@@ -438,8 +438,22 @@ async def vault_mentions(
     paths: list[str] | None = None,
     budget_tokens: int = 4000,
 ) -> str:
-    """Mentions of a vault note."""
-    return ""
+    """Obsidian-style mentions of a note: linked by default, or plain-text ones
+    with unlinked=True. Each mention comes with its Markdown block, labelled
+    path:line and heading path. Excerpts fill budget_tokens; a map lists every
+    mention not shown, and paths=[folder or note] pulls more."""
+    index = _index()
+    found = index.resolve_note(note)
+    if found.path is None:
+        return _respond([f"Error: no note matches '{note}'."])
+    mentions = index.linked_mentions(found)
+    out = [f"## Linked mentions: {note} ({found.path})", *_resolution_lines(found)]
+    for rel in sorted(mentions):
+        parsed = index.notes[rel].parsed
+        for line in mentions[rel]:
+            block = parsed.block(line)
+            out += ["", f"{rel}:{line}", *(parsed.lines[n - 1] for n in block)]
+    return _respond(out)
 
 
 if __name__ == "__main__":

@@ -118,3 +118,14 @@ class VaultIndex:
         if not matches:
             return Resolution(name, None)
         return Resolution(name, matches[0], alias, tuple(matches[1:]))
+
+    def linked_mentions(self, found: Resolution) -> dict[str, list[int]]:
+        """Source note -> lines of its links to the note (R41)."""
+        mentions: dict[str, list[int]] = {}
+        for rel, note in self.notes.items():
+            for link in note.parsed.links:
+                if self.resolve_link(link.target, rel) == found.path:
+                    lines = mentions.setdefault(rel, [])
+                    if link.line not in lines:
+                        lines.append(link.line)
+        return mentions
