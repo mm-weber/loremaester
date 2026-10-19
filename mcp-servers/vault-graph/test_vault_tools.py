@@ -134,3 +134,11 @@ async def test_r76_sections_are_never_truncated(vault):
     _write(vault, "Big.md", f"# Big\n## Part\n{long_text}\n## End\n")
     result = await server.vault_read_section("Big", "Part")
     assert long_text in result
+
+
+async def test_r77_unmatched_heading_lists_the_notes_headings(vault):
+    _write(vault, "Note.md", "# Top\n## Log\nentry\n### Detail\n")
+    result = await server.vault_read_section("Note", ["Log", "Missing"])
+    assert "## Note.md:2-4" in result
+    expected = 'No section matches "Missing". Headings: # Top, ## Log, ### Detail'
+    assert expected in result
