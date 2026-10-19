@@ -158,3 +158,23 @@ def test_r54_titles_and_aliases_under_three_characters_are_ignored(tmp_path):
     index = VaultIndex(tmp_path)
     index.refresh()
     assert index.unlinked_mentions(index.resolve_note("Al")) == {"Log.md": [3]}
+
+
+def test_r55_unlinked_matching_skips_frontmatter_code_links_and_urls(tmp_path):
+    _write(tmp_path, "NPCs/Mira.md")
+    text = (
+        "---\n"
+        "owner: Mira\n"
+        "---\n"
+        "```\n"
+        "Mira in code\n"
+        "```\n"
+        "Use `Mira` inline.\n"
+        "See [[Mira Notes]] and [Mira](https://x.test/mira).\n"
+        "Visit https://mira.example/Mira today.\n"
+        "Mira in prose.\n"
+    )
+    _write(tmp_path, "Log.md", text)
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.unlinked_mentions(index.resolve_note("Mira")) == {"Log.md": [10]}
