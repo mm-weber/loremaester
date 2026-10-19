@@ -142,3 +142,19 @@ class VaultIndex:
                     if link.line not in lines:
                         lines.append(link.line)
         return mentions
+
+    def covered_by(self, entry: str) -> dict[str, str]:
+        """Notes a `paths` entry covers, each with the normalized folder or note path
+        it matched (spec 6.0 Path match)."""
+        key = normalize(entry).strip("/")
+        covered: dict[str, str] = {}
+        if not key:
+            return covered
+        for rel, rel_key in self._keys.items():
+            parts = rel_key.split("/")
+            for depth in range(1, len(parts) + 1):
+                candidate = "/".join(parts[:depth])
+                if candidate == key or candidate.endswith("/" + key):
+                    covered[rel] = candidate
+                    break
+        return covered

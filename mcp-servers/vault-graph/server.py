@@ -429,6 +429,16 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     return excerpts
 
 
+def _listed_notes(index: VaultIndex, paths: list[str] | None) -> set[str]:
+    """Notes vault_mentions may list (spec 6.0 Listed notes; R65)."""
+    if not paths:
+        return set(index.notes)
+    listed: set[str] = set()
+    for entry in paths:
+        listed |= set(index.covered_by(entry))
+    return listed
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -497,7 +507,12 @@ async def vault_mentions(
     mention not shown, and paths=[folder or note] pulls more."""
     index = _index()
     found = index.resolve_note(note)
-    mentions = index.linked_mentions(found)
+    listed = _listed_notes(index, paths)
+    mentions = {
+        rel: lines
+        for rel, lines in index.linked_mentions(found).items()
+        if rel in listed
+    }
     out = [f"## Linked mentions: {note} ({found.path or 'no note yet'})"]
     out += _resolution_lines(found)
     for rel in sorted(mentions):
