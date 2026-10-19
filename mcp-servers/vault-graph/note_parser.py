@@ -68,6 +68,8 @@ class ParsedNote:
         kind = self.kinds[line - 1]
         if kind == "para":
             return self._run(line, kind)
+        if kind in ("item", "cont"):
+            return self._item_block(line)
         return [line]
 
     def _run(self, line: int, kind: str) -> list[int]:
@@ -78,6 +80,27 @@ class ParsedNote:
         while end < len(self.lines) and self.kinds[end] == kind:
             end += 1
         return list(range(start, end + 1))
+
+    def _item_block(self, line: int) -> list[int]:
+        """The list item holding `line` plus its deeper lines (R24)."""
+        item = line
+        if self.kinds[line - 1] == "cont":
+            depth = _indent(self.lines[line - 1])
+            item = next(
+                number
+                for number in range(line - 1, 0, -1)
+                if self.kinds[number - 1] == "item"
+                and _indent(self.lines[number - 1]) < depth
+            )
+        base = _indent(self.lines[item - 1])
+        end = item
+        while (
+            end < len(self.lines)
+            and self.kinds[end] in ("item", "cont")
+            and _indent(self.lines[end]) > base
+        ):
+            end += 1
+        return list(range(item, end + 1))
 
 
 def _aliases(frontmatter: str) -> list[str]:
@@ -123,21 +146,46 @@ def _kind(line: str) -> str:
     return "para"
 
 
+def _indent(line: str) -> int:
+    """Indentation in columns; a tab counts as four (R24)."""
+    width = 0
+    for char in line:
+        if char == " ":
+            width += 1
+        elif char == "\t":
+            width += 4
+        else:
+            break
+    return width
+
+
 def _classify(lines: list[str], body_start: int) -> list[str]:
-    """One kind per line: frontmatter, code, heading or text (spec 6.0 Terms)."""
+    """One kind per line (spec 6.0 Terms); `cont` marks text that continues a
+    list item (R24)."""
     kinds = ["frontmatter"] * body_start
     fence = ""
+    list_indent: int | None = None  # smallest item indentation in this list run
     for line in lines[body_start:]:
         opener = _FENCE.match(line)
         if fence:
             if opener and opener.group(1)[0] == fence:
                 fence = ""
             kinds.append("code")
-        elif opener:
+            continue
+        if opener:
             fence = opener.group(1)[0]
             kinds.append("code")
+            list_indent = None
+            continue
+        kind = _kind(line)
+        if kind == "item":
+            indent = _indent(line)
+            list_indent = indent if list_indent is None else min(list_indent, indent)
+        elif kind == "para" and list_indent is not None and _indent(line) > list_indent:
+            kind = "cont"
         else:
-            kinds.append(_kind(line))
+            list_indent = None
+        kinds.append(kind)
     return kinds
 
 
