@@ -291,6 +291,14 @@ async def vault_rebuild_graph() -> str:
     return f"Graph rebuilt: {meta.get('note_count', '?')} notes, {meta.get('edge_count', '?')} edges."
 
 
+# Mentions and section reads (specs/v0.2/surgical-search.md)
+
+CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
+WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
+SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
+DOT = " · "  # between items on one line
+GAP = "…"  # stands for skipped non-blank lines inside an excerpt (R47)
+
 _vault_index: VaultIndex | None = None
 
 
@@ -316,13 +324,6 @@ def _fmt(tokens: int) -> str:
 def _respond(lines: list[str]) -> str:
     """Join response lines, naming the vault root once after the first (R15)."""
     return "\n".join([*lines[:1], f"Vault: {VAULT_PATH}", *lines[1:]])
-
-
-CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
-WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
-SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
-DOT = " · "  # between items on one line
-GAP = "…"  # stands for skipped non-blank lines inside an excerpt (R47)
 
 
 def _cut(lines: list[str]) -> tuple[list[str], bool]:
@@ -378,6 +379,12 @@ def _resolution_lines(found: Resolution) -> list[str]:
     if found.others:
         lines.append(f"Other matches: {', '.join(found.others)}")
     return lines
+
+
+def _heading_key(text: str) -> str:
+    """Compare form of a heading: NFC, no surrounding whitespace or # marks,
+    lowercase (R74)."""
+    return unicodedata.normalize("NFC", text).strip().strip("#").strip().lower()
 
 
 @dataclass
@@ -631,12 +638,6 @@ async def vault_read_note(note: str) -> str:
         return _respond([title, *_resolution_lines(found), text])
     outline = _outline(found.path, parsed, size)
     return _respond([outline[0], *_resolution_lines(found), *outline[1:]])
-
-
-def _heading_key(text: str) -> str:
-    """Compare form of a heading: NFC, no surrounding whitespace or # marks,
-    lowercase (R74)."""
-    return unicodedata.normalize("NFC", text).strip().strip("#").strip().lower()
 
 
 @mcp.tool()
