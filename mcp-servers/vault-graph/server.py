@@ -320,6 +320,7 @@ def _respond(lines: list[str]) -> str:
 CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
 WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
 SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
+GAP = "…"  # stands for skipped non-blank lines inside an excerpt (R47)
 
 
 def _cut(lines: list[str]) -> tuple[list[str], bool]:
@@ -385,6 +386,21 @@ class _Excerpt:
     mentions: list[int]  # mention lines inside the block
 
 
+def _render(parsed: ParsedNote, block: list[int]) -> list[tuple[int | None, str]]:
+    """Block lines as (line, text) pairs, with a GAP row wherever non-blank note
+    lines are skipped (R47)."""
+    rows: list[tuple[int | None, str]] = []
+    previous = None
+    for number in block:
+        if previous is not None and any(
+            parsed.lines[skipped - 1].strip() for skipped in range(previous + 1, number)
+        ):
+            rows.append((None, GAP))
+        rows.append((number, parsed.lines[number - 1]))
+        previous = number
+    return rows
+
+
 def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_Excerpt]:
     """One excerpt per group of blocks that share a line (R45, R46)."""
     groups: list[tuple[set[int], set[int]]] = []
@@ -398,7 +414,7 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     excerpts = []
     for block, mentions in sorted(groups, key=lambda group: min(group[0])):
         label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
-        lines = [parsed.lines[number - 1] for number in sorted(block)]
+        lines = [text for _, text in _render(parsed, sorted(block))]
         excerpts.append(_Excerpt(rel, label, lines, sorted(mentions)))
     return excerpts
 
