@@ -392,7 +392,6 @@ class _Excerpt:
     rel: str  # the note the excerpt comes from
     label: str  # path:line and heading path
     lines: list[str]  # the text shown
-    mentions: list[int]  # mention lines inside the block
     shown: list[int]  # mention lines visible after the cut (R48)
 
     @property
@@ -442,15 +441,20 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
                 f"{moved} mention{'' if moved == 1 else 's'} moved to the map]"
             )
         label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
-        excerpts.append(_Excerpt(rel, label, texts, sorted(mentions), shown))
+        excerpts.append(_Excerpt(rel, label, texts, shown))
     return excerpts
+
+
+def _total_cost(order: list[str], built: dict[str, list[_Excerpt]]) -> int:
+    """Estimated tokens of all excerpts of the listed notes (R51, R59)."""
+    return sum(excerpt.cost for rel in order for excerpt in built[rel])
 
 
 def _fill(
     order: list[str], built: dict[str, list[_Excerpt]], budget: int
 ) -> list[_Excerpt]:
     """Excerpts to show, in listing order (R58-R61)."""
-    total = sum(excerpt.cost for rel in order for excerpt in built[rel])
+    total = _total_cost(order, built)
     cap = budget if total <= budget else budget // 4  # R59
     picked: list[_Excerpt] = []
     used = 0
@@ -594,7 +598,7 @@ def _excerpt_summary(
 ) -> str:
     """Notes with excerpts, and the excerpt tokens shown against all of them (R51)."""
     shown = sum(excerpt.cost for excerpt in picked)
-    total = sum(excerpt.cost for rel in order for excerpt in built[rel])
+    total = _total_cost(order, built)
     notes = len({excerpt.rel for excerpt in picked})
     return (
         f"Excerpts for {notes} notes (~{_fmt(shown)} of ~{_fmt(total)} tokens for all)"
