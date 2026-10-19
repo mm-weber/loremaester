@@ -70,6 +70,19 @@ def _classify(lines: list[str], body_start: int) -> list[str]:
     return kinds
 
 
+_WIKILINK = re.compile(r"!?\[\[([^\[\]\n]+?)\]\]")
+_ALIAS_SEPARATOR = re.compile(r"\\?\|")
+
+
+def _links_in(line: str, number: int) -> list[Link]:
+    """Wikilinks and embeds on one line, as link targets (R21)."""
+    links = []
+    for match in _WIKILINK.finditer(line):
+        target = _ALIAS_SEPARATOR.split(match.group(1), maxsplit=1)[0]
+        links.append(Link(target.split("#", 1)[0].strip(), number))
+    return links
+
+
 def parse_note(text: str) -> ParsedNote:
     """Parse a note's text. No file access: vault_index.py reads the files."""
     lines = text.splitlines()
@@ -85,4 +98,5 @@ def parse_note(text: str) -> ParsedNote:
         if kind == "heading":
             hashes, title = _HEADING.match(line).groups()
             note.headings.append(Heading(len(hashes), title, number))  # R19
+        note.links += _links_in(line, number)
     return note
