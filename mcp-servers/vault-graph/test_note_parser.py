@@ -198,3 +198,10 @@ def test_r17_unloadable_frontmatter_values_keep_frontmatter_without_aliases():
     note = parse_note("---\ndate: 2024-13-45\naliases: [A]\n---\nBody.\n")
     assert note.frontmatter == (1, 4)
     assert note.aliases == []
+
+
+def test_rf6_lines_split_only_at_line_breaks():
+    note = parse_note("first\u2028still first\x0cand more\n# Heading\r\nlast\n")
+    assert len(note.lines) == 3
+    assert note.headings[0].line == 2
+    assert note.lines[2] == "last"
