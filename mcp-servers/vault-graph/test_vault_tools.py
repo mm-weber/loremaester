@@ -205,3 +205,16 @@ async def test_r47_skipped_lines_show_as_a_gap_marker(vault):
     result = await server.vault_mentions("Mira")
     expected = "| Name | Role |\n|---|---|\n…\n| [[Mira]] | smith |"
     assert expected in result
+
+
+async def test_r48_long_excerpt_is_cut_with_a_marker(vault):
+    _write(vault, "NPCs/Mira.md")
+    items = [f"- [[Mira]] item {n:02d} " + "z" * 80 for n in range(30)]
+    _write(vault, "List.md", "## [[Mira]] notes\n" + "\n".join(items) + "\n")
+    result = await server.vault_mentions("Mira")
+    assert "- [[Mira]] item 13 " in result
+    assert "- [[Mira]] item 14 " not in result
+    marker = (
+        "[cut at 1,500 characters; the block ends at L31; 16 mentions moved to the map]"
+    )
+    assert marker in result
