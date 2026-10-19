@@ -565,7 +565,9 @@ async def test_r15_every_response_names_the_vault_root_once(vault):
 
 async def test_r80_missing_vault_root_is_an_error_naming_it(tmp_path, monkeypatch):
     file_root = _write(tmp_path, "file.md", "x")
-    for root in (tmp_path / "no-vault", file_root):
+    loop_root = tmp_path / "loop"
+    loop_root.symlink_to(loop_root)
+    for root in (tmp_path / "no-vault", file_root, loop_root):
         monkeypatch.setattr(server, "VAULT_PATH", str(root))
         expected = f"Error: vault root is missing or not a folder: {root}"
         assert await server.vault_read_note("x") == expected
