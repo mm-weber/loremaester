@@ -204,3 +204,12 @@ def test_r57_unwritten_note_uses_the_requested_name(tmp_path):
     index.refresh()
     found = index.resolve_note("Ghost Ship")
     assert index.unlinked_mentions(found) == {"Log.md": [1]}
+
+
+def test_r05_configured_endings_still_match_the_bare_term(tmp_path):
+    _write(tmp_path, "NPCs/Mira.md")
+    _write(tmp_path, "Log.md", "Mira sings.\n\nMiras hammer.\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    found = index.resolve_note("Mira")
+    assert index.unlinked_mentions(found, ("s", "es")) == {"Log.md": [1, 3]}
