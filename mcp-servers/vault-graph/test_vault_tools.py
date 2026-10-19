@@ -337,3 +337,12 @@ async def test_r68_notes_in_a_folder_come_in_reverse_natural_order(vault):
         "Sessions/Session 9/Log.md",
         "Sessions/Session 2/Log.md",
     ]
+
+
+async def test_r60_filling_stops_at_the_first_note_that_does_not_fit(vault):
+    _write(vault, "NPCs/Mira.md")
+    for number in range(2, 7):
+        _write(vault, f"Log/s0{number}.md", "[[Mira]] " + "x" * 351 + "\n")
+    _write(vault, "Log/s01.md", "[[Mira]] tiny.\n")
+    result = await server.vault_mentions("Mira", budget_tokens=400)
+    assert _labels(result) == ["Log/s06.md", "Log/s05.md", "Log/s04.md", "Log/s03.md"]
