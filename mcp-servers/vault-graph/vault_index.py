@@ -163,14 +163,17 @@ class VaultIndex:
             return {}
         pattern = _term_pattern(terms)
         mentions: dict[str, list[int]] = {}
+        linked = self.linked_mentions(found)
         for rel, note in self.notes.items():
             if rel == found.path:
                 continue
             parsed = note.parsed
+            linking = {n for line in linked.get(rel, []) for n in parsed.block(line)}
             lines = [
                 number
                 for number in range(1, len(parsed.lines) + 1)
-                if pattern.search(
+                if number not in linking  # R56
+                and pattern.search(
                     unicodedata.normalize("NFC", parsed.masked_text(number))
                 )
             ]
