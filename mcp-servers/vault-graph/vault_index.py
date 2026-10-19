@@ -158,6 +158,9 @@ class VaultIndex:
         if found.path is None:
             return {}
         terms = [PurePosixPath(found.path).stem, *self.notes[found.path].parsed.aliases]
+        terms = [term for term in terms if len(term.strip()) >= 3]  # R54
+        if not terms:
+            return {}
         pattern = _term_pattern(terms)
         mentions: dict[str, list[int]] = {}
         for rel, note in self.notes.items():
