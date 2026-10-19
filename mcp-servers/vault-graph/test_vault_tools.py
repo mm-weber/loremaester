@@ -263,6 +263,17 @@ async def test_r48_long_excerpt_is_cut_with_a_marker(vault):
     assert marker in result
 
 
+async def test_rf1_mention_past_a_mid_line_cut_goes_to_the_map(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Saga.md", "Long ago " + "w" * 2000 + " [[Mira]] arrived.\n")
+    result = await server.vault_mentions("Mira")
+    marker = (
+        "[cut at 1,500 characters; the block ends at L1; 1 mention moved to the map]"
+    )
+    assert marker in result
+    assert "Saga.md L1" in result
+
+
 async def test_r65_paths_limit_mentions_to_matching_folders_and_notes(vault):
     _write(vault, "NPCs/Mira.md")
     _write(vault, "Sessions/Session 36/Prep.md", "[[Mira]] prep\n")
