@@ -236,6 +236,15 @@ async def test_r52_unlinked_mode_lists_plain_text_mentions(vault):
     assert "NPCs/Captain Aldric.md:" not in result
 
 
+async def test_r05_configured_endings_extend_unlinked_matches(vault, monkeypatch):
+    monkeypatch.setenv("VAULT_NAME_ENDINGS", "s,es")
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Log.md", "Miras hammer.\n\nMiraes ring.\n\nMirass oddity.\n")
+    result = await server.vault_mentions("Mira", unlinked=True)
+    assert "Log.md:1" in result and "Log.md:3" in result
+    assert "Log.md:5" not in result
+
+
 async def test_r31_r45_excerpt_label_has_path_line_and_heading_path(vault):
     _write(vault, "NPCs/Mira.md")
     text = "# Session 1\n## Scenes\n### Arrival\nMeet [[Mira]].\n"
