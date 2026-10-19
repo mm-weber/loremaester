@@ -155,3 +155,11 @@ async def test_r41_lists_every_link_to_the_note(vault):
     assert "Sessions/Log.md:3" in result and "Later [[NPCs/Mira|she]] left." in result
     assert "Places/Forge.md:1" in result and "- run by [[mira]]" in result
     assert "Places/Other.md" not in result
+
+
+async def test_r44_links_from_the_note_to_itself_are_not_listed(vault):
+    _write(vault, "NPCs/Mira.md", "See [[Mira#Gear]] below.\n")
+    _write(vault, "Log.md", "Met [[Mira]].\n")
+    result = await server.vault_mentions("Mira")
+    assert "Log.md:1" in result
+    assert "NPCs/Mira.md:1" not in result
