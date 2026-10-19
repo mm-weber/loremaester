@@ -286,5 +286,11 @@ async def vault_rebuild_graph() -> str:
     return f"Graph rebuilt: {meta.get('note_count', '?')} notes, {meta.get('edge_count', '?')} edges."
 
 
+@mcp.tool()
+async def vault_read_note(note: str) -> str:
+    """Read a vault note."""
+    return ""
+
+
 if __name__ == "__main__":
     mcp.run()
