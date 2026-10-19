@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import json
 import os
+import re
 import unicodedata
 from collections import deque
 from dataclasses import dataclass
@@ -495,10 +496,18 @@ def _folder_counts(rels: list[str]) -> list[tuple[str, int]]:
     return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
 
+def _natural_key(rel: str) -> list[str | int]:
+    """Path sort key that compares digit runs as numbers (R68)."""
+    parts = re.split(r"(\d+)", rel)
+    return [
+        int(part) if index % 2 else part.lower() for index, part in enumerate(parts)
+    ]
+
+
 def _order(rels: list[str]) -> list[str]:
-    """Listing order: top-level folders take turns, the one with most notes first (R67)."""
+    """Listing order: top-level folders take turns, the one with most notes first (R67, R68)."""
     queues: dict[str, list[str]] = {}
-    for rel in sorted(rels):
+    for rel in sorted(rels, key=_natural_key, reverse=True):
         queues.setdefault(_top_folder(rel), []).append(rel)
     ordered = [queues[folder] for folder, _ in _folder_counts(rels)]
     order: list[str] = []
