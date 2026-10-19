@@ -100,7 +100,18 @@ class ParsedNote:
             and _indent(self.lines[end]) > base
         ):
             end += 1
-        return list(range(item, end + 1))
+        lines = list(range(item, end + 1))
+        depth = base
+        for number in range(item - 1, 0, -1):  # R25: ancestors, nearest first
+            kind = self.kinds[number - 1]
+            if kind not in ("item", "cont", "blank"):
+                break
+            if kind == "item" and _indent(self.lines[number - 1]) < depth:
+                lines.append(number)
+                depth = _indent(self.lines[number - 1])
+                if depth == 0:
+                    break
+        return sorted(lines)
 
 
 def _aliases(frontmatter: str) -> list[str]:
