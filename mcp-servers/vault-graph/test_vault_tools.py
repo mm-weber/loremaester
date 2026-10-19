@@ -245,6 +245,17 @@ async def test_r05_configured_endings_extend_unlinked_matches(vault, monkeypatch
     assert "Log.md:5" not in result
 
 
+async def test_r06_empty_settings_skip_nothing_and_add_no_endings(vault, monkeypatch):
+    monkeypatch.setenv("VAULT_SKIP_FOLDERS", "")
+    monkeypatch.setenv("VAULT_NAME_ENDINGS", " , ")
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Rules/Smithing.md", "[[Mira]]\n")
+    _write(vault, "Log.md", "Miras hammer.\n\nMira sings.\n")
+    assert "Rules/Smithing.md:1" in await server.vault_mentions("Mira")
+    unlinked = await server.vault_mentions("Mira", unlinked=True)
+    assert "Log.md:3" in unlinked and "Log.md:1" not in unlinked
+
+
 async def test_r31_r45_excerpt_label_has_path_line_and_heading_path(vault):
     _write(vault, "NPCs/Mira.md")
     text = "# Session 1\n## Scenes\n### Arrival\nMeet [[Mira]].\n"
