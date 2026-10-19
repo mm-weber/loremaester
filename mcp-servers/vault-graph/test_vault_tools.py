@@ -326,3 +326,14 @@ async def test_r67_folders_take_turns_biggest_first(vault):
     labels = _labels(await server.vault_mentions("Mira"))
     folders = [path.split("/")[0] if "/" in path else "(root)" for path in labels]
     assert folders == ["Sessions", "Places", "(root)", "Sessions", "Places", "Sessions"]
+
+
+async def test_r68_notes_in_a_folder_come_in_reverse_natural_order(vault):
+    _write(vault, "NPCs/Mira.md")
+    for number in (2, 9, 10):
+        _write(vault, f"Sessions/Session {number}/Log.md", "[[Mira]]\n")
+    assert _labels(await server.vault_mentions("Mira")) == [
+        "Sessions/Session 10/Log.md",
+        "Sessions/Session 9/Log.md",
+        "Sessions/Session 2/Log.md",
+    ]
