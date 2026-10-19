@@ -74,6 +74,8 @@ class ParsedNote:
             return self._table_block(line)
         if kind == "heading":
             return self._heading_block(line)
+        if kind == "frontmatter":
+            return self._property_block(line)
         return [line]
 
     def _run(self, line: int, kind: str) -> list[int]:
@@ -146,6 +148,20 @@ class ParsedNote:
             number += 1
         return lines
 
+    def _property_block(self, line: int) -> list[int]:
+        """The frontmatter property holding `line`: its key line plus its indented
+        or list continuation lines (R29)."""
+        first, last = self.frontmatter
+        if line in (first, last):
+            return [line]
+        key = line
+        while key > first + 1 and not _YAML_KEY.match(self.lines[key - 1]):
+            key -= 1
+        end = key
+        while end + 1 < last and not _YAML_KEY.match(self.lines[end]):
+            end += 1
+        return list(range(key, end + 1))
+
 
 def _aliases(frontmatter: str) -> list[str]:
     """Aliases from the `aliases` and `alias` keys, each a list or one string (R18)."""
@@ -171,6 +187,7 @@ _THEMATIC_BREAK = re.compile(
     r"^[ \t]*(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$"
 )
 _TABLE_SEPARATOR = re.compile(r"^[ \t]*\|[ \t|:-]*-[ \t|:-]*$")
+_YAML_KEY = re.compile(r"^[^\s#-][^:]*:")
 
 
 def _kind(line: str) -> str:
