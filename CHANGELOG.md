@@ -8,6 +8,12 @@ may still change between minor versions.
 
 ## [Unreleased]
 
+### Added
+- **vault-graph: surgical vault reads (3 new tools, 17 in total):** `vault_mentions` (Obsidian-style linked and unlinked mentions: the Markdown block around each mention, a token budget, and a map of every mention not shown), `vault_read_note` (whole when small, otherwise an outline) and `vault_read_section` (whole sections by heading). They scan the vault live through a stat-checked cache, so they never go stale. New optional settings `VAULT_SKIP_FOLDERS` and `VAULT_NAME_ENDINGS`.
+
+### Changed
+- **Skills:** worldbuilding, chronik, session-creation and vault-scout follow a read ladder (mentions, then a note or its outline, then sections) and keep whole reads for unstructured source material and rewrites. The vault CLAUDE.md example and template point to the new tools.
+
 ## [0.1.0] - 2026-06-17
 
 First public release.

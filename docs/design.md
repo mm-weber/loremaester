@@ -27,7 +27,7 @@ Source books are scanned/image-based PDFs that can't be read with file tools. Th
 MCP (Model Context Protocol) servers connect Claude to both data sources beyond native file access. Three MCP servers provide structured tool interfaces:
 - **R2R wrapper** — generic search/ingest/manage operations against R2R
 - **Sourcebooks server** — worldbuilding-specific lore queries with domain language
-- **Vault graph server** — wikilink graph navigation from pre-computed graph data
+- **Vault graph server** — wikilink graph navigation from pre-computed graph data, plus live mentions and section reads
 
 All servers use stdio transport, run as Python processes, and are registered in Claude Code's `settings.json`.
 
@@ -87,13 +87,11 @@ D3 is **domain-specific** — it speaks worldbuilding language (`search_lore`, `
 
 This separation means the generic R2R integration is reusable across projects, while worldbuilding opinions stay contained in D3.
 
-### Why a pre-computed vault graph (D4) rather than runtime scanning?
+### Why a pre-computed vault graph (D4), and where runtime scanning took over
 
-Parsing `[[wikilinks]]` from every `.md` file on every query would be slow for large vaults and would make the MCP server complex with filesystem-scanning logic. Instead, D4 pre-computes a `.graph.json` file that D5 loads into memory on startup. This gives:
+The six graph tools read a pre-computed `.graph.json` that D4 builds and D5 loads into memory: traversal is in-memory dictionary lookups, and `vault_rebuild_graph` (re-parse and reload) or `vault_reload_cache` (re-read the JSON only) refreshes it after vault changes.
 
-- **Fast queries** — graph traversal is in-memory dictionary lookups
-- **Simple MCP server** — D5 just reads JSON, no filesystem parsing
-- **Explicit rebuild cycle** — the GM (or Claude) triggers a rebuild after vault changes via `vault_rebuild_graph` (re-parses vault + reloads cache); `vault_reload_cache` is the cheaper "re-read JSON only" variant that flags staleness when the on-disk graph is behind the vault
+The mentions and read tools (`vault_mentions`, `vault_read_note`, `vault_read_section`) need line-level content that the graph does not keep, so they scan the vault at runtime instead, through a per-file cache that re-reads a note only when its modification time or size changes. A cold parse of a 469-note vault takes about 0.4 s, and later calls re-read only changed files, so the tools are never stale and need no rebuild step. A follow-up moves the graph tools onto the same live index and retires `.graph.json` and `vault_rebuild_graph`.
 
 ### Why retrieval-only (R2R), not classic RAG?
 

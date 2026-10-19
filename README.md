@@ -113,7 +113,7 @@ Two views: where things run, and how a request is answered.
 
 Full component rationale in [`docs/design.md`](docs/design.md).
 
-### 3 MCP servers, 14 tools
+### 3 MCP servers, 17 tools
 
 > **Full per-tool reference** (parameters, returns, and internals): [`docs/mcp-tools.md`](docs/mcp-tools.md).
 
@@ -121,7 +121,7 @@ Full component rationale in [`docs/design.md`](docs/design.md).
 |---|---|---|
 | **`r2r`** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | Generic CRUD + search against R2R. |
 | **`sourcebooks`** | `search_lore`, `list_books`, `get_chapter` | Worldbuilding-aware lore queries with `book_title` / `chapter` / `page_range` citations. |
-| **`vault-graph`** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | Obsidian `[[wikilink]]` graph navigation and refresh. |
+| **`vault-graph`** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph`, `vault_mentions`, `vault_read_note`, `vault_read_section` | Obsidian `[[wikilink]]` graph navigation and refresh, plus Linked Mentions-style excerpts and section reads straight from the vault. |
 
 ### 4 Claude Code skills
 
