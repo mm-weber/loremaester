@@ -297,3 +297,10 @@ async def test_r03_paths_reaching_into_a_skipped_folder_list_it(vault, monkeypat
     by_parent = await server.vault_mentions("Mira", paths=["Art"])
     assert "Art/Gallery.md:1" in by_parent
     assert "Art/Prompts/Portrait.md:1" not in by_parent
+
+
+async def test_r04_read_tools_open_notes_in_skipped_folders(vault, monkeypatch):
+    monkeypatch.setenv("VAULT_SKIP_FOLDERS", "Rules")
+    _write(vault, "Rules/Smithing.md", "# Smithing\n## Steel\nFold it.\n")
+    assert (await server.vault_read_note("Smithing")).endswith("Fold it.")
+    assert "Fold it." in await server.vault_read_section("Smithing", "Steel")
