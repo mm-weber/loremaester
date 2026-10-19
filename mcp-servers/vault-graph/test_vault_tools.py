@@ -218,3 +218,15 @@ async def test_r48_long_excerpt_is_cut_with_a_marker(vault):
         "[cut at 1,500 characters; the block ends at L31; 16 mentions moved to the map]"
     )
     assert marker in result
+
+
+async def test_r65_paths_limit_mentions_to_matching_folders_and_notes(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Sessions/Session 36/Prep.md", "[[Mira]] prep\n")
+    _write(vault, "Sessions/Session 37/Prep.md", "[[Mira]] later\n")
+    _write(vault, "Places/Forge.md", "[[Mira]] works\n")
+    entries = ["Session 36", "places/forge.md"]
+    result = await server.vault_mentions("Mira", paths=entries)
+    assert "Sessions/Session 36/Prep.md:1" in result
+    assert "Places/Forge.md:1" in result
+    assert "Session 37" not in result
