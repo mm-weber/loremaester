@@ -131,3 +131,13 @@ def test_r35_link_prefers_same_folder_then_fewest_segments(tmp_path):
     index.refresh()
     assert index.resolve_link("X", "Z/Log.md") == "Z/X.md"
     assert index.resolve_link("X", "C/Log.md") == "B/X.md"
+
+
+def test_r40_links_to_unwritten_notes_are_recorded(tmp_path):
+    text = "Heard of [[Ghost Ship]].\n\nAgain [[ghost ship]].\n\n[[Other Ghost]]\n"
+    _write(tmp_path, "Log.md", text)
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    found = index.resolve_note("Ghost Ship")
+    assert found.path is None
+    assert index.linked_mentions(found) == {"Log.md": [1, 3]}
