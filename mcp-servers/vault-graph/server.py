@@ -388,6 +388,11 @@ class _Excerpt:
     mentions: list[int]  # mention lines inside the block
     shown: list[int]  # mention lines visible after the cut (R48)
 
+    @property
+    def cost(self) -> int:
+        """Budget cost of the excerpt text (R60)."""
+        return _tokens("\n".join(self.lines))
+
 
 def _render(parsed: ParsedNote, block: list[int]) -> list[tuple[int | None, str]]:
     """Block lines as (line, text) pairs, with a GAP row wherever non-blank note
@@ -429,6 +434,22 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
         label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
         excerpts.append(_Excerpt(rel, label, texts, sorted(mentions), shown))
     return excerpts
+
+
+def _fill(
+    order: list[str], built: dict[str, list[_Excerpt]], budget: int
+) -> list[_Excerpt]:
+    """Excerpts to show: notes in listing order until one would exceed the
+    remaining budget (R60)."""
+    picked: list[_Excerpt] = []
+    used = 0
+    for rel in order:
+        cost = sum(excerpt.cost for excerpt in built[rel])
+        if used + cost > budget:
+            break
+        picked += built[rel]
+        used += cost
+    return picked
 
 
 def _setting(name: str) -> list[str]:
@@ -594,9 +615,12 @@ async def vault_mentions(
     skipped = _skipped_counts(all_mentions, listed, skip)
     if skipped:
         out.append("Skipped folders: " + DOT.join(skipped))
-    for rel in _order(list(mentions)):
-        for excerpt in _excerpts(rel, index.notes[rel].parsed, mentions[rel]):
-            out += ["", excerpt.label, *excerpt.lines]
+    order = _order(list(mentions))
+    built = {
+        rel: _excerpts(rel, index.notes[rel].parsed, mentions[rel]) for rel in order
+    }
+    for excerpt in _fill(order, built, budget_tokens):
+        out += ["", excerpt.label, *excerpt.lines]
     return _respond(out)
 
 
