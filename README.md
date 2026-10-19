@@ -31,7 +31,7 @@ that use it: `worldbuilding`, `session-creation`, `chronik`,
 
 2. **Four opinionated GM skills (`worldbuilding`, `session-creation`, `chronik`, `vault-scout`) that auto-trigger on your prompts**
 
-    Driving 14 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
+    Driving 17 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
 
 3. **Drop a folder of PDFs (text-native, mixed, or image-only) and walk away.** 
 
