@@ -183,3 +183,12 @@ def test_r28_heading_block_is_heading_plus_first_run_below():
     note = parse_note(text)
     assert note.block(2) == [2, 4, 5]
     assert note.block(8) == [8]
+
+
+def test_r29_frontmatter_block_is_the_property():
+    text = (
+        '---\ntype: npc\nallies:\n  - "[[X]]"\n  - "[[Mira]]"\nfaction: "[[X]]"\n---\n'
+    )
+    note = parse_note(text)
+    assert note.block(4) == [3, 4, 5]
+    assert note.block(6) == [6]
