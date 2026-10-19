@@ -45,6 +45,42 @@ def _labels(result):
     return re.findall(r"^(.+?\.md):\d+", result, re.M)
 
 
+def _mention_map(result):
+    """(path, line) pairs listed in the map of a vault_mentions response."""
+    parts = result.split("Not shown, pull with paths=[...]:", 1)
+    pairs = set()
+    if len(parts) == 2:
+        for path, lines in re.findall(r"([^:·\n]+?\.md) L([\d,]+)", parts[1]):
+            pairs |= {(path.strip(), int(line)) for line in lines.split(",")}
+    return pairs
+
+
+async def test_r64_every_mention_is_shown_or_mapped(vault):
+    _write(vault, "NPCs/Mira.md")
+    texts = {}
+    for number in range(1, 9):
+        rel = f"Log/s{number}.md"
+        body = f"[[Mira]] m{number}a " + "x" * 300 + f"\n\n[[Mira]] m{number}b\n"
+        _write(vault, rel, body)
+        texts[(rel, 1)] = f"m{number}a "
+        texts[(rel, 3)] = f"m{number}b"
+    items = [f"- [[Mira]] cut{k:02d} " + "z" * 90 for k in range(25)]
+    _write(vault, "Long.md", "## [[Mira]] list\n" + "\n".join(items) + "\n")
+    texts[("Long.md", 1)] = "## [[Mira]] list"
+    for k in range(25):
+        texts[("Long.md", k + 2)] = f"cut{k:02d} "
+    for budget in (1, 150, 600, 4000):
+        for paths in (None, ["Log"], ["Long"]):
+            result = await server.vault_mentions(
+                "Mira", paths=paths, budget_tokens=budget
+            )
+            mapped = _mention_map(result)
+            for key, text in texts.items():
+                if paths and not key[0].startswith(paths[0]):
+                    continue
+                assert text in result or key in mapped, (budget, paths, key)
+
+
 async def test_r69_small_note_comes_back_whole(vault):
     _write(vault, "NPCs/Mira.md", "---\ntype: npc\n---\nMira forges blades.\n")
     result = await server.vault_read_note("Mira")
