@@ -573,3 +573,8 @@ async def test_r80_missing_vault_root_is_an_error_naming_it(tmp_path, monkeypatc
         assert await server.vault_read_note("x") == expected
         assert await server.vault_read_section("x", "y") == expected
         assert await server.vault_mentions("x") == expected
+
+
+def test_r68_equal_natural_keys_still_order_one_way():
+    tied = ["Sessions/Session 09.md", "Sessions/Session 9.md"]
+    assert server._order(tied) == server._order(tied[::-1])
