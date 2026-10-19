@@ -192,3 +192,9 @@ def test_r29_frontmatter_block_is_the_property():
     note = parse_note(text)
     assert note.block(4) == [3, 4, 5]
     assert note.block(6) == [6]
+
+
+def test_r17_unloadable_frontmatter_values_keep_frontmatter_without_aliases():
+    note = parse_note("---\ndate: 2024-13-45\naliases: [A]\n---\nBody.\n")
+    assert note.frontmatter == (1, 4)
+    assert note.aliases == []
