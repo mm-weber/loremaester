@@ -121,3 +121,12 @@ def test_r34_target_with_slash_matches_root_path_or_path_end(tmp_path):
     assert index.resolve_link("World/NPCs/Mira", "Home.md") == "World/NPCs/Mira.md"
     assert index.resolve_link("NPCs/Mira", "Home.md") == "World/NPCs/Mira.md"
     assert index.resolve_link("rld/NPCs/Mira", "Home.md") is None
+
+
+def test_r35_link_prefers_same_folder_then_fewest_segments(tmp_path):
+    for rel in ("A/Deep/X.md", "B/X.md", "Z/X.md"):
+        _write(tmp_path, rel)
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.resolve_link("X", "Z/Log.md") == "Z/X.md"
+    assert index.resolve_link("X", "C/Log.md") == "B/X.md"
