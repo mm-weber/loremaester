@@ -538,13 +538,14 @@ async def test_r78_r79_unknown_names_get_close_names(vault):
     _write(vault, "NPCs/Captain Aldric.md", "---\naliases: [Aldric]\n---\nx\n")
     _write(vault, "NPCs/Mira.md")
     _write(vault, "NPCs/Miriam.md")
-    note = await server.vault_read_note("Mir")
-    assert note.startswith("Error: no note matches 'Mir'. Close names: Mira, Miriam")
-    section = await server.vault_read_section("Captian Aldric", "x")
-    expected = "Error: no note matches 'Captian Aldric'. Close names: Captain Aldric"
-    assert section.startswith(expected)
-    mentions = await server.vault_mentions("Mirra")
-    assert "No note matches 'Mirra'. Close names: Mira" in mentions
+    note = (await server.vault_read_note("Mir")).splitlines()
+    assert note[0] == "Error: no note matches 'Mir'. Close names: Mira, Miriam"
+    section = (await server.vault_read_section("Captian Aldric", "x")).splitlines()
+    close = "Close names: Captain Aldric, Aldric"
+    assert section[0] == f"Error: no note matches 'Captian Aldric'. {close}"
+    mentions = (await server.vault_mentions("Mirra")).splitlines()
+    assert "No note matches 'Mirra'. Close names: Mira, Miriam" in mentions
+    assert "No note matches" not in await server.vault_mentions("Mira")
 
 
 async def test_r15_every_response_names_the_vault_root_once(vault):
