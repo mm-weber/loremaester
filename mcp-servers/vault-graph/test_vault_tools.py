@@ -360,6 +360,18 @@ async def test_r04_read_tools_open_notes_in_skipped_folders(vault, monkeypatch):
     assert "Fold it." in await server.vault_read_section("Smithing", "Steel")
 
 
+async def test_r02_a_note_beside_a_skipped_folder_is_listed(vault, monkeypatch):
+    monkeypatch.setenv("VAULT_SKIP_FOLDERS", "Rules,Art/Prompts")
+    _write(vault, "NPCs/Mira.md")
+    for rel in ("Rules.md", "Rules/Smithing.md", "Art/Prompts.md"):
+        _write(vault, rel, "[[Mira]]\n")
+    result = await server.vault_mentions("Mira")
+    assert "Rules.md:1" in result and "Art/Prompts.md:1" in result
+    assert "Rules/Smithing.md" not in result
+    by_parent = await server.vault_mentions("Mira", paths=["Art"])
+    assert "Art/Prompts.md:1" in by_parent
+
+
 async def test_r67_folders_take_turns_biggest_first(vault):
     _write(vault, "NPCs/Mira.md")
     for rel in (
