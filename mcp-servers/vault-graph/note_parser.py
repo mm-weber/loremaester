@@ -1,12 +1,13 @@
 """Pure line scanner for Obsidian notes (spec: specs/v0.2/surgical-search.md)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class ParsedNote:
     lines: list[str]
     frontmatter: tuple[int, int] | None = None
+    aliases: list[str] = field(default_factory=list)
 
 
 def parse_note(text: str) -> ParsedNote:
