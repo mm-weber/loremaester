@@ -24,7 +24,7 @@ class VaultIndex:
         self.notes: dict[str, Note] = {}
 
     def refresh(self) -> None:
-        """Index the vault's .md files, re-reading only changed ones (R7, R8, R10)."""
+        """Index the vault's notes, re-reading only added or changed files (R7-R11)."""
         root = self.root.resolve()
         seen: set[str] = set()
         for folder, subfolders, files in os.walk(self.root):
@@ -35,17 +35,22 @@ class VaultIndex:
                 if name.startswith(".") or not name.endswith(".md"):
                     continue
                 file = Path(folder, name)
-                if not file.resolve().is_relative_to(root):
-                    continue
                 rel = file.relative_to(self.root).as_posix()
+                try:
+                    if not file.resolve().is_relative_to(root):
+                        continue
+                    stat = file.stat()
+                    old = self.notes.get(rel)
+                    if not old or (old.mtime_ns, old.size) != (
+                        stat.st_mtime_ns,
+                        stat.st_size,
+                    ):
+                        text = file.read_bytes().decode("utf-8", errors="replace")
+                        self.notes[rel] = Note(
+                            rel, stat.st_mtime_ns, stat.st_size, parse_note(text)
+                        )
+                except OSError:
+                    continue  # unreadable, or gone since the walk listed it
                 seen.add(rel)
-                stat = file.stat()
-                old = self.notes.get(rel)
-                if old and (old.mtime_ns, old.size) == (stat.st_mtime_ns, stat.st_size):
-                    continue
-                text = file.read_bytes().decode("utf-8", errors="replace")  # R11
-                self.notes[rel] = Note(
-                    rel, stat.st_mtime_ns, stat.st_size, parse_note(text)
-                )
         for rel in set(self.notes) - seen:
             del self.notes[rel]  # R9: deleted since the last refresh
