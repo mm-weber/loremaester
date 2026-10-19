@@ -39,6 +39,19 @@ def test_r08_symlink_out_of_the_vault_is_not_read(tmp_path):
     assert sorted(index.notes) == ["Inside.md"]
 
 
+def test_r09_refresh_reflects_added_changed_and_deleted_notes(tmp_path):
+    _write(tmp_path, "Keep.md", "old text")
+    _write(tmp_path, "Gone.md")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    _write(tmp_path, "Keep.md", "new text, longer")
+    _write(tmp_path, "New.md")
+    (tmp_path / "Gone.md").unlink()
+    index.refresh()
+    assert sorted(index.notes) == ["Keep.md", "New.md"]
+    assert index.notes["Keep.md"].parsed.lines == ["new text, longer"]
+
+
 def test_r10_unchanged_stat_means_no_reread(tmp_path):
     path = _write(tmp_path, "Note.md", "alpha")
     index = VaultIndex(tmp_path)
