@@ -127,3 +127,10 @@ async def test_r74_heading_match_ignores_case_whitespace_and_hashes(vault):
     result = await server.vault_read_section("Note", "  ## open threads ")
     assert "## Note.md:2-3" in result
     assert "thread one" in result
+
+
+async def test_r76_sections_are_never_truncated(vault):
+    long_text = "\n".join(f"line {n:03d} " + "y" * 90 for n in range(200))
+    _write(vault, "Big.md", f"# Big\n## Part\n{long_text}\n## End\n")
+    result = await server.vault_read_section("Big", "Part")
+    assert long_text in result
