@@ -195,9 +195,11 @@ def test_r29_frontmatter_block_is_the_property():
 
 
 def test_r17_unloadable_frontmatter_values_keep_frontmatter_without_aliases():
-    note = parse_note("---\ndate: 2024-13-45\naliases: [A]\n---\nBody.\n")
-    assert note.frontmatter == (1, 4)
-    assert note.aliases == []
+    deep = "[" * 2000 + "]" * 2000
+    for value in ("2024-13-45", "!!bool maybe", "!!timestamp abc", deep):
+        note = parse_note(f"---\ndate: {value}\naliases: [A]\n---\nBody.\n")
+        assert note.frontmatter == (1, 4)
+        assert note.aliases == []
 
 
 def test_rf6_lines_split_only_at_line_breaks():
