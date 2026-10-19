@@ -314,8 +314,8 @@ def _fmt(tokens: int) -> str:
 
 
 def _respond(lines: list[str]) -> str:
-    """Join the lines of a tool response."""
-    return "\n".join(lines)
+    """Join response lines, naming the vault root once after the first (R15)."""
+    return "\n".join([*lines[:1], f"Vault: {VAULT_PATH}", *lines[1:]])
 
 
 CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
