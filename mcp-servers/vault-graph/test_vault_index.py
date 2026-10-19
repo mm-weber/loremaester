@@ -170,6 +170,16 @@ def test_r54_titles_and_aliases_under_three_characters_are_ignored(tmp_path):
     assert index.unlinked_mentions(index.resolve_note("Al")) == {"Log.md": [3]}
 
 
+def test_r54_only_names_shorter_than_three_characters_are_ignored(tmp_path):
+    _write(tmp_path, "NPCs/Al.md")
+    _write(tmp_path, "NPCs/Jax.md")
+    _write(tmp_path, "Log.md", "Al waved.\n\nJax waved.\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.unlinked_mentions(index.resolve_note("Al")) == {}
+    assert index.unlinked_mentions(index.resolve_note("Jax")) == {"Log.md": [3]}
+
+
 def test_r55_unlinked_matching_skips_frontmatter_code_links_and_urls(tmp_path):
     _write(tmp_path, "NPCs/Mira.md")
     text = (
