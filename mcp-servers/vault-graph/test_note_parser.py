@@ -166,3 +166,20 @@ def test_r26_table_row_block_keeps_header_and_separator():
 def test_r27_callout_block_is_the_whole_quote_run():
     text = "Intro\n> [!note] Rumor\n> [[X]] was seen\n> at dawn\n\n> other quote\n"
     assert parse_note(text).block(3) == [2, 3, 4]
+
+
+def test_r28_heading_block_is_heading_plus_first_run_below():
+    text = (
+        "# Day 2\n"
+        "## [[X]] returns\n"
+        "\n"
+        "He reports.\n"
+        "- names deserters\n"
+        "\n"
+        "Later text.\n"
+        "## [[X]] again\n"
+        "### Sub\n"
+    )
+    note = parse_note(text)
+    assert note.block(2) == [2, 4, 5]
+    assert note.block(8) == [8]
