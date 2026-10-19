@@ -23,6 +23,15 @@ def _depth_then_path(rel: str) -> tuple[int, str]:
     return rel.count("/"), rel
 
 
+def _term_pattern(terms: list[str]) -> re.Pattern[str]:
+    """Whole-word, case-insensitive match of any term (R53)."""
+    words = "|".join(
+        re.escape(unicodedata.normalize("NFC", term))
+        for term in sorted(terms, key=len, reverse=True)
+    )
+    return re.compile(rf"(?<!\w)(?:{words})(?!\w)", re.IGNORECASE)
+
+
 @dataclass
 class Note:
     path: str  # vault-relative POSIX path, with .md
@@ -149,7 +158,7 @@ class VaultIndex:
         if found.path is None:
             return {}
         terms = [PurePosixPath(found.path).stem, *self.notes[found.path].parsed.aliases]
-        pattern = re.compile("|".join(re.escape(term) for term in terms))
+        pattern = _term_pattern(terms)
         mentions: dict[str, list[int]] = {}
         for rel, note in self.notes.items():
             if rel == found.path:
@@ -157,7 +166,7 @@ class VaultIndex:
             lines = [
                 number
                 for number, text in enumerate(note.parsed.lines, start=1)
-                if pattern.search(text)
+                if pattern.search(unicodedata.normalize("NFC", text))
             ]
             if lines:
                 mentions[rel] = lines
