@@ -178,3 +178,13 @@ async def test_r43_unwritten_note_lists_its_recorded_links(vault):
     result = await server.vault_mentions("Ghost Ship")
     assert "## Linked mentions: Ghost Ship (no note yet)" in result
     assert "Log.md:1" in result
+
+
+async def test_r31_r45_excerpt_label_has_path_line_and_heading_path(vault):
+    _write(vault, "NPCs/Mira.md")
+    text = "# Session 1\n## Scenes\n### Arrival\nMeet [[Mira]].\n"
+    _write(vault, "Sessions/S1.md", text)
+    result = await server.vault_mentions("Mira")
+    sep = " \u203a "
+    label = f"Sessions/S1.md:4{sep}Session 1{sep}Scenes{sep}Arrival"
+    assert f"{label}\nMeet [[Mira]]." in result
