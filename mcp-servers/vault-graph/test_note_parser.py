@@ -161,3 +161,8 @@ def test_r26_table_row_block_keeps_header_and_separator():
     note = parse_note(text)
     assert note.block(4) == [1, 2, 4]
     assert note.block(7) == [6, 7]
+
+
+def test_r27_callout_block_is_the_whole_quote_run():
+    text = "Intro\n> [!note] Rumor\n> [[X]] was seen\n> at dawn\n\n> other quote\n"
+    assert parse_note(text).block(3) == [2, 3, 4]
