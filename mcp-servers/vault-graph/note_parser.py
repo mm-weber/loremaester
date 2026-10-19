@@ -72,6 +72,8 @@ class ParsedNote:
             return self._item_block(line)
         if kind == "table":
             return self._table_block(line)
+        if kind == "heading":
+            return self._heading_block(line)
         return [line]
 
     def _run(self, line: int, kind: str) -> list[int]:
@@ -128,6 +130,21 @@ class ParsedNote:
         ):
             rows.add(first + 1)
         return sorted(rows)
+
+    def _heading_block(self, line: int) -> list[int]:
+        """The heading plus the lines from the next non-blank line up to the next
+        blank line or heading (R28)."""
+        lines = [line]
+        number = line + 1
+        while number <= len(self.lines) and self.kinds[number - 1] == "blank":
+            number += 1
+        while number <= len(self.lines) and self.kinds[number - 1] not in (
+            "blank",
+            "heading",
+        ):
+            lines.append(number)
+            number += 1
+        return lines
 
 
 def _aliases(frontmatter: str) -> list[str]:
