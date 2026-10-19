@@ -5,6 +5,33 @@ from dataclasses import dataclass, field
 
 import yaml
 
+ATTACHMENT_EXTENSIONS = frozenset(
+    [
+        "avif",
+        "bmp",
+        "gif",
+        "jpeg",
+        "jpg",
+        "png",
+        "svg",
+        "webp",
+        "flac",
+        "m4a",
+        "mp3",
+        "ogg",
+        "wav",
+        "3gp",
+        "mkv",
+        "mov",
+        "mp4",
+        "ogv",
+        "webm",
+        "pdf",
+        "canvas",
+        "base",
+    ]
+)
+
 
 @dataclass(frozen=True)
 class Heading:
@@ -82,12 +109,20 @@ def _blank_out(match: re.Match[str]) -> str:
     return " " * len(match.group(0))
 
 
+def _is_attachment(target: str) -> bool:
+    """A target ending in a known attachment extension (R22)."""
+    _, dot, extension = target.rpartition(".")
+    return bool(dot) and extension.lower() in ATTACHMENT_EXTENSIONS
+
+
 def _links_in(line: str, number: int) -> list[Link]:
-    """Wikilinks and embeds on one line, as link targets (R21)."""
+    """Wikilinks and embeds on one line, as link targets (R20-R22)."""
     links = []
     for match in _WIKILINK.finditer(_INLINE_CODE.sub(_blank_out, line)):
         target = _ALIAS_SEPARATOR.split(match.group(1), maxsplit=1)[0]
-        links.append(Link(target.split("#", 1)[0].strip(), number))
+        target = target.split("#", 1)[0].strip()
+        if target and not _is_attachment(target):
+            links.append(Link(target, number))
     return links
 
 
