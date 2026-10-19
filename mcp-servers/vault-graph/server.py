@@ -451,7 +451,8 @@ async def vault_mentions(
         parsed = index.notes[rel].parsed
         for line in mentions[rel]:
             block = parsed.block(line)
-            out += ["", f"{rel}:{line}", *(parsed.lines[n - 1] for n in block)]
+            label = SEP.join([f"{rel}:{line}", *parsed.heading_path(block[0])])
+            out += ["", label, *(parsed.lines[n - 1] for n in block)]
     return _respond(out)
 
 
