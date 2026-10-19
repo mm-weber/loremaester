@@ -63,6 +63,9 @@ class ParsedNote:
                 return heading_line, heading.line - 1
         return heading_line, len(self.lines)
 
+    def block(self, line: int) -> list[int]:
+        return []
+
 
 def _aliases(frontmatter: str) -> list[str]:
     """Aliases from the `aliases` and `alias` keys, each a list or one string (R18)."""

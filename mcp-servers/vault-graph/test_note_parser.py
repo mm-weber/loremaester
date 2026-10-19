@@ -97,3 +97,21 @@ def test_r30_section_runs_to_next_heading_with_same_or_fewer_hashes():
     assert note.section(5) == (5, 6)
     assert note.section(7) == (7, 8)
     assert note.section(9) == (9, 9)
+
+
+def test_r23_paragraph_block_is_the_run_of_plain_lines():
+    text = (
+        "# Title\n"
+        "First line\n"
+        "mentions [[X]]\n"
+        "last line\n"
+        "- list item\n"
+        "\n"
+        "Other paragraph\n"
+        "---\n"
+        "After break\n"
+    )
+    note = parse_note(text)
+    assert note.block(3) == [2, 3, 4]
+    assert note.block(7) == [7]
+    assert note.block(9) == [9]
