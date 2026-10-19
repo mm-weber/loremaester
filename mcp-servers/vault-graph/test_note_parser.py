@@ -75,3 +75,16 @@ def test_r20_no_links_inside_code():
         "Text `[[In Inline Code]]` and [[Real Link]].\n"
     )
     assert [link.target for link in parse_note(text).links] == ["Real Link"]
+
+
+def test_r22_heading_links_attachments_and_markdown_links_are_not_links():
+    text = (
+        "Jump to [[#Background]].\n"
+        "Image ![[map.PNG]], [[handout.pdf]] and [[board.canvas]].\n"
+        "A [markdown](Other%20Note.md) link.\n"
+        "Keep [[Dr. Smith]] and [[Session 3.5]].\n"
+    )
+    assert [link.target for link in parse_note(text).links] == [
+        "Dr. Smith",
+        "Session 3.5",
+    ]
