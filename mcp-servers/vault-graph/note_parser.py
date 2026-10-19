@@ -92,6 +92,17 @@ class ParsedNote:
             end -= 1
         return (start, end) if start <= end else None
 
+    def masked_text(self, line: int) -> str:
+        """Body text of a line for unlinked matching: frontmatter and code lines give
+        "", and inline code, wikilinks, Markdown links and URLs are blanked out
+        (R20, R55)."""
+        if self.kinds[line - 1] in ("frontmatter", "code"):
+            return ""
+        text = self.lines[line - 1]
+        for pattern in (_INLINE_CODE, _WIKILINK, _MARKDOWN_LINK, _URL):
+            text = pattern.sub(_blank_out, text)
+        return text
+
     def block(self, line: int) -> list[int]:
         """Lines of the Markdown block holding `line` (R23-R29)."""
         kind = self.kinds[line - 1]
@@ -302,6 +313,8 @@ _ALIAS_SEPARATOR = re.compile(r"\\?\|")
 
 
 _INLINE_CODE = re.compile(r"`+[^`\n]*`+")
+_MARKDOWN_LINK = re.compile(r"\[[^\]\n]*\]\([^)\n]*\)")
+_URL = re.compile(r"(?:https?|ftp)://\S+|www\.\S+")
 
 
 def _blank_out(match: re.Match[str]) -> str:

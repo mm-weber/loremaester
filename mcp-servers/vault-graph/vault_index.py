@@ -166,10 +166,13 @@ class VaultIndex:
         for rel, note in self.notes.items():
             if rel == found.path:
                 continue
+            parsed = note.parsed
             lines = [
                 number
-                for number, text in enumerate(note.parsed.lines, start=1)
-                if pattern.search(unicodedata.normalize("NFC", text))
+                for number in range(1, len(parsed.lines) + 1)
+                if pattern.search(
+                    unicodedata.normalize("NFC", parsed.masked_text(number))
+                )
             ]
             if lines:
                 mentions[rel] = lines
