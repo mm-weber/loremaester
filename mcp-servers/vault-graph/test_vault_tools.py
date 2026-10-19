@@ -196,3 +196,12 @@ async def test_r46_blocks_sharing_a_line_form_one_excerpt(vault):
     result = await server.vault_mentions("Mira")
     assert result.count("Log.md:") == 1
     assert "Log.md:1\nFirst [[Mira]] line\nsecond [[Mira]] line" in result
+
+
+async def test_r47_skipped_lines_show_as_a_gap_marker(vault):
+    _write(vault, "NPCs/Mira.md")
+    text = "| Name | Role |\n|---|---|\n| Bo | cook |\n| [[Mira]] | smith |\n"
+    _write(vault, "Gate.md", text)
+    result = await server.vault_mentions("Mira")
+    expected = "| Name | Role |\n|---|---|\n…\n| [[Mira]] | smith |"
+    assert expected in result
