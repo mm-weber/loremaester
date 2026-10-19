@@ -429,14 +429,21 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     return excerpts
 
 
-def _listed_notes(index: VaultIndex, paths: list[str] | None) -> set[str]:
-    """Notes vault_mentions may list (spec 6.0 Listed notes; R65)."""
+def _listed_notes(
+    index: VaultIndex, paths: list[str] | None
+) -> tuple[set[str], list[str]]:
+    """Notes vault_mentions may list, and the paths entries that match nothing
+    (spec 6.0 Listed notes; R65, R66)."""
     if not paths:
-        return set(index.notes)
+        return set(index.notes), []
     listed: set[str] = set()
+    unmatched: list[str] = []
     for entry in paths:
-        listed |= set(index.covered_by(entry))
-    return listed
+        covered = index.covered_by(entry)
+        if not covered:
+            unmatched.append(entry)
+        listed |= set(covered)
+    return listed, unmatched
 
 
 @mcp.tool()
@@ -507,7 +514,7 @@ async def vault_mentions(
     mention not shown, and paths=[folder or note] pulls more."""
     index = _index()
     found = index.resolve_note(note)
-    listed = _listed_notes(index, paths)
+    listed, unmatched = _listed_notes(index, paths)
     mentions = {
         rel: lines
         for rel, lines in index.linked_mentions(found).items()
@@ -515,6 +522,7 @@ async def vault_mentions(
     }
     out = [f"## Linked mentions: {note} ({found.path or 'no note yet'})"]
     out += _resolution_lines(found)
+    out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
     for rel in sorted(mentions):
         for excerpt in _excerpts(rel, index.notes[rel].parsed, mentions[rel]):
             out += ["", excerpt.label, *excerpt.lines]
