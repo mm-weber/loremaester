@@ -142,3 +142,16 @@ async def test_r77_unmatched_heading_lists_the_notes_headings(vault):
     assert "## Note.md:2-4" in result
     expected = 'No section matches "Missing". Headings: # Top, ## Log, ### Detail'
     assert expected in result
+
+
+async def test_r41_lists_every_link_to_the_note(vault):
+    _write(vault, "NPCs/Mira.md", "Smith.")
+    text = "Met [[Mira]] at dawn.\n\nLater [[NPCs/Mira|she]] left.\n"
+    _write(vault, "Sessions/Log.md", text)
+    _write(vault, "Places/Forge.md", "- run by [[mira]]\n")
+    _write(vault, "Places/Other.md", "No link here.\n")
+    result = await server.vault_mentions("Mira")
+    assert "Sessions/Log.md:1" in result and "Met [[Mira]] at dawn." in result
+    assert "Sessions/Log.md:3" in result and "Later [[NPCs/Mira|she]] left." in result
+    assert "Places/Forge.md:1" in result and "- run by [[mira]]" in result
+    assert "Places/Other.md" not in result

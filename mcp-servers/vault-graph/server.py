@@ -431,5 +431,16 @@ async def vault_read_section(note: str, headings: str | list[str]) -> str:
     return _respond([*out[:1], *_resolution_lines(found), *out[1:]])
 
 
+@mcp.tool()
+async def vault_mentions(
+    note: str,
+    unlinked: bool = False,
+    paths: list[str] | None = None,
+    budget_tokens: int = 4000,
+) -> str:
+    """Mentions of a vault note."""
+    return ""
+
+
 if __name__ == "__main__":
     mcp.run()
