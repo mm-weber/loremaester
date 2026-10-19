@@ -390,8 +390,8 @@ class _Excerpt:
 
     @property
     def cost(self) -> int:
-        """Budget cost of the excerpt text (R60)."""
-        return _tokens("\n".join(self.lines))
+        """Budget cost: the label plus the excerpt text (R58)."""
+        return _tokens("\n".join([self.label, *self.lines]))
 
 
 def _render(parsed: ParsedNote, block: list[int]) -> list[tuple[int | None, str]]:
