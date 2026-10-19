@@ -537,6 +537,28 @@ def _order(rels: list[str]) -> list[str]:
     return order
 
 
+def _map(
+    order: list[str], rows: list[tuple[str, list[int]]], unlinked: bool
+) -> list[str]:
+    """The map of mentions not shown, grouped by top-level folder in listing
+    order, then pull hints (R62, R63)."""
+    if not rows:
+        return []
+    out = ["", "Not shown, pull with paths=[...]:"]
+    for folder, _ in _folder_counts(order):
+        group = [
+            f"{rel} L{','.join(map(str, lines))}"
+            for rel, lines in rows
+            if _top_folder(rel) == folder
+        ]
+        if group:
+            out.append(f"{folder} ({len(group)}): {DOT.join(group)}")
+    other = "false" if unlinked else "true"
+    hints = ['paths=["<folder or note>"]', "budget_tokens=<n>", f"unlinked={other}"]
+    out.append("More: " + DOT.join(hints))
+    return out
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -628,9 +650,7 @@ async def vault_mentions(
         for rel in order
     ]
     rows = [(rel, lines) for rel, lines in rows if lines]
-    if rows:
-        out += ["", "Not shown, pull with paths=[...]:"]
-        out += [f"{rel} L{','.join(map(str, lines))}" for rel, lines in rows]
+    out += _map(order, rows, unlinked)
     return _respond(out)
 
 
