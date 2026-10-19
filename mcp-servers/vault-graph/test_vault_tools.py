@@ -523,3 +523,18 @@ async def test_r78_r79_unknown_names_get_close_names(vault):
     assert section.startswith(expected)
     mentions = await server.vault_mentions("Mirra")
     assert "No note matches 'Mirra'. Close names: Mira" in mentions
+
+
+async def test_r15_every_response_names_the_vault_root_once(vault):
+    _write(vault, "NPCs/Mira.md", "# Mira\n## Gear\nhammer\n")
+    _write(vault, "Log.md", "[[Mira]] and Mira\n")
+    responses = [
+        await server.vault_read_note("Mira"),
+        await server.vault_read_section("Mira", "Gear"),
+        await server.vault_mentions("Mira"),
+        await server.vault_mentions("Mira", unlinked=True),
+        await server.vault_read_note("Nobody"),
+    ]
+    for result in responses:
+        assert result.count(str(vault)) == 1
+        assert f"Vault: {vault}" in result.splitlines()
