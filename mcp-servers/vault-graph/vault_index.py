@@ -146,7 +146,7 @@ class VaultIndex:
     def covered_by(self, entry: str) -> dict[str, str]:
         """Notes a `paths` entry covers, each with the normalized folder or note path
         it matched (spec 6.0 Path match)."""
-        key = normalize(entry).strip("/")
+        key = normalize(entry).removeprefix("./").strip("/")
         covered: dict[str, str] = {}
         if not key:
             return covered
