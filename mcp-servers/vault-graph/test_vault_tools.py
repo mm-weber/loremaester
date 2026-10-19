@@ -98,3 +98,25 @@ async def test_r36_r37_note_argument_matches_aliases_and_says_so(vault):
     result = await server.vault_read_note("aldric")
     assert result.endswith("Gate captain.")
     assert 'Found by alias "aldric" of NPCs/Captain Aldric.md' in result
+
+
+async def test_r73_r75_read_section_returns_each_matching_section_labelled(vault):
+    text = (
+        "# Session 12\n"
+        "## Log\n"
+        "Fought the troll.\n"
+        "## Open Threads\n"
+        "- Who sent it?\n"
+        "## Day 2\n"
+        "### Log\n"
+        "Rested.\n"
+    )
+    path = "Sessions/Session 12/Session 12.md"
+    _write(vault, path, text)
+    result = await server.vault_read_section("Session 12", ["Log", "Open Threads"])
+    sep = " \u203a "
+    assert f"## {path}:2-3{sep}Session 12{sep}Log (~" in result
+    assert f"## {path}:4-5{sep}Session 12{sep}Open Threads (~" in result
+    assert f"## {path}:7-8{sep}Session 12{sep}Day 2{sep}Log (~" in result
+    for line in ("Fought the troll.", "- Who sent it?", "Rested."):
+        assert line in result
