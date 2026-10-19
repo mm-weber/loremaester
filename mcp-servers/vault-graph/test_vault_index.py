@@ -223,3 +223,15 @@ def test_r05_configured_endings_still_match_the_bare_term(tmp_path):
     index.refresh()
     found = index.resolve_note("Mira")
     assert index.unlinked_mentions(found, ("s", "es")) == {"Log.md": [1, 3]}
+
+
+def test_r78_close_names_take_containing_names_shortest_first_up_to_five(tmp_path):
+    short = ["Aldra", "Aldre", "Aldri", "Aldro", "Aldru", "Aldry"]
+    for name in [*short, "Captain Aldric"]:
+        _write(tmp_path, f"NPCs/{name}.md")
+    _write(tmp_path, "Smith.md", "---\naliases: [Aldrin]\n---\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.close_names("Aldr") == short[:5]
+    expected = [*short, "Aldrin", "Captain Aldric"]
+    assert index.close_names("Aldr", limit=8) == expected
