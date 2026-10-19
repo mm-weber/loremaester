@@ -202,7 +202,7 @@ Obsidian-style Linked Mentions: every link to `note` with the Markdown block aro
 
 **Returns:** an overview (mentioning notes per top-level folder, the other kind's count, skipped folders, and excerpt tokens shown against all), the excerpts labelled `path:line › heading path`, then a map of every mention not shown (`path L12,40`, grouped by folder) and pull hints.
 
-**Notes:** a mention is always either shown or in the map. Folders take turns, the folder with the most mentioning notes first; inside a folder, notes come in reverse natural order, so numbered sessions come newest first. While not everything fits, no note takes more than a quarter of the budget. An excerpt over 1,500 characters is cut, and its remaining mentions move to the map.
+**Notes:** a mention is always either shown or in the map. Folders take turns, the folder with the most mentioning notes first; inside a folder, notes come in reverse natural order, so numbered sessions come newest first. While not everything fits, no note takes more than a quarter of the budget, or an even share of it when fewer than four notes have mentions, so a `paths` call for one note can fill the budget. An excerpt over 1,500 characters is cut, and its remaining mentions move to the map.
 
 #### `vault_read_note(note)`
 Read a note without guessing its size.

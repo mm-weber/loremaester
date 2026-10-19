@@ -69,7 +69,7 @@ four skills.
 |---|---|---|---|
 | D1 | Scope | Linked and unlinked mentions, plus note and section reads. No previews of linked notes, no write tools. | The cost is in reading; edits stay visible diffs through Edit. |
 | D2 | Excerpt unit | The Markdown block holding the mention, labelled `path:line › heading path`; for a heading, the heading plus its first block | Mirrors Obsidian's Linked Mentions; keeps a list item's sub-items and a table's header. A whole section would crowd out other mentions. |
-| D3 | Large results | The budget limits excerpt text only; when not everything fits, no note takes more than a quarter of it; a map lists every mention no excerpt shows, including mentions cut from long excerpts; `paths` pulls chosen folders or notes | Nothing is lost by design, one heavy note cannot crowd out the rest, and Claude pulls only what it needs. |
+| D3 | Large results | The budget limits excerpt text only; when not everything fits, no note takes more than a quarter of it, or an even share when fewer than four notes have mentions; a map lists every mention no excerpt shows, including mentions cut from long excerpts; `paths` pulls chosen folders or notes | Nothing is lost by design, one heavy note cannot crowd out the rest, and Claude pulls only what it needs. |
 | D4 | Unlinked matching | Title and aliases, case-insensitive whole words, optional configured endings | Obsidian behavior, plus inflected languages through a setting; the default stays generic. |
 | D5 | Ordering | Folders take turns; reverse natural path order inside a folder | Breadth first; numbered or dated sessions come newest first without special folder names. Order only decides what shows first, since the map lists the rest. |
 | D6 | Index | A live per-file cache for the new tools; the graph tools move in a follow-up PR | No rebuild step and never stale; lets the follow-up retire `vault_rebuild_graph`. |
@@ -123,8 +123,8 @@ Rel(graph, gj, "reads")
 4. Build the block for each mention, merge overlapping blocks per note, cut excerpts over 1,500
    characters, and label them.
 5. Order the notes: folders take turns, reverse natural order inside a folder.
-6. Fill excerpts up to the budget (at most a quarter of it per note when not everything fits); put every
-   mention no excerpt shows in the map.
+6. Fill excerpts up to the budget (when not everything fits, each note takes at most a quarter of it, or
+   an even share when fewer than four notes have mentions); put every mention no excerpt shows in the map.
 7. Format Markdown: overview, excerpts, map, pull hints.
 
 ### 4.4 Configuration
@@ -410,7 +410,10 @@ warning that the index may be stale applies to the graph tools only; the new too
 
 - **R58** Only excerpts and their labels SHALL count toward `budget_tokens` (default 4,000).
 - **R59** While all excerpts together exceed the budget, the tool SHALL take each note's excerpts in line
-  order only while they fit within a quarter of the budget.
+  order only while they fit within the larger of a quarter of the budget and the budget divided by the
+  number of listed notes with mentions. (Amended 2026-10-19: with a quarter alone, a `paths` call that
+  lists one heavy note returned the same excerpts as the call before it and left three quarters of the
+  budget unused.)
 - **R60** The tool SHALL add the notes' excerpts in listing order and stop at the first note whose
   excerpts would exceed the remaining budget.
 - **R61** The tool SHALL show at least one excerpt.
