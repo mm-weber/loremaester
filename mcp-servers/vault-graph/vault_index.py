@@ -54,3 +54,6 @@ class VaultIndex:
                 seen.add(rel)
         for rel in set(self.notes) - seen:
             del self.notes[rel]  # R9: deleted since the last refresh
+
+    def resolve_link(self, target: str, source: str) -> str | None:
+        return None

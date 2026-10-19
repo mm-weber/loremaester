@@ -90,3 +90,12 @@ def test_rf3_byte_order_mark_and_crlf_keep_the_frontmatter(tmp_path):
     assert note.frontmatter == (1, 3)
     assert note.aliases == ["Ally"]
     assert note.lines[3] == "Body [[Link]]"
+
+
+def test_r33_target_without_slash_matches_file_name(tmp_path):
+    _write(tmp_path, "Sessions/Log.md", "[[Mira]]")
+    _write(tmp_path, "NPCs/Mira.md")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    assert index.resolve_link("Mira", "Sessions/Log.md") == "NPCs/Mira.md"
+    assert index.resolve_link("Nobody", "Sessions/Log.md") is None
