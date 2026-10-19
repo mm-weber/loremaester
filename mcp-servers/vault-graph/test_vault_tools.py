@@ -4,6 +4,7 @@ Spec: specs/v0.2/surgical-search.md.
 """
 
 import importlib.util
+import inspect
 import re
 from pathlib import Path
 
@@ -373,6 +374,18 @@ async def test_r68_notes_in_a_folder_come_in_reverse_natural_order(vault):
         "Sessions/Session 9/Log.md",
         "Sessions/Session 2/Log.md",
     ]
+
+
+async def test_r58_only_excerpts_and_labels_count_toward_the_budget(vault):
+    signature = inspect.signature(server.vault_mentions)
+    assert signature.parameters["budget_tokens"].default == 4000
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "N/b.md", "[[Mira]] " + "b" * 31 + "\n")
+    _write(vault, "N/a.md", "[[Mira]] " + "a" * 31 + "\n")
+    result = await server.vault_mentions("Mira", budget_tokens=22)
+    assert "N/b.md:1" in result
+    assert "N/a.md:1" not in result
+    assert "N/a.md L1" in result
 
 
 async def test_r60_filling_stops_at_the_first_note_that_does_not_fit(vault):
