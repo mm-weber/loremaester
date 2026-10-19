@@ -45,7 +45,7 @@ class VaultIndex:
                         stat.st_mtime_ns,
                         stat.st_size,
                     ):
-                        text = file.read_bytes().decode("utf-8", errors="replace")
+                        text = file.read_bytes().decode("utf-8-sig", errors="replace")
                         self.notes[rel] = Note(
                             rel, stat.st_mtime_ns, stat.st_size, parse_note(text)
                         )
