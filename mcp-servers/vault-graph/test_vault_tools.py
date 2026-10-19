@@ -248,3 +248,14 @@ async def test_rf5_paths_entries_tolerate_slashes_and_dot_slash(vault):
     assert "Sessions/S1.md:1" in result and "Places/Forge.md:1" in result
     assert "Other/X.md" not in result
     assert "No note or folder matches" not in result
+
+
+async def test_r12_argument_paths_are_never_opened(vault, tmp_path_factory):
+    outside = tmp_path_factory.mktemp("outside")
+    _write(outside, "Secret.md", "secret [[Mira]] text")
+    _write(vault, "NPCs/Mira.md", "home")
+    escape = f"../{outside.name}/Secret"
+    for name in (escape, str(outside / "Secret.md")):
+        assert (await server.vault_read_note(name)).startswith("Error: no note matches")
+    result = await server.vault_mentions("Mira", paths=[escape, str(outside)])
+    assert "secret" not in result
