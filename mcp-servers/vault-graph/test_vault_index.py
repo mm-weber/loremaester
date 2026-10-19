@@ -61,3 +61,12 @@ def test_r10_unchanged_stat_means_no_reread(tmp_path):
     os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
     index.refresh()
     assert index.notes["Note.md"].parsed.lines == ["alpha"]
+
+
+def test_r11_invalid_utf8_bytes_are_replaced(tmp_path):
+    (tmp_path / "Broken.md").write_bytes(b"caf\xe9 [[Link]]\n")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    note = index.notes["Broken.md"].parsed
+    assert note.lines == ["caf\ufffd [[Link]]"]
+    assert [link.target for link in note.links] == ["Link"]
