@@ -154,10 +154,14 @@ class VaultIndex:
         return mentions
 
     def unlinked_mentions(self, found: Resolution) -> dict[str, list[int]]:
-        """Source note -> lines that name the note in plain text (R52)."""
+        """Source note -> lines that name the note in plain text (R52-R57)."""
         if found.path is None:
-            return {}
-        terms = [PurePosixPath(found.path).stem, *self.notes[found.path].parsed.aliases]
+            terms = [found.name.strip()]  # R57
+        else:
+            terms = [
+                PurePosixPath(found.path).stem,
+                *self.notes[found.path].parsed.aliases,
+            ]
         terms = [term for term in terms if len(term.strip()) >= 3]  # R54
         if not terms:
             return {}
