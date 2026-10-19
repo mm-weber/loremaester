@@ -238,3 +238,13 @@ async def test_r66_paths_entry_without_matches_is_reported(vault):
     result = await server.vault_mentions("Mira", paths=["Sesions", "Log"])
     assert 'No note or folder matches paths entry "Sesions".' in result
     assert "Log.md:1" in result
+
+
+async def test_rf5_paths_entries_tolerate_slashes_and_dot_slash(vault):
+    _write(vault, "NPCs/Mira.md")
+    for rel in ("Sessions/S1.md", "Places/Forge.md", "Other/X.md"):
+        _write(vault, rel, "[[Mira]]\n")
+    result = await server.vault_mentions("Mira", paths=["/Sessions/", "./Places"])
+    assert "Sessions/S1.md:1" in result and "Places/Forge.md:1" in result
+    assert "Other/X.md" not in result
+    assert "No note or folder matches" not in result
