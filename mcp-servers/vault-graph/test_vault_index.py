@@ -1,5 +1,7 @@
 """Tests for vault_index (spec: specs/v0.2/surgical-search.md)."""
 
+import os
+
 from vault_index import VaultIndex
 
 
@@ -35,3 +37,14 @@ def test_r08_symlink_out_of_the_vault_is_not_read(tmp_path):
     index = VaultIndex(vault)
     index.refresh()
     assert sorted(index.notes) == ["Inside.md"]
+
+
+def test_r10_unchanged_stat_means_no_reread(tmp_path):
+    path = _write(tmp_path, "Note.md", "alpha")
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    before = path.stat()
+    path.write_text("omega", encoding="utf-8")  # same size
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+    index.refresh()
+    assert index.notes["Note.md"].parsed.lines == ["alpha"]
