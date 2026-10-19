@@ -382,3 +382,23 @@ async def test_r60_filling_stops_at_the_first_note_that_does_not_fit(vault):
     _write(vault, "Log/s01.md", "[[Mira]] tiny.\n")
     result = await server.vault_mentions("Mira", budget_tokens=400)
     assert _labels(result) == ["Log/s06.md", "Log/s05.md", "Log/s04.md", "Log/s03.md"]
+
+
+async def test_r62_r63_map_groups_by_folder_and_ends_with_pull_hints(vault):
+    _write(vault, "NPCs/Mira.md")
+    for rel in ("Sessions/S1.md", "Sessions/S2.md", "Places/Forge.md"):
+        body = "[[Mira]] " + "x" * 2000 + "\n\n[[Mira]] " + "y" * 2000 + "\n"
+        _write(vault, rel, body)
+    result = await server.vault_mentions("Mira", budget_tokens=10)
+    lines = result.split("Not shown, pull with paths=[...]:\n", 1)[1].splitlines()
+    dot = " · "
+    hints = f'More: paths=["<folder or note>"]{dot}budget_tokens=<n>{dot}unlinked=true'
+    assert lines[-1] == hints
+    groups = [re.match(r"^(\S+) \((\d+)\): (.+)$", line) for line in lines[:-1]]
+    assert [group.group(1) for group in groups] == ["Sessions", "Places"]
+    for group in groups:
+        entries = group.group(3).split(dot)
+        assert int(group.group(2)) == len(entries)
+        for entry in entries:
+            assert entry.startswith(group.group(1) + "/")
+            assert re.search(r"\.md L[\d,]+$", entry)
