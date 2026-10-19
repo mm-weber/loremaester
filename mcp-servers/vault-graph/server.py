@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+from vault_index import VaultIndex
 
 mcp = FastMCP("Vault Graph")
 
@@ -286,10 +287,44 @@ async def vault_rebuild_graph() -> str:
     return f"Graph rebuilt: {meta.get('note_count', '?')} notes, {meta.get('edge_count', '?')} edges."
 
 
+_vault_index: VaultIndex | None = None
+
+
+def _index() -> VaultIndex:
+    """The live index of VAULT_PATH, refreshed from file stats on every call."""
+    global _vault_index
+    if _vault_index is None or _vault_index.root != Path(VAULT_PATH):
+        _vault_index = VaultIndex(VAULT_PATH)
+    _vault_index.refresh()
+    return _vault_index
+
+
+def _tokens(text: str) -> int:
+    """Token estimate: characters divided by 4, rounded up."""
+    return (len(text) + 3) // 4
+
+
+def _fmt(tokens: int) -> str:
+    """A token count for display: 640, 3.1k."""
+    return f"{tokens / 1000:.1f}k" if tokens >= 1000 else str(tokens)
+
+
+def _respond(lines: list[str]) -> str:
+    """Join the lines of a tool response."""
+    return "\n".join(lines)
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
-    """Read a vault note."""
-    return ""
+    """Read a vault note: whole when it is under about 2,000 tokens, otherwise
+    an outline of its frontmatter, lead and headings with line ranges and token
+    estimates, to pick sections from with vault_read_section."""
+    index = _index()
+    found = index.resolve_note(note)
+    if found.path is None:
+        return _respond([f"Error: no note matches '{note}'."])
+    text = "\n".join(index.notes[found.path].parsed.lines)
+    return _respond([f"## {found.path} (~{_fmt(_tokens(text))} tokens, whole)", text])
 
 
 if __name__ == "__main__":
