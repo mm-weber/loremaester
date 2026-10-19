@@ -388,6 +388,18 @@ async def test_r58_only_excerpts_and_labels_count_toward_the_budget(vault):
     assert "N/a.md L1" in result
 
 
+async def test_r59_no_note_takes_more_than_a_quarter_when_not_all_fit(vault):
+    _write(vault, "NPCs/Mira.md")
+    heavy = "\n\n".join(f"[[Mira]] heavy{k} " + "h" * 100 for k in range(14))
+    _write(vault, "Log/s9.md", heavy + "\n")
+    for number in range(1, 4):
+        _write(vault, f"Log/s{number}.md", f"[[Mira]] light{number}\n")
+    result = await server.vault_mentions("Mira", budget_tokens=400)
+    assert "heavy2 " in result
+    assert "heavy3 " not in result
+    assert all(f"light{number}" in result for number in range(1, 4))
+
+
 async def test_r60_filling_stops_at_the_first_note_that_does_not_fit(vault):
     _write(vault, "NPCs/Mira.md")
     for number in range(2, 7):
