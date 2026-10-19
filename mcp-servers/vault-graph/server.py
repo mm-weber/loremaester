@@ -423,7 +423,10 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     for block, mentions in sorted(groups, key=lambda group: min(group[0])):
         rows = _render(parsed, sorted(block))
         texts, cut = _cut([text for _, text in rows])
-        visible = {number for number, _ in rows[: len(texts)] if number is not None}
+        full = len(texts)
+        if cut and texts[-1] != rows[len(texts) - 1][1]:
+            full -= 1  # RF1: the last kept line was cut mid-line
+        visible = {number for number, _ in rows[:full] if number is not None}
         shown = sorted(line for line in mentions if line in visible)
         if cut:
             moved = len(mentions) - len(shown)
