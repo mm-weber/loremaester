@@ -3,6 +3,7 @@
 Requirement numbers refer to specs/v0.2/surgical-search.md.
 """
 
+import difflib
 import os
 import re
 import unicodedata
@@ -206,3 +207,18 @@ class VaultIndex:
                     covered[rel] = candidate
                     break
         return covered
+
+    def close_names(self, name: str, limit: int = 5) -> list[str]:
+        """Titles and aliases close to an unknown name (spec 6.0 Close names)."""
+        key = normalize(name)
+        forms: dict[str, str] = {}
+        for rel in sorted(self.notes):
+            for shown in (PurePosixPath(rel).stem, *self.notes[rel].parsed.aliases):
+                forms.setdefault(normalize(shown), shown)
+        contained = sorted(
+            (form for form in forms if key and key in form),
+            key=lambda form: (len(form), form),
+        )
+        similar = difflib.get_close_matches(key, list(forms), n=limit, cutoff=0.6)
+        ranked = contained + [form for form in similar if form not in contained]
+        return [forms[form] for form in ranked[:limit]]

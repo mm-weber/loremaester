@@ -594,6 +594,17 @@ def _excerpt_summary(
     )
 
 
+def _close(index: VaultIndex, name: str) -> str:
+    """Up to five close titles or aliases for an unknown name (R78, R79)."""
+    names = index.close_names(name)
+    return f"Close names: {', '.join(names)}" if names else "No close names."
+
+
+def _unknown(index: VaultIndex, name: str) -> str:
+    """Error for a note argument that matches no note (R78)."""
+    return _respond([f"Error: no note matches '{name}'. {_close(index, name)}"])
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -602,7 +613,7 @@ async def vault_read_note(note: str) -> str:
     index = _index()
     found = index.resolve_note(note)
     if found.path is None:
-        return _respond([f"Error: no note matches '{note}'."])
+        return _unknown(index, note)
     parsed = index.notes[found.path].parsed
     text = "\n".join(parsed.lines)
     size = _tokens(text)
@@ -627,7 +638,7 @@ async def vault_read_section(note: str, headings: str | list[str]) -> str:
     index = _index()
     found = index.resolve_note(note)
     if found.path is None:
-        return _respond([f"Error: no note matches '{note}'."])
+        return _unknown(index, note)
     parsed = index.notes[found.path].parsed
     wanted = [headings] if isinstance(headings, str) else list(headings)
     keys = {_heading_key(want) for want in wanted}
@@ -676,6 +687,8 @@ async def vault_mentions(
     kind = "Unlinked" if unlinked else "Linked"
     out = [f"## {kind} mentions: {note} ({found.path or 'no note yet'})"]
     out += _resolution_lines(found)
+    if found.path is None:
+        out.append(f"No note matches '{note}'. {_close(index, note)}")  # R79
     out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
     out += _overview(order, other, listed, unlinked)
     skipped = _skipped_counts(all_mentions, listed, skip)
