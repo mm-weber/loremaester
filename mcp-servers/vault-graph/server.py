@@ -6,6 +6,7 @@ import json
 import os
 import unicodedata
 from collections import deque
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -376,6 +377,32 @@ def _resolution_lines(found: Resolution) -> list[str]:
     return lines
 
 
+@dataclass
+class _Excerpt:
+    rel: str  # the note the excerpt comes from
+    label: str  # path:line and heading path
+    lines: list[str]  # the text shown
+    mentions: list[int]  # mention lines inside the block
+
+
+def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_Excerpt]:
+    """One excerpt per group of blocks that share a line (R45, R46)."""
+    groups: list[tuple[set[int], set[int]]] = []
+    for line in sorted(mention_lines):
+        block, mentions = set(parsed.block(line)), {line}
+        for group in [group for group in groups if group[0] & block]:
+            groups.remove(group)
+            block |= group[0]
+            mentions |= group[1]
+        groups.append((block, mentions))
+    excerpts = []
+    for block, mentions in sorted(groups, key=lambda group: min(group[0])):
+        label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
+        lines = [parsed.lines[number - 1] for number in sorted(block)]
+        excerpts.append(_Excerpt(rel, label, lines, sorted(mentions)))
+    return excerpts
+
+
 @mcp.tool()
 async def vault_read_note(note: str) -> str:
     """Read a vault note: whole when it is under about 2,000 tokens, otherwise
@@ -448,11 +475,8 @@ async def vault_mentions(
     out = [f"## Linked mentions: {note} ({found.path or 'no note yet'})"]
     out += _resolution_lines(found)
     for rel in sorted(mentions):
-        parsed = index.notes[rel].parsed
-        for line in mentions[rel]:
-            block = parsed.block(line)
-            label = SEP.join([f"{rel}:{line}", *parsed.heading_path(block[0])])
-            out += ["", label, *(parsed.lines[n - 1] for n in block)]
+        for excerpt in _excerpts(rel, index.notes[rel].parsed, mentions[rel]):
+            out += ["", excerpt.label, *excerpt.lines]
     return _respond(out)
 
 
