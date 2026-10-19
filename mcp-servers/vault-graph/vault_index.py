@@ -43,7 +43,7 @@ class VaultIndex:
                 old = self.notes.get(rel)
                 if old and (old.mtime_ns, old.size) == (stat.st_mtime_ns, stat.st_size):
                     continue
-                text = file.read_text(encoding="utf-8")
+                text = file.read_bytes().decode("utf-8", errors="replace")  # R11
                 self.notes[rel] = Note(
                     rel, stat.st_mtime_ns, stat.st_size, parse_note(text)
                 )
