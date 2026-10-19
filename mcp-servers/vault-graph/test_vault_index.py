@@ -78,3 +78,15 @@ def test_rf2_unreadable_or_vanished_files_are_skipped(tmp_path):
     index = VaultIndex(tmp_path)
     index.refresh()
     assert sorted(index.notes) == ["Good.md"]
+
+
+def test_rf3_byte_order_mark_and_crlf_keep_the_frontmatter(tmp_path):
+    (tmp_path / "Win.md").write_bytes(
+        b"\xef\xbb\xbf---\r\naliases: [Ally]\r\n---\r\nBody [[Link]]\r\n"
+    )
+    index = VaultIndex(tmp_path)
+    index.refresh()
+    note = index.notes["Win.md"].parsed
+    assert note.frontmatter == (1, 3)
+    assert note.aliases == ["Ally"]
+    assert note.lines[3] == "Body [[Link]]"
