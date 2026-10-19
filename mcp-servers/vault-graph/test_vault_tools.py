@@ -259,3 +259,21 @@ async def test_r12_argument_paths_are_never_opened(vault, tmp_path_factory):
         assert (await server.vault_read_note(name)).startswith("Error: no note matches")
     result = await server.vault_mentions("Mira", paths=[escape, str(outside)])
     assert "secret" not in result
+
+
+async def test_r02_r50_skipped_folders_are_counted_not_listed(vault, monkeypatch):
+    monkeypatch.setenv("VAULT_SKIP_FOLDERS", "Rules, Art/Prompts")
+    _write(vault, "NPCs/Mira.md")
+    for rel in (
+        "Log.md",
+        "Rules/Smithing.md",
+        "Rules/Deep/Forging.md",
+        "Art/Prompts/Mira portrait.md",
+        "Art/Gallery.md",
+    ):
+        _write(vault, rel, "[[Mira]]\n")
+    result = await server.vault_mentions("Mira")
+    assert "Log.md:1" in result and "Art/Gallery.md:1" in result
+    for hidden in ("Rules/Smithing.md", "Rules/Deep/Forging.md", "Art/Prompts/"):
+        assert hidden not in result
+    assert "Skipped folders: Rules 2 · Art/Prompts 1" in result
