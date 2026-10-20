@@ -692,3 +692,19 @@ async def test_r91_a_long_context_line_is_shortened(vault):
     first, mention = excerpt.split("\n")
     assert first.startswith("> qqq") and first.endswith("…") and len(first) <= 200
     assert mention == "> [[Mira]] buys the ledger."
+
+
+async def test_r48_a_nested_mention_keeps_its_ancestors(vault):
+    _write(vault, "NPCs/Mira.md")
+    details = [f"    - detail {n}: a forged seal " + "z" * 80 for n in range(1, 19)]
+    lines = ["- At the council:", "  - [[Mira]] names the deserters:", *details]
+    _write(vault, "Log.md", "\n".join(lines) + "\n")
+    result = await server.vault_mentions("Mira")
+    expected = "\n".join(
+        [
+            "- At the council:",
+            "  - [[Mira]] names the deserters:",
+            "[trimmed to its mentions; the block runs L1-20]",
+        ]
+    )
+    assert expected in result
