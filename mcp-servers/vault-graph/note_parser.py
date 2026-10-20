@@ -119,10 +119,13 @@ class ParsedNote:
         return [line]
 
     def context(self, line: int) -> list[int]:
-        """Context lines of a mention on `line`: the first line of its quote run or
-        its property, or of each ancestor item and the item a continuation belongs
-        to (spec 6.0 Context line)."""
+        """Context lines of a mention on `line`: its table's first row and
+        separator, the first line of its quote run or its property, or of each
+        ancestor item and the item a continuation belongs to (spec 6.0 Context
+        line)."""
         kind = self.kinds[line - 1]
+        if kind == "table":
+            return [number for number in self.block(line) if number < line]
         if kind in ("quote", "frontmatter"):
             first = self.block(line)[0]
             return [first] if first < line else []

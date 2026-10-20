@@ -7,6 +7,7 @@ import os
 import re
 import unicodedata
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -420,12 +421,31 @@ def _length(rows: list[tuple[int | None, str]]) -> int:
     return len("\n".join(text for _, text in rows))
 
 
-def _trim(parsed: ParsedNote, mentions: set[int]) -> list[int]:
+def _trim(parsed: ParsedNote, mentions: Iterable[int]) -> list[int]:
     """Mention lines plus their context lines (R48)."""
     keep = set(mentions)
-    for line in mentions:
+    for line in list(keep):
         keep.update(parsed.context(line))
     return sorted(keep)
+
+
+def _parts(parsed: ParsedNote, mentions: set[int]) -> list[list[int]]:
+    """Mentions in line order, in as few consecutive parts as fit CUT_LIMIT with
+    their context lines (R90)."""
+    parts: list[list[int]] = []
+    for line in sorted(mentions):
+        rows = _render(parsed, _trim(parsed, [*parts[-1], line])) if parts else []
+        if rows and _length(rows) <= CUT_LIMIT:
+            parts[-1].append(line)
+        else:
+            parts.append([line])
+    return parts
+
+
+def _label(rel: str, parsed: ParsedNote, mention: int, first: int) -> str:
+    """Label of an excerpt that starts at line `first`: path:line and heading path
+    (R45)."""
+    return SEP.join([f"{rel}:{mention}", *parsed.heading_path(first)])
 
 
 def _span(lines: set[int]) -> str:
@@ -436,7 +456,8 @@ def _span(lines: set[int]) -> str:
 
 def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_Excerpt]:
     """One excerpt per group of blocks that share a line (R45, R46); a group over
-    CUT_LIMIT keeps only its mention and context lines (R48)."""
+    CUT_LIMIT keeps only its mention and context lines (R48), in parts when still
+    too long (R90)."""
     groups: list[tuple[set[int], set[int]]] = []
     for line in sorted(mention_lines):
         block, mentions = set(parsed.block(line)), {line}
@@ -448,25 +469,33 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     excerpts = []
     for block, mentions in sorted(groups, key=lambda group: min(group[0])):
         rows = _render(parsed, sorted(block))
-        trimmed = _length(rows) > CUT_LIMIT
-        if trimmed:
-            rows = _render(parsed, _trim(parsed, mentions))
-        texts, cut = _cut([text for _, text in rows])
-        full = len(texts)
-        if cut and texts[-1] != rows[len(texts) - 1][1]:
-            full -= 1  # RF1: the last kept line was cut mid-line
-        visible = {number for number, _ in rows[:full] if number is not None}
-        shown = sorted(line for line in mentions if line in visible)
-        if cut:
-            moved = len(mentions) - len(shown)
-            texts.append(
-                f"[cut at 1,500 characters; the block ends at L{max(block)}; "
-                f"{moved} mention{'' if moved == 1 else 's'} moved to the map]"
-            )
-        elif trimmed:
-            texts.append(f"[trimmed to its mentions; the block runs {_span(block)}]")
-        label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
-        excerpts.append(_Excerpt(rel, label, texts, shown))
+        if _length(rows) <= CUT_LIMIT:
+            label = _label(rel, parsed, min(mentions), min(block))
+            texts = [text for _, text in rows]
+            excerpts.append(_Excerpt(rel, label, texts, sorted(mentions)))
+            continue
+        parts = _parts(parsed, mentions)
+        for number, part in enumerate(parts, 1):
+            keep = _trim(parsed, part)
+            rows = _render(parsed, keep)
+            texts, cut = _cut([text for _, text in rows])
+            full = len(texts)
+            if cut and texts[-1] != rows[len(texts) - 1][1]:
+                full -= 1  # RF1: the last kept line was cut mid-line
+            visible = {row for row, _ in rows[:full] if row is not None}
+            shown = [line for line in part if line in visible]
+            if cut:
+                moved = len(part) - len(shown)
+                texts.append(
+                    f"[cut at 1,500 characters; the block ends at L{max(block)}; "
+                    f"{moved} mention{'' if moved == 1 else 's'} moved to the map]"
+                )
+            else:
+                where = f"part {number} of {len(parts)}, " if len(parts) > 1 else ""
+                span = _span(block)
+                texts.append(f"[{where}trimmed to its mentions; the block runs {span}]")
+            label = _label(rel, parsed, part[0], keep[0])
+            excerpts.append(_Excerpt(rel, label, texts, shown))
     return excerpts
 
 
