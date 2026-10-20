@@ -595,3 +595,20 @@ async def test_r59_fewer_than_four_notes_split_the_whole_budget(vault):
     result = await server.vault_mentions("Mira", budget_tokens=400)
     assert all(f"{name}p5 " in result for name in ("s1", "s2"))
     assert not any(f"{name}p6 " in result for name in ("s1", "s2"))
+
+
+async def test_r48_long_callout_excerpt_keeps_its_first_line(vault):
+    _write(vault, "NPCs/Mira.md")
+    gossip = [f"> rumor {n}: the tides turn " + "q" * 80 for n in range(1, 19)]
+    lines = ["> [!note] Harbor gossip", *gossip, "> [[Mira]] buys the ledger."]
+    _write(vault, "Harbor.md", "\n".join(lines) + "\n")
+    result = await server.vault_mentions("Mira")
+    excerpt = "\n".join(
+        [
+            "> [!note] Harbor gossip",
+            "…",
+            "> [[Mira]] buys the ledger.",
+            "[trimmed to its mentions; the block runs L1-20]",
+        ]
+    )
+    assert excerpt in result
