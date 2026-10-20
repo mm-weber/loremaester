@@ -655,3 +655,9 @@ async def test_r91_long_line_window_finds_an_unlinked_mention(vault):
     lines = [text for text in result.splitlines() if "Mira arrived." in text]
     assert len(lines) == 1 and lines[0].startswith("…")
     assert "Not shown" not in result
+
+
+async def test_r59_a_negative_budget_without_mentions_still_answers(vault):
+    _write(vault, "NPCs/Mira.md")
+    result = await server.vault_mentions("Mira", budget_tokens=-1)
+    assert "0 notes link here" in result
