@@ -37,6 +37,19 @@ def _term_pattern(terms: list[str], endings: tuple[str, ...] = ()) -> re.Pattern
     return re.compile(rf"(?<!\w)(?:{words}){suffix}(?!\w)", re.IGNORECASE)
 
 
+def _raw_column(text: str, column: int) -> int:
+    """The column of `text` where its NFC form reaches `column`: the longest prefix
+    whose NFC form is no longer than that (R91)."""
+    low, high = 0, len(text)
+    while low < high:
+        middle = (low + high + 1) // 2
+        if len(unicodedata.normalize("NFC", text[:middle])) <= column:
+            low = middle
+        else:
+            high = middle - 1
+    return low
+
+
 @dataclass
 class Note:
     path: str  # vault-relative POSIX path, with .md
@@ -177,9 +190,10 @@ class VaultIndex:
         parsed = self.notes[rel].parsed
         if unlinked:
             pattern = self._unlinked_pattern(found, endings)
-            text = unicodedata.normalize("NFC", parsed.masked_text(line))
+            masked = parsed.masked_text(line)
+            text = unicodedata.normalize("NFC", masked)
             match = pattern.search(text) if pattern else None
-            return match.start() if match else 0
+            return _raw_column(masked, match.start()) if match else 0
         names = self._link_names(found)
         for target, column in link_spans(parsed.lines[line - 1]):
             if self._links_to(found, names, target, rel):
