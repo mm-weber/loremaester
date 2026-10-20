@@ -121,7 +121,8 @@ Rel(graph, gj, "reads")
 3. Collect mentions: links that resolve to the note or name one of its aliases, or plain-text matches in
    unlinked mode.
 4. Build the block for each mention, merge overlapping blocks per note, trim excerpts over 1,500
-   characters to their mentions and context lines (in parts when still too long), and label them.
+   characters to their mentions and context lines (in parts when still too long, and with a window
+   around the mention on a line too long by itself), and label them.
 5. Order the notes: folders take turns, reverse natural order inside a folder.
 6. Fill excerpts up to the budget (when not everything fits, each note takes at most a quarter of it, or
    an even share when fewer than four notes have mentions); put every mention no excerpt shows in the map.
@@ -394,11 +395,12 @@ warning that the index may be stale applies to the graph tools only; the new too
   no `paths` call could show the mentions after the cut.)
 - **R90** If a trimmed excerpt still exceeds 1,500 characters, then the tool SHALL split its mentions, in
   line order, into as few consecutive parts as fit within the limit with their context lines; each part
-  SHALL be its own excerpt, labelled as in R45, and its marker SHALL also name its part number and the
-  number of parts.
+  SHALL be its own excerpt, labelled as in R45 with the heading path of its first shown line, and its
+  marker SHALL also name its part number and the number of parts.
 - **R91** If a single mention line with its context lines exceeds 1,500 characters, then the tool SHALL
-  shorten the context lines to their start and the mention line to a window around the first mention
-  on it, marking each shortened end with `…`, so that the excerpt fits within the limit.
+  shorten each context line over its share (200 characters, less when there are many) to its start
+  and, if the excerpt still does not fit, the mention line to a window around the first mention on it,
+  marking each shortened end with `…`, so that the excerpt fits within the limit.
 - **R49** The response SHALL open with an overview: the note's path (or "no note yet"), the count of
   listed notes with mentions per top-level folder, and the count of listed notes with mentions of the
   other kind (unlinked in linked mode, linked in unlinked mode).
@@ -500,7 +502,7 @@ warning that the index may be stale applies to the graph tools only; the new too
 
 | V# | Method | Covers | Check |
 |---|---|---|---|
-| V1 | TEST | R2-R80 and R90-R91 except R13 | One pytest test per requirement, except that these pairs describe one behavior and share a test: R2+R50, R31+R45, R36+R37, R38+R39, R49+R51, R62+R63, R70+R71, R73+R75, R78+R79. R14 has no test of its own: the fixture vault has no `.graph.json`, so every test covers it. That makes 70 tests, each its own TDD slice. Tests are named after their requirements (`test_r07_<behavior>`, `test_r36_r37_<behavior>`), live in `test_note_parser.py`, `test_vault_index.py` and `test_vault_tools.py` under `mcp-servers/vault-graph/`, and run against a small fictional fixture vault built in `tmp_path`. A check lists any requirement in R2-R80 or R90-R91 without a test, other than R13 and R14. |
+| V1 | TEST | R2-R80 and R90-R91 except R13 | One pytest test per requirement, except that these pairs describe one behavior and share a test: R2+R50, R31+R45, R36+R37, R38+R39, R49+R51, R62+R63, R70+R71, R73+R75, R78+R79. R14 has no test of its own: the fixture vault has no `.graph.json`, so every test covers it. That makes 70 tests, each its own TDD slice; amendments and guards add further tests (R48, R59, R90 and R91 have more than one). Tests are named after their requirements (`test_r07_<behavior>`, `test_r36_r37_<behavior>`), live in `test_note_parser.py`, `test_vault_index.py` and `test_vault_tools.py` under `mcp-servers/vault-graph/`, and run against a small fictional fixture vault built in `tmp_path`. A check lists any requirement in R2-R80 or R90-R91 without a test, other than R13 and R14. |
 | V2 | INSPECT | R1, R13, R81-R89 | R1: the new tools read the same `VAULT_PATH` setting as the graph tools. R13: the new modules contain no call that writes, renames or deletes files. R81-R89: `cmp` each changed skill against its `examples/ttrpg/skills/` copy; grep the changed release files for campaign names (no output expected) and review every non-ASCII hit (allowed: the ` › ` separator, the `…` gap marker, the `Café` test fixture and typography already in the files, such as dashes and arrows); review the ladder wording in each skill and in the template; confirm the tool count of 17 in the docs and the rewritten passages in `docs/design.md` and `docs/mcp-tools.md`. |
 | V3 | GATE | All | Full `pytest`, `ruff check .` and `ruff format --check .` pass, as in CI. |
 | V4 | MEASURE | SC1, SC2 | Run the real tools on the measured vault snapshot: first-call size for the biggest hub; for the top 10 hubs, the top-level folders the first call reaches and the largest note's share of its excerpts; share of linked notes whose complete answer fits one call; shown plus mapped mentions equal all mentions for the top 10 hubs; cold parse time. Report counts and sizes only. |
