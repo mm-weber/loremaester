@@ -164,18 +164,33 @@ class VaultIndex:
                         lines.append(link.line)
         return mentions
 
-    def mention_column(self, found: Resolution, rel: str, line: int) -> int:
-        """Where the first link to the note starts on a line of `rel`, or 0 (R91)."""
+    def mention_column(
+        self,
+        found: Resolution,
+        rel: str,
+        line: int,
+        unlinked: bool = False,
+        endings: tuple[str, ...] = (),
+    ) -> int:
+        """Where the first mention of the note starts on a line of `rel`: a link, or
+        in unlinked mode a plain-text match; 0 when none is found (R91)."""
+        parsed = self.notes[rel].parsed
+        if unlinked:
+            pattern = self._unlinked_pattern(found, endings)
+            text = unicodedata.normalize("NFC", parsed.masked_text(line))
+            match = pattern.search(text) if pattern else None
+            return match.start() if match else 0
         names = self._link_names(found)
-        for target, column in link_spans(self.notes[rel].parsed.lines[line - 1]):
+        for target, column in link_spans(parsed.lines[line - 1]):
             if self._links_to(found, names, target, rel):
                 return column
         return 0
 
-    def unlinked_mentions(
-        self, found: Resolution, endings: tuple[str, ...] = ()
-    ) -> dict[str, list[int]]:
-        """Source note -> lines that name the note in plain text (R52-R57)."""
+    def _unlinked_pattern(
+        self, found: Resolution, endings: tuple[str, ...]
+    ) -> re.Pattern[str] | None:
+        """Plain-text pattern for the note's title and aliases, or None when no term
+        has three characters (R52-R54, R57)."""
         if found.path is None:
             terms = [found.name.strip()]  # R57
         else:
@@ -184,9 +199,15 @@ class VaultIndex:
                 *self.notes[found.path].parsed.aliases,
             ]
         terms = [term for term in terms if len(term.strip()) >= 3]  # R54
-        if not terms:
+        return _term_pattern(terms, endings) if terms else None
+
+    def unlinked_mentions(
+        self, found: Resolution, endings: tuple[str, ...] = ()
+    ) -> dict[str, list[int]]:
+        """Source note -> lines that name the note in plain text (R52-R57)."""
+        pattern = self._unlinked_pattern(found, endings)
+        if pattern is None:
             return {}
-        pattern = _term_pattern(terms, endings)
         mentions: dict[str, list[int]] = {}
         linked = self.linked_mentions(found)
         for rel, note in self.notes.items():

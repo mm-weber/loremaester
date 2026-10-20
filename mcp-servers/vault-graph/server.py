@@ -772,7 +772,8 @@ async def vault_mentions(
     skip = _setting("VAULT_SKIP_FOLDERS")
     listed, unmatched = _listed_notes(index, paths, skip)
     linked = index.linked_mentions(found)
-    plain = index.unlinked_mentions(found, tuple(_setting("VAULT_NAME_ENDINGS")))
+    endings = tuple(_setting("VAULT_NAME_ENDINGS"))
+    plain = index.unlinked_mentions(found, endings)
     all_mentions, other = (plain, linked) if unlinked else (linked, plain)
     mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}
     order = _order(list(mentions))
@@ -781,7 +782,9 @@ async def vault_mentions(
             rel,
             index.notes[rel].parsed,
             mentions[rel],
-            partial(index.mention_column, found, rel),
+            partial(
+                index.mention_column, found, rel, unlinked=unlinked, endings=endings
+            ),
         )
         for rel in order
     }
