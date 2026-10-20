@@ -486,7 +486,7 @@ def _excerpts(
     rel: str,
     parsed: ParsedNote,
     mention_lines: list[int],
-    column: Callable[[int], int] | None = None,
+    column: Callable[[int], int],
 ) -> list[_Excerpt]:
     """One excerpt per group of blocks that share a line (R45, R46); a group over
     CUT_LIMIT keeps only its mention and context lines (R48), in parts when still
@@ -509,13 +509,13 @@ def _excerpts(
             excerpts.append(_Excerpt(rel, label, texts, sorted(mentions)))
             continue
         parts = _parts(parsed, mentions)
+        span = _span(block)
         for number, part in enumerate(parts, 1):
             keep = _trim(parsed, part)
             rows = _render(parsed, keep)
             if _length(rows) > CUT_LIMIT:  # one mention with long lines (R91)
-                rows = _shorten(rows, part[0], column(part[0]) if column else 0)
+                rows = _shorten(rows, part[0], column(part[0]))
             where = f"part {number} of {len(parts)}, " if len(parts) > 1 else ""
-            span = _span(block)
             texts = [text for _, text in rows]
             texts.append(f"[{where}trimmed to its mentions; the block runs {span}]")
             label = _label(rel, parsed, part[0], keep[0])
