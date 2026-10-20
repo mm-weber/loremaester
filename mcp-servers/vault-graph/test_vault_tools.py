@@ -669,3 +669,16 @@ async def test_r91_a_window_finds_a_mention_after_decomposed_text(vault):
     _write(vault, "Saga.md", "Long ago " + accent * 1000 + " Mira arrived.\n")
     result = await server.vault_mentions("Mira", unlinked=True)
     assert "Mira arrived." in result
+
+
+async def test_r91_windows_centre_on_a_mention_mid_note(vault):
+    _write(vault, "NPCs/Mira.md")
+    pad = "w" * 2000
+    _write(vault, "Saga.md", f"Intro.\nLong ago {pad} [[Mira]] arrived {pad}\nEnd.\n")
+    _write(vault, "Tale.md", f"Intro.\nLong ago {pad} Mira arrived {pad}\nEnd.\n")
+    for unlinked, mention in ((False, "[[Mira]]"), (True, "Mira")):
+        result = await server.vault_mentions("Mira", unlinked=unlinked)
+        lines = [line for line in result.splitlines() if f"{mention} arrived" in line]
+        assert len(lines) == 1
+        assert lines[0].startswith("…") and lines[0].endswith("…")
+        assert f"w {mention} arrived w" in lines[0]
