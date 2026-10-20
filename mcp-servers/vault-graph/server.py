@@ -7,9 +7,10 @@ import os
 import re
 import unicodedata
 from collections import deque
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -294,7 +295,8 @@ async def vault_rebuild_graph() -> str:
 
 # Mentions and section reads (specs/v0.2/surgical-search.md)
 
-CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71)
+CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71, R90)
+CONTEXT_LIMIT = 200  # characters kept of a long context line (R91)
 WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
 SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
 DOT = " · "  # between items on one line
@@ -393,7 +395,7 @@ class _Excerpt:
     rel: str  # the note the excerpt comes from
     label: str  # path:line and heading path
     lines: list[str]  # the text shown
-    shown: list[int]  # mention lines visible after the cut (R48)
+    shown: list[int]  # mention lines the excerpt shows (R48, R91)
 
     @property
     def cost(self) -> int:
@@ -454,10 +456,42 @@ def _span(lines: set[int]) -> str:
     return f"L{first}" if first == last else f"L{first}-{last}"
 
 
-def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_Excerpt]:
+def _shorten(
+    rows: list[tuple[int | None, str]], mention: int, column: int
+) -> list[tuple[int | None, str]]:
+    """Rows of one mention cut to fit CUT_LIMIT: long context lines keep their
+    start, the mention line a window around the mention at `column` (R91)."""
+    context = [line for line, _ in rows if line not in (None, mention)]
+    limit = min(CONTEXT_LIMIT, CUT_LIMIT // 2 // max(len(context), 1))
+    rows = [
+        (line, text[: limit - 1] + GAP)
+        if line in context and len(text) > limit
+        else (line, text)
+        for line, text in rows
+    ]
+    others = [row for row in rows if row[0] != mention]
+    room = CUT_LIMIT - _length(others) - (1 if others else 0)
+    text = next(text for line, text in rows if line == mention)
+    if len(text) > room:
+        width = room - 2
+        start = max(0, min(column - width // 2, len(text) - width))
+        end = start + width
+        text = (
+            (GAP if start else "") + text[start:end] + (GAP if end < len(text) else "")
+        )
+    return [(line, text) if line == mention else (line, other) for line, other in rows]
+
+
+def _excerpts(
+    rel: str,
+    parsed: ParsedNote,
+    mention_lines: list[int],
+    column: Callable[[int], int] | None = None,
+) -> list[_Excerpt]:
     """One excerpt per group of blocks that share a line (R45, R46); a group over
     CUT_LIMIT keeps only its mention and context lines (R48), in parts when still
-    too long (R90)."""
+    too long (R90), with long lines shortened around the mention that `column`
+    locates (R91)."""
     groups: list[tuple[set[int], set[int]]] = []
     for line in sorted(mention_lines):
         block, mentions = set(parsed.block(line)), {line}
@@ -478,24 +512,14 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
         for number, part in enumerate(parts, 1):
             keep = _trim(parsed, part)
             rows = _render(parsed, keep)
-            texts, cut = _cut([text for _, text in rows])
-            full = len(texts)
-            if cut and texts[-1] != rows[len(texts) - 1][1]:
-                full -= 1  # RF1: the last kept line was cut mid-line
-            visible = {row for row, _ in rows[:full] if row is not None}
-            shown = [line for line in part if line in visible]
-            if cut:
-                moved = len(part) - len(shown)
-                texts.append(
-                    f"[cut at 1,500 characters; the block ends at L{max(block)}; "
-                    f"{moved} mention{'' if moved == 1 else 's'} moved to the map]"
-                )
-            else:
-                where = f"part {number} of {len(parts)}, " if len(parts) > 1 else ""
-                span = _span(block)
-                texts.append(f"[{where}trimmed to its mentions; the block runs {span}]")
+            if _length(rows) > CUT_LIMIT:  # one mention with long lines (R91)
+                rows = _shorten(rows, part[0], column(part[0]) if column else 0)
+            where = f"part {number} of {len(parts)}, " if len(parts) > 1 else ""
+            span = _span(block)
+            texts = [text for _, text in rows]
+            texts.append(f"[{where}trimmed to its mentions; the block runs {span}]")
             label = _label(rel, parsed, part[0], keep[0])
-            excerpts.append(_Excerpt(rel, label, texts, shown))
+            excerpts.append(_Excerpt(rel, label, texts, part))
     return excerpts
 
 
@@ -753,7 +777,13 @@ async def vault_mentions(
     mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}
     order = _order(list(mentions))
     built = {
-        rel: _excerpts(rel, index.notes[rel].parsed, mentions[rel]) for rel in order
+        rel: _excerpts(
+            rel,
+            index.notes[rel].parsed,
+            mentions[rel],
+            partial(index.mention_column, found, rel),
+        )
+        for rel in order
     }
     picked = _fill(order, built, budget_tokens)
     kind = "Unlinked" if unlinked else "Linked"

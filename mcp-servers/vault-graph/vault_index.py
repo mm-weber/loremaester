@@ -10,7 +10,7 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from note_parser import ParsedNote, parse_note
+from note_parser import ParsedNote, link_spans, parse_note
 
 
 def normalize(name: str) -> str:
@@ -134,29 +134,43 @@ class VaultIndex:
             return Resolution(name, None)
         return Resolution(name, matches[0], alias, tuple(matches[1:]))
 
+    def _link_names(self, found: Resolution) -> set[str]:
+        """Names an unresolved link may use for the note: its aliases, or the
+        requested name of an unwritten note (R40, R42)."""
+        if found.path is None:
+            return {normalize(found.name)}  # R40: an unwritten note
+        return {normalize(alias) for alias in self.notes[found.path].parsed.aliases}
+
+    def _links_to(
+        self, found: Resolution, names: set[str], target: str, source: str
+    ) -> bool:
+        """Whether a link target written in `source` points to the note (R40-R42)."""
+        resolved = self.resolve_link(target, source)
+        if resolved is None:
+            return normalize(target) in names  # R42
+        return resolved == found.path
+
     def linked_mentions(self, found: Resolution) -> dict[str, list[int]]:
         """Source note -> lines of its links to the note (R40-R42, R44)."""
-        if found.path is None:
-            names = {normalize(found.name)}  # R40: an unwritten note
-        else:
-            names = {
-                normalize(alias) for alias in self.notes[found.path].parsed.aliases
-            }
+        names = self._link_names(found)
         mentions: dict[str, list[int]] = {}
         for rel, note in self.notes.items():
             if rel == found.path:
                 continue  # R44
             for link in note.parsed.links:
-                target = self.resolve_link(link.target, rel)
-                if target is None:
-                    hit = normalize(link.target) in names  # R42
-                else:
-                    hit = target == found.path
-                if hit:
+                if self._links_to(found, names, link.target, rel):
                     lines = mentions.setdefault(rel, [])
                     if link.line not in lines:
                         lines.append(link.line)
         return mentions
+
+    def mention_column(self, found: Resolution, rel: str, line: int) -> int:
+        """Where the first link to the note starts on a line of `rel`, or 0 (R91)."""
+        names = self._link_names(found)
+        for target, column in link_spans(self.notes[rel].parsed.lines[line - 1]):
+            if self._links_to(found, names, target, rel):
+                return column
+        return 0
 
     def unlinked_mentions(
         self, found: Resolution, endings: tuple[str, ...] = ()

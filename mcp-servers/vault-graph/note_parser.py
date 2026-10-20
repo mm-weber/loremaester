@@ -345,15 +345,21 @@ def _is_attachment(target: str) -> bool:
     return bool(dot) and extension.lower() in ATTACHMENT_EXTENSIONS
 
 
-def _links_in(line: str, number: int) -> list[Link]:
-    """Wikilinks and embeds on one line, as link targets (R20-R22)."""
-    links = []
+def link_spans(line: str) -> list[tuple[str, int]]:
+    """Target and start column of each wikilink and embed on one line (R20-R22,
+    R91)."""
+    spans = []
     for match in _WIKILINK.finditer(_INLINE_CODE.sub(_blank_out, line)):
         target = _ALIAS_SEPARATOR.split(match.group(1), maxsplit=1)[0]
         target = target.split("#", 1)[0].strip()
         if target and not _is_attachment(target):
-            links.append(Link(target, number))
-    return links
+            spans.append((target, match.start()))
+    return spans
+
+
+def _links_in(line: str, number: int) -> list[Link]:
+    """Wikilinks and embeds on one line, as link targets (R20-R22)."""
+    return [Link(target, number) for target, _ in link_spans(line)]
 
 
 def parse_note(text: str) -> ParsedNote:
