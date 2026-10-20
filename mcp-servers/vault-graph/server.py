@@ -533,7 +533,8 @@ def _fill(
 ) -> list[_Excerpt]:
     """Excerpts to show, in listing order (R58-R61)."""
     total = _total_cost(order, built)
-    cap = budget if total <= budget else max(budget // 4, budget // len(order))  # R59
+    share = budget // max(len(order), 1)
+    cap = budget if total <= budget else max(budget // 4, share)  # R59
     picked: list[_Excerpt] = []
     used = 0
     for rel in order:
