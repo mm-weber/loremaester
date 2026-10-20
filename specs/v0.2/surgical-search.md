@@ -69,7 +69,7 @@ four skills.
 |---|---|---|---|
 | D1 | Scope | Linked and unlinked mentions, plus note and section reads. No previews of linked notes, no write tools. | The cost is in reading; edits stay visible diffs through Edit. |
 | D2 | Excerpt unit | The Markdown block holding the mention, labelled `path:line › heading path`; for a heading, the heading plus its first block | Mirrors Obsidian's Linked Mentions; keeps a list item's sub-items and a table's header. A whole section would crowd out other mentions. |
-| D3 | Large results | The budget limits excerpt text only; when not everything fits, no note takes more than a quarter of it, or an even share when fewer than four notes have mentions; a map lists every mention no excerpt shows, including mentions cut from long excerpts; `paths` pulls chosen folders or notes | Nothing is lost by design, one heavy note cannot crowd out the rest, and Claude pulls only what it needs. |
+| D3 | Large results | The budget limits excerpt text only; when not everything fits, no note takes more than a quarter of it, or an even share when fewer than four notes have mentions; an excerpt over 1,500 characters is trimmed to its mentions, so every mention fits in some excerpt; a map lists every mention the budget leaves out; `paths` pulls chosen folders or notes | Nothing is lost by design, one heavy note cannot crowd out the rest, and Claude pulls only what it needs. |
 | D4 | Unlinked matching | Title and aliases, case-insensitive whole words, optional configured endings | Obsidian behavior, plus inflected languages through a setting; the default stays generic. |
 | D5 | Ordering | Folders take turns; reverse natural path order inside a folder | Breadth first; numbered or dated sessions come newest first without special folder names. Order only decides what shows first, since the map lists the rest. |
 | D6 | Index | A live per-file cache for the new tools; the graph tools move in a follow-up PR | No rebuild step and never stale; lets the follow-up retire `vault_rebuild_graph`. |
@@ -109,9 +109,9 @@ Rel(graph, gj, "reads")
 
 | Component | Exposes | Depends on | Requirements |
 |---|---|---|---|
-| `note_parser.py` (new) | `parse_note(text)`: frontmatter, aliases, headings, code spans, links with lines, the lead; block, section and heading path for a line | Standard library, PyYAML (already in `requirements.txt`) | R16-R31 |
-| `vault_index.py` (new) | `VaultIndex`: refresh, resolve (file names, paths, aliases), linked and unlinked mentions | `note_parser.py`, the file system (read-only) | R1-R12, R14, R32-R40, R52-R57 |
-| `server.py` (changed) | The three new MCP tools; the six graph tools unchanged | `vault_index.py` | R13, R15, R41-R51, R58-R80 |
+| `note_parser.py` (new) | `parse_note(text)`: frontmatter, aliases, headings, code spans, links with lines, the lead; block, context lines, section and heading path for a line | Standard library, PyYAML (already in `requirements.txt`) | R16-R31, R48 |
+| `vault_index.py` (new) | `VaultIndex`: refresh, resolve (file names, paths, aliases), linked and unlinked mentions, where a mention starts on a line | `note_parser.py`, the file system (read-only) | R1-R12, R14, R32-R40, R52-R57, R91 |
+| `server.py` (changed) | The three new MCP tools; the six graph tools unchanged | `vault_index.py` | R13, R15, R41-R51, R58-R80, R90, R91 |
 | Skills, examples, docs (changed) | The read ladder and the tool reference | The three tools | R81-R89 |
 
 ### 4.3 Data flow of `vault_mentions`
@@ -120,8 +120,8 @@ Rel(graph, gj, "reads")
 2. Resolve the `note` argument by file name, path or alias, or treat the name as an unwritten note.
 3. Collect mentions: links that resolve to the note or name one of its aliases, or plain-text matches in
    unlinked mode.
-4. Build the block for each mention, merge overlapping blocks per note, cut excerpts over 1,500
-   characters, and label them.
+4. Build the block for each mention, merge overlapping blocks per note, trim excerpts over 1,500
+   characters to their mentions and context lines (in parts when still too long), and label them.
 5. Order the notes: folders take turns, reverse natural order inside a folder.
 6. Fill excerpts up to the budget (when not everything fits, each note takes at most a quarter of it, or
    an even share when fewer than four notes have mentions); put every mention no excerpt shows in the map.
@@ -163,13 +163,18 @@ Locations/North Gate.md:31 › Residents
 
 Sessions/Session 35/Log.md:12 › Day 2
 ## [[Captain Aldric]] returns
-- He reports to the council and names the deserters.
-[cut at 1,500 characters; the block ends at L61; 2 mentions moved to the map]
+…
+- At the council:
+…
+  - [[Captain Aldric]] names the deserters.
+…
+- [[Captain Aldric]] rides north at dawn.
+[trimmed to its mentions; the block runs L12-61]
 
 ...
 
 Not shown, pull with paths=[...]:
-Sessions (24): Sessions/Session 35/Log.md L48,57 · Sessions/Session 12/Log.md L40,88 · ...
+Sessions (23): Sessions/Session 12/Log.md L40,88 · ...
 Locations (19): Locations/Old Mill.md L12 · Locations/Ferry.md L3,19 · ...
 More: paths=["<folder or note>"] · budget_tokens=<n> · unlinked=true
 ```
@@ -270,6 +275,7 @@ warning that the index may be stale applies to the graph tools only; the new too
 | List item | A line whose first non-space text is `-`, `*` or `+`, or digits followed by `.` or `)`, then a space or tab. |
 | Table row | A line whose first non-space character is `\|`. |
 | Quote line | A line whose first non-space character is `>`; callouts are quote lines. |
+| Context line | A line above a mention that frames it: the first row and separator row of its table, the first line of its quote run, the first line of each ancestor item and of the item a continuation line belongs to, and the key line of its frontmatter property. |
 | Fence | A line whose first non-space text is three or more backticks or tildes. It opens a code block that the next fence with the same character closes. |
 | Thematic break | A line of three or more `-`, `*` or `_`, optionally separated by spaces, and nothing else. |
 | Lead | The lines after the frontmatter and before the first heading; or, when the first non-blank line after the frontmatter is a level-1 heading, the lines between it and the next heading. |
@@ -380,11 +386,19 @@ warning that the index may be stale applies to the graph tools only; the new too
 - **R44** `vault_mentions` SHALL NOT list a note's links to itself.
 - **R45** Each excerpt SHALL show its block under the label `path:line › heading path`, where `line` is
   the 1-based line of the excerpt's first mention.
-- **R46** Blocks of one note that share a line SHALL appear as one excerpt.
+- **R46** Blocks of one note that share a line SHALL appear as one excerpt, unless R90 splits it.
 - **R47** An excerpt SHALL show a line `…` wherever it skips non-blank lines of the note.
-- **R48** If an excerpt exceeds 1,500 characters, then the tool SHALL cut it at the last line end within
-  the limit (mid-line if its first line is longer) and add a marker naming the block's last line and
-  the number of mentions the cut removed.
+- **R48** If an excerpt exceeds 1,500 characters, then the tool SHALL trim it to its mention lines and
+  their context lines (6.0), mark the skipped lines as in R47, and end it with a marker naming the
+  block's first and last line. (Amended 2026-10-20: the excerpt used to be cut at 1,500 characters, and
+  no `paths` call could show the mentions after the cut.)
+- **R90** If a trimmed excerpt still exceeds 1,500 characters, then the tool SHALL split its mentions, in
+  line order, into as few consecutive parts as fit within the limit with their context lines; each part
+  SHALL be its own excerpt, labelled as in R45, and its marker SHALL also name its part number and the
+  number of parts.
+- **R91** If a single mention line with its context lines exceeds 1,500 characters, then the tool SHALL
+  shorten the context lines to their start and the mention line to a window around the first mention
+  on it, marking each shortened end with `…`, so that the excerpt fits within the limit.
 - **R49** The response SHALL open with an overview: the note's path (or "no note yet"), the count of
   listed notes with mentions per top-level folder, and the count of listed notes with mentions of the
   other kind (unlinked in linked mode, linked in unlinked mode).
@@ -486,7 +500,7 @@ warning that the index may be stale applies to the graph tools only; the new too
 
 | V# | Method | Covers | Check |
 |---|---|---|---|
-| V1 | TEST | R2-R80 except R13 | One pytest test per requirement, except that these pairs describe one behavior and share a test: R2+R50, R31+R45, R36+R37, R38+R39, R49+R51, R62+R63, R70+R71, R73+R75, R78+R79. R14 has no test of its own: the fixture vault has no `.graph.json`, so every test covers it. That makes 68 tests, each its own TDD slice. Tests are named after their requirements (`test_r07_<behavior>`, `test_r36_r37_<behavior>`), live in `test_note_parser.py`, `test_vault_index.py` and `test_vault_tools.py` under `mcp-servers/vault-graph/`, and run against a small fictional fixture vault built in `tmp_path`. A check lists any requirement in R2-R80 without a test, other than R13 and R14. |
+| V1 | TEST | R2-R80 and R90-R91 except R13 | One pytest test per requirement, except that these pairs describe one behavior and share a test: R2+R50, R31+R45, R36+R37, R38+R39, R49+R51, R62+R63, R70+R71, R73+R75, R78+R79. R14 has no test of its own: the fixture vault has no `.graph.json`, so every test covers it. That makes 70 tests, each its own TDD slice. Tests are named after their requirements (`test_r07_<behavior>`, `test_r36_r37_<behavior>`), live in `test_note_parser.py`, `test_vault_index.py` and `test_vault_tools.py` under `mcp-servers/vault-graph/`, and run against a small fictional fixture vault built in `tmp_path`. A check lists any requirement in R2-R80 or R90-R91 without a test, other than R13 and R14. |
 | V2 | INSPECT | R1, R13, R81-R89 | R1: the new tools read the same `VAULT_PATH` setting as the graph tools. R13: the new modules contain no call that writes, renames or deletes files. R81-R89: `cmp` each changed skill against its `examples/ttrpg/skills/` copy; grep the changed release files for campaign names (no output expected) and review every non-ASCII hit (allowed: the ` › ` separator, the `…` gap marker, the `Café` test fixture and typography already in the files, such as dashes and arrows); review the ladder wording in each skill and in the template; confirm the tool count of 17 in the docs and the rewritten passages in `docs/design.md` and `docs/mcp-tools.md`. |
 | V3 | GATE | All | Full `pytest`, `ruff check .` and `ruff format --check .` pass, as in CI. |
 | V4 | MEASURE | SC1, SC2 | Run the real tools on the measured vault snapshot: first-call size for the biggest hub; for the top 10 hubs, the top-level folders the first call reaches and the largest note's share of its excerpts; share of linked notes whose complete answer fits one call; shown plus mapped mentions equal all mentions for the top 10 hubs; cold parse time. Report counts and sizes only. |
@@ -495,8 +509,9 @@ warning that the index may be stale applies to the graph tools only; the new too
 
 The fixture vault is fictional and in English. It covers every block type; nested lists indented with
 tabs; tables, including links written `[[target\|text]]` and a row far below its header; callouts;
-links in headings and frontmatter; a heading mention whose first block runs past 1,500 characters with
-more mentions after the cut; aliases as a list, as a string and under `alias`; a note found by alias and
+links in headings and frontmatter; long blocks whose mentions sit far below their context lines (a
+nested list, a callout, a frontmatter list and a table with many linked rows); a line over 1,500
+characters; aliases as a list, as a string and under `alias`; a note found by alias and
 links written as an alias; invalid YAML; frontmatter without a closing `---`; an underlined heading; a
 `#tag` at the start of a line; links inside fenced and inline code; two notes with the same name;
 path-qualified, differently cased and `.md`-suffixed links; links to unwritten notes; embeds;
@@ -515,6 +530,18 @@ and without headings, with and without a lead.
 - Markdown-style links, setext headings, indented code blocks, and resolving `#^block` links to the
   block itself (they count as links to the note).
 - The maintainer's personal skill copies and MCP config (after merge, outside the repo).
+- Known limitations, accepted 2026-10-20:
+  - Fences follow 6.0, not CommonMark: a code block closes at the next fence with the same character,
+    whatever its length or info string, and fences inside callouts are not recognized. A note that
+    shows a fenced block inside a four-backtick block reads the inner code as Markdown, and a lone
+    inner fence line turns the rest of the note into code.
+  - `vault_read_section` on a note without headings answers with an empty heading list, and an empty
+    `headings` list returns nothing.
+  - `note` arguments match only as R32-R36 describe, so `./`, a leading or trailing `/`, backslashes,
+    `[[...]]`, `|text`, `#heading` and a copied `path:line` label find no note. For such a string,
+    `vault_mentions` answers as for an unwritten note ("0 notes link here"). `paths` takes a list,
+    not a single string.
+  - A count of one reads "1 notes".
 
 ## 9. Rollout
 
