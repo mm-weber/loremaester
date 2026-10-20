@@ -661,3 +661,11 @@ async def test_r59_a_negative_budget_without_mentions_still_answers(vault):
     _write(vault, "NPCs/Mira.md")
     result = await server.vault_mentions("Mira", budget_tokens=-1)
     assert "0 notes link here" in result
+
+
+async def test_r91_a_window_finds_a_mention_after_decomposed_text(vault):
+    _write(vault, "NPCs/Mira.md")
+    accent = "e" + chr(0x301)  # NFD: e and a combining acute accent
+    _write(vault, "Saga.md", "Long ago " + accent * 1000 + " Mira arrived.\n")
+    result = await server.vault_mentions("Mira", unlinked=True)
+    assert "Mira arrived." in result
