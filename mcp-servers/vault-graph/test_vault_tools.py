@@ -682,3 +682,13 @@ async def test_r91_windows_centre_on_a_mention_mid_note(vault):
         assert len(lines) == 1
         assert lines[0].startswith("…") and lines[0].endswith("…")
         assert f"w {mention} arrived w" in lines[0]
+
+
+async def test_r91_a_long_context_line_is_shortened(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Harbor.md", "> " + "q" * 1598 + "\n> [[Mira]] buys the ledger.\n")
+    result = await server.vault_mentions("Mira")
+    excerpt = result.split("\n\nHarbor.md:2\n", 1)[1].split("\n[trimmed", 1)[0]
+    first, mention = excerpt.split("\n")
+    assert first.startswith("> qqq") and first.endswith("…") and len(first) <= 200
+    assert mention == "> [[Mira]] buys the ledger."
