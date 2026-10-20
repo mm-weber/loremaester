@@ -629,3 +629,19 @@ async def test_r48_long_property_excerpt_keeps_its_key_line(vault):
         ]
     )
     assert excerpt in result
+
+
+async def test_r90_too_long_trimmed_excerpt_comes_in_parts(vault):
+    _write(vault, "NPCs/Mira.md")
+    rows = [f"| [[Mira]] deal {n:02d} | " + "t" * 60 + " |" for n in range(1, 41)]
+    head = ["| Deal | Terms |", "|---|---|"]
+    _write(vault, "Deals.md", "\n".join([*head, *rows]) + "\n")
+    result = await server.vault_mentions("Mira")
+    parts = result.split("\n\nDeals.md:")[1:]
+    assert len(parts) == 3
+    for number, part in enumerate(parts, 1):
+        assert part.split("\n")[1:3] == head
+        marker = f"[part {number} of 3, trimmed to its mentions; the block runs L1-42]"
+        assert marker in part
+    assert all(f"deal {n:02d} " in result for n in range(1, 41))
+    assert "Not shown" not in result
