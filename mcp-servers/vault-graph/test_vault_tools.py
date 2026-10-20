@@ -708,3 +708,15 @@ async def test_r48_a_nested_mention_keeps_its_ancestors(vault):
         ]
     )
     assert expected in result
+
+
+async def test_r90_parts_count_their_context_lines(vault):
+    _write(vault, "NPCs/Mira.md")
+    head = ["| Deal | " + "h" * 90 + " |", "|---|---|"]  # 100 and 9 characters
+    rows = [f"| [[Mira]] deal {n:02d} | " + "t" * 60 + " |" for n in range(1, 33)]
+    _write(vault, "Deals.md", "\n".join([*head, *rows]) + "\n")
+    result = await server.vault_mentions("Mira")
+    parts = result.split("\n\nDeals.md:")[1:]
+    assert len(parts) == 2
+    assert "| [[Mira]] deal 17 |" in parts[1]
+    assert all(len("\n".join(part.split("\n")[1:-1])) <= 1500 for part in parts)
