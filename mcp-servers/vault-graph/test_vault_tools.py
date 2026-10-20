@@ -612,3 +612,20 @@ async def test_r48_long_callout_excerpt_keeps_its_first_line(vault):
         ]
     )
     assert excerpt in result
+
+
+async def test_r48_long_property_excerpt_keeps_its_key_line(vault):
+    _write(vault, "NPCs/Mira.md")
+    contacts = [f'  - "[[Contact {n}]] ' + "c" * 80 + '"' for n in range(1, 19)]
+    lines = ["---", "related:", *contacts, '  - "[[Mira]]"', "---", "Body."]
+    _write(vault, "Guild.md", "\n".join(lines) + "\n")
+    result = await server.vault_mentions("Mira")
+    excerpt = "\n".join(
+        [
+            "related:",
+            "…",
+            '  - "[[Mira]]"',
+            "[trimmed to its mentions; the block runs L2-21]",
+        ]
+    )
+    assert excerpt in result
