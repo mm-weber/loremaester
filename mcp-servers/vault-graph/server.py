@@ -415,8 +415,28 @@ def _render(parsed: ParsedNote, block: list[int]) -> list[tuple[int | None, str]
     return rows
 
 
+def _length(rows: list[tuple[int | None, str]]) -> int:
+    """Characters of rendered excerpt rows, joined by line ends."""
+    return len("\n".join(text for _, text in rows))
+
+
+def _trim(parsed: ParsedNote, mentions: set[int]) -> list[int]:
+    """Mention lines plus their context lines (R48)."""
+    keep = set(mentions)
+    for line in mentions:
+        keep.update(parsed.context(line))
+    return sorted(keep)
+
+
+def _span(lines: set[int]) -> str:
+    """A line range for a marker: L5-25, or L5 for one line."""
+    first, last = min(lines), max(lines)
+    return f"L{first}" if first == last else f"L{first}-{last}"
+
+
 def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_Excerpt]:
-    """One excerpt per group of blocks that share a line (R45, R46)."""
+    """One excerpt per group of blocks that share a line (R45, R46); a group over
+    CUT_LIMIT keeps only its mention and context lines (R48)."""
     groups: list[tuple[set[int], set[int]]] = []
     for line in sorted(mention_lines):
         block, mentions = set(parsed.block(line)), {line}
@@ -428,6 +448,9 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
     excerpts = []
     for block, mentions in sorted(groups, key=lambda group: min(group[0])):
         rows = _render(parsed, sorted(block))
+        trimmed = _length(rows) > CUT_LIMIT
+        if trimmed:
+            rows = _render(parsed, _trim(parsed, mentions))
         texts, cut = _cut([text for _, text in rows])
         full = len(texts)
         if cut and texts[-1] != rows[len(texts) - 1][1]:
@@ -440,6 +463,8 @@ def _excerpts(rel: str, parsed: ParsedNote, mention_lines: list[int]) -> list[_E
                 f"[cut at 1,500 characters; the block ends at L{max(block)}; "
                 f"{moved} mention{'' if moved == 1 else 's'} moved to the map]"
             )
+        elif trimmed:
+            texts.append(f"[trimmed to its mentions; the block runs {_span(block)}]")
         label = SEP.join([f"{rel}:{min(mentions)}", *parsed.heading_path(min(block))])
         excerpts.append(_Excerpt(rel, label, texts, shown))
     return excerpts

@@ -118,6 +118,15 @@ class ParsedNote:
             return self._property_block(line)
         return [line]
 
+    def context(self, line: int) -> list[int]:
+        """Context lines of a mention on `line`: the first line of each ancestor
+        item and of the item a continuation belongs to (spec 6.0 Context line)."""
+        if self.kinds[line - 1] not in ("item", "cont"):
+            return []
+        owner = self._owner(line)
+        ancestors = [number for number in self.block(line) if number < owner]
+        return ancestors + ([owner] if owner != line else [])
+
     def _run(self, line: int, kind: str) -> list[int]:
         """The run of adjacent lines of one kind around `line`."""
         start = end = line
