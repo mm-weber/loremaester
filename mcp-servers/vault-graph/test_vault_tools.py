@@ -283,17 +283,24 @@ async def test_r47_skipped_lines_show_as_a_gap_marker(vault):
     assert expected in result
 
 
-async def test_r48_long_excerpt_is_cut_with_a_marker(vault):
+async def test_r48_long_list_excerpt_keeps_its_mentions_and_their_items(vault):
     _write(vault, "NPCs/Mira.md")
-    items = [f"- [[Mira]] item {n:02d} " + "z" * 80 for n in range(30)]
-    _write(vault, "List.md", "## [[Mira]] notes\n" + "\n".join(items) + "\n")
+    days = [f"  - day {n}: a forged seal " + "z" * 80 for n in range(1, 19)]
+    lines = ["# Ledger", "- Market days with [[Mira]]:", *days, "  - day 19"]
+    _write(vault, "Ledger.md", "\n".join([*lines, "    and [[Mira]] signs."]) + "\n")
     result = await server.vault_mentions("Mira")
-    assert "- [[Mira]] item 13 " in result
-    assert "- [[Mira]] item 14 " not in result
-    marker = (
-        "[cut at 1,500 characters; the block ends at L31; 16 mentions moved to the map]"
+    excerpt = "\n".join(
+        [
+            "- Market days with [[Mira]]:",
+            "…",
+            "  - day 19",
+            "    and [[Mira]] signs.",
+            "[trimmed to its mentions; the block runs L2-22]",
+        ]
     )
-    assert marker in result
+    assert "Ledger.md:2" in result
+    assert excerpt in result
+    assert "Not shown" not in result
 
 
 async def test_rf1_mention_past_a_mid_line_cut_goes_to_the_map(vault):
