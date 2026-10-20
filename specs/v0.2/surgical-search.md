@@ -38,8 +38,8 @@ tokens estimated as characters divided by 4, the linked-mode rules of section 6 
 |---|---|
 | Note size | median ~680 tokens; 77% under 2k; largest ~22k (player notes with a single heading) |
 | Biggest hub (76 linking notes, 294 mentions) | ~217k tokens read whole; ~20k for every excerpt; first call ~4.8k (excerpts from 16 notes across all 7 folders, plus a map of the rest) |
-| Linked mentions per note | 302 of 334 linked notes (90%) fit all their excerpts in 4k tokens; 286 (86%) need no map, because for 16 others the 1,500-character cut moves a mention to the map |
-| Excerpts over 1,500 characters | 39 of 5,567 across all answers (21 distinct blocks); 26 of 6,046 mentions move to the map |
+| Linked mentions per note | 302 of 334 linked notes (90%) fit all their excerpts in 4k tokens; 286 (86%) need no map, because for 16 others the 1,500-character cut moves a mention to the map. Since the R48 amendment trims instead of cutting, all 302 need no map (V4, 2026-10-20) |
+| Excerpts over 1,500 characters | 39 of 5,567 across all answers (21 distinct blocks); 26 of 6,046 mentions move to the map. After the R48 amendment, none do: across every note as a target, 38 linked excerpts are trimmed and 2 come in parts (V4, 2026-10-20) |
 | Unlinked mentions | heavier: ~49k tokens of excerpts for each of the top two hubs |
 | Notes linked from each of the 5 latest session folders | 8 to 55 notes; 19k to 134k tokens read whole; 3 to 6x less when small notes are read whole and large ones as an outline plus one section |
 | Cold parse of the whole vault | about 0.4 s |
