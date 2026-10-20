@@ -720,3 +720,15 @@ async def test_r90_parts_count_their_context_lines(vault):
     assert len(parts) == 2
     assert "| [[Mira]] deal 17 |" in parts[1]
     assert all(len("\n".join(part.split("\n")[1:-1])) <= 1500 for part in parts)
+
+
+async def test_r90_a_later_part_names_the_heading_it_sits_under(vault):
+    _write(vault, "NPCs/Mira.md")
+    rows = [f"| [[Mira]] deal {n:02d} | " + "t" * 60 + " |" for n in range(1, 41)]
+    text = "## [[Mira]] deals\n| Deal | Terms |\n|---|---|\n" + "\n".join(rows) + "\n"
+    _write(vault, "Deals.md", text)
+    result = await server.vault_mentions("Mira", budget_tokens=100000)
+    labels = re.findall(r"^Deals\.md:\d+.*$", result, re.M)
+    assert len(labels) >= 3
+    assert labels[0] == "Deals.md:1"
+    assert all(label.endswith(server.SEP + "[[Mira]] deals") for label in labels[1:])
