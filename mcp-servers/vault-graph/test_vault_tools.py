@@ -646,3 +646,12 @@ async def test_r90_too_long_trimmed_excerpt_comes_in_parts(vault):
         assert marker in part
     assert all(f"deal {n:02d} " in result for n in range(1, 41))
     assert "Not shown" not in result
+
+
+async def test_r91_long_line_window_finds_an_unlinked_mention(vault):
+    _write(vault, "NPCs/Mira.md")
+    _write(vault, "Saga.md", "Long ago " + "w" * 2000 + " Mira arrived.\n")
+    result = await server.vault_mentions("Mira", unlinked=True)
+    lines = [text for text in result.splitlines() if "Mira arrived." in text]
+    assert len(lines) == 1 and lines[0].startswith("…")
+    assert "Not shown" not in result
