@@ -13,7 +13,7 @@ Every worldbuilding request follows four steps. Some requests (pure research, qu
 
 ### Step 1: Gather Vault Context
 
-Before generating anything, understand what already exists. The vault is canon.
+Before generating anything, understand what already exists. The vault is canon. Read it through the read ladder: pull the parts of notes you need instead of whole files.
 
 1. **Search the graph** for related notes:
    - `vault_search_notes(name_pattern="topic")` to find notes by name
@@ -22,15 +22,15 @@ Before generating anything, understand what already exists. The vault is canon.
 
 2. **Map connections** around the topic:
    - `vault_graph(note="Note Name", depth=2)` to see how a note connects to the rest of the world
-   - `vault_backlinks(note="Note Name")` to see what references this note
+   - `vault_mentions(note="Note Name")` for what the vault says about it: the block around every link to the note, labelled `path:line` and heading path. Excerpts fill a token budget, and a map lists every mention not shown; pull those with `paths=["<folder or note>"]` when you need them. Add `unlinked=true` for notes that name the topic without linking it.
 
-3. **Read primary notes** — Read the most relevant notes found above. Follow wikilinks 1–2 levels deep to build context:
-   - Read the note itself
-   - Read notes it links to (first-level wikilinks)
-   - Optionally read one more level if the topic is broad
+3. **Read primary notes** with the read ladder:
+   - `vault_read_note(note="Note Name")`: a small note comes back whole, a large one as an outline (frontmatter, lead, and headings with line ranges and sizes).
+   - `vault_read_section(note="Note Name", headings=["Heading"])` for the sections you need from a large note.
+   - Treat the notes it links to the same way instead of reading one or two link levels whole.
+   - Use a whole `Read` only for unstructured source material the task is about, or for a note you are rewriting from scratch.
 
-4. **Search for mentions** across the vault:
-   - Grep for `[[Topic Name]]` to find every note that references this concept
+4. **Search for structured references**:
    - Grep frontmatter fields like `faction: "Name"` or `location: "Place"` for structured references
 
 5. **Summarize** what's established before proceeding. Note any contradictions or gaps.
@@ -83,7 +83,7 @@ Only reach this step when the GM wants content saved to the vault.
 
 2. **Include full frontmatter** matching the vault's schema for that note type
 
-3. **Update related notes** — add `[[wikilinks]]` pointing to the new note in any existing notes that should reference it. Ask before modifying existing notes.
+3. **Update related notes** — add `[[wikilinks]]` pointing to the new note in any existing notes that should reference it. Ask before modifying existing notes. Read only the lines you change: the `path:line` labels from `vault_mentions` give the offset, and `Edit` works after a partial `Read`.
 
 4. **Refresh the graph**: call `vault_rebuild_graph()` so the graph index reflects the new content. This re-parses the vault and reloads the cache in one step. (Note: `vault_reload_cache()` only re-reads the existing `.graph.json` — it won't pick up newly-written notes.)
 

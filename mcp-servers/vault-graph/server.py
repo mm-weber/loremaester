@@ -4,11 +4,18 @@ import contextlib
 import importlib.util
 import json
 import os
+import re
+import unicodedata
 from collections import deque
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+from note_parser import ParsedNote
+from vault_index import Resolution, VaultIndex, normalize
 
 mcp = FastMCP("Vault Graph")
 
@@ -284,6 +291,526 @@ async def vault_rebuild_graph() -> str:
         return f"Error rebuilding graph: {type(e).__name__}: {e}"
     meta = _graph.get("metadata", {})
     return f"Graph rebuilt: {meta.get('note_count', '?')} notes, {meta.get('edge_count', '?')} edges."
+
+
+# Mentions and section reads (specs/v0.2/surgical-search.md)
+
+CUT_LIMIT = 1500  # characters per excerpt, frontmatter or lead (R48, R70, R71, R90)
+CONTEXT_LIMIT = 200  # characters kept of a long context line (R91)
+WHOLE_LIMIT = 2000  # tokens: smaller notes come back whole (R69, R70)
+SEP = " \u203a "  # between the parts of a path:line and heading path label (R31)
+DOT = " · "  # between items on one line
+GAP = "…"  # stands for skipped non-blank lines inside an excerpt (R47)
+
+_vault_index: VaultIndex | None = None
+
+
+def _index() -> VaultIndex:
+    """The live index of VAULT_PATH, refreshed from file stats on every call."""
+    global _vault_index
+    if _vault_index is None or _vault_index.root != Path(VAULT_PATH):
+        _vault_index = VaultIndex(VAULT_PATH)
+    _vault_index.refresh()
+    return _vault_index
+
+
+def _tokens(text: str) -> int:
+    """Token estimate: characters divided by 4, rounded up."""
+    return (len(text) + 3) // 4
+
+
+def _fmt(tokens: int) -> str:
+    """A token count for display: 640, 3.1k."""
+    return f"{tokens / 1000:.1f}k" if tokens >= 1000 else str(tokens)
+
+
+def _respond(lines: list[str]) -> str:
+    """Join response lines, naming the vault root once after the first (R15)."""
+    return "\n".join([*lines[:1], f"Vault: {VAULT_PATH}", *lines[1:]])
+
+
+def _cut(lines: list[str]) -> tuple[list[str], bool]:
+    """Lines that fit CUT_LIMIT characters, cut at the last line end within the
+    limit (mid-line when the first line alone is longer); True when cut."""
+    text = "\n".join(lines)
+    if len(text) <= CUT_LIMIT:
+        return lines, False
+    end = text.rfind("\n", 0, CUT_LIMIT + 1)
+    return (text[:end] if end > 0 else text[:CUT_LIMIT]).split("\n"), True
+
+
+def _verbatim(title: str, lines: list[str], first: int, last: int) -> list[str]:
+    """A titled block of note lines for an outline, cut at CUT_LIMIT (R70, R71)."""
+    kept, cut = _cut(lines)
+    out = [f"{title}, L{first}-{last}:", *(f"  {line}" for line in kept)]
+    if cut:
+        out.append(f"  [cut at 1,500 characters; the {title.lower()} ends at L{last}]")
+    return out
+
+
+def _outline(path: str, parsed: ParsedNote, size: int) -> list[str]:
+    """Outline of a large note: frontmatter, lead and headings (R70, R71)."""
+    out = [f"## Outline: {path} ({len(parsed.lines)} lines, ~{_fmt(size)} tokens)"]
+    if parsed.frontmatter:
+        first, last = parsed.frontmatter
+        out += _verbatim("Frontmatter", parsed.lines[first : last - 1], first, last)
+    lead = parsed.lead()
+    if lead:
+        out += _verbatim("Lead", parsed.lines[lead[0] - 1 : lead[1]], *lead)
+    if len(parsed.headings) < 2:
+        count = "one heading" if parsed.headings else "no headings"
+        return [
+            *out,
+            f"No sections to pick from ({count}).",
+            f'For specific names: vault_mentions("<name>", paths=["{path}"])',
+            "For all of it: Read the file.",
+        ]
+    out.append("Headings:")
+    for heading in parsed.headings:
+        start, end = parsed.section(heading.line)
+        tokens = _tokens("\n".join(parsed.lines[start - 1 : end]))
+        marks = "  " * (heading.level - 1) + "#" * heading.level
+        out.append(f"  L{start}-{end}  {marks} {heading.text}  ~{_fmt(tokens)}")
+    return out
+
+
+def _resolution_lines(found: Resolution) -> list[str]:
+    """How a note argument was matched (R37, R39)."""
+    lines = []
+    if found.alias:
+        lines.append(f'Found by alias "{found.alias}" of {found.path}')
+    if found.others:
+        lines.append(f"Other matches: {', '.join(found.others)}")
+    return lines
+
+
+def _heading_key(text: str) -> str:
+    """Compare form of a heading: NFC, no surrounding whitespace or # marks,
+    lowercase (R74)."""
+    return unicodedata.normalize("NFC", text).strip().strip("#").strip().lower()
+
+
+@dataclass
+class _Excerpt:
+    rel: str  # the note the excerpt comes from
+    label: str  # path:line and heading path
+    lines: list[str]  # the text shown
+    shown: list[int]  # mention lines the excerpt shows (R48, R91)
+
+    @property
+    def cost(self) -> int:
+        """Budget cost: the label plus the excerpt text (R58)."""
+        return _tokens("\n".join([self.label, *self.lines]))
+
+
+def _render(parsed: ParsedNote, block: list[int]) -> list[tuple[int | None, str]]:
+    """Block lines as (line, text) pairs, with a GAP row wherever non-blank note
+    lines are skipped (R47)."""
+    rows: list[tuple[int | None, str]] = []
+    previous = None
+    for number in block:
+        if previous is not None and any(
+            parsed.lines[skipped - 1].strip() for skipped in range(previous + 1, number)
+        ):
+            rows.append((None, GAP))
+        rows.append((number, parsed.lines[number - 1]))
+        previous = number
+    return rows
+
+
+def _length(rows: list[tuple[int | None, str]]) -> int:
+    """Characters of rendered excerpt rows, joined by line ends."""
+    return len("\n".join(text for _, text in rows))
+
+
+def _trim(parsed: ParsedNote, mentions: Iterable[int]) -> list[int]:
+    """Mention lines plus their context lines (R48)."""
+    keep = set(mentions)
+    for line in list(keep):
+        keep.update(parsed.context(line))
+    return sorted(keep)
+
+
+def _parts(parsed: ParsedNote, mentions: set[int]) -> list[list[int]]:
+    """Mentions in line order, in as few consecutive parts as fit CUT_LIMIT with
+    their context lines (R90)."""
+    parts: list[list[int]] = []
+    for line in sorted(mentions):
+        rows = _render(parsed, _trim(parsed, [*parts[-1], line])) if parts else []
+        if rows and _length(rows) <= CUT_LIMIT:
+            parts[-1].append(line)
+        else:
+            parts.append([line])
+    return parts
+
+
+def _label(rel: str, parsed: ParsedNote, mention: int, first: int) -> str:
+    """Label of an excerpt that starts at line `first`: path:line and heading path
+    (R45)."""
+    return SEP.join([f"{rel}:{mention}", *parsed.heading_path(first)])
+
+
+def _span(lines: set[int]) -> str:
+    """A line range for a marker: L5-25, or L5 for one line."""
+    first, last = min(lines), max(lines)
+    return f"L{first}" if first == last else f"L{first}-{last}"
+
+
+def _shorten(
+    rows: list[tuple[int | None, str]], mention: int, column: int
+) -> list[tuple[int | None, str]]:
+    """Rows of one mention cut to fit CUT_LIMIT: long context lines keep their
+    start, the mention line a window around the mention at `column` (R91)."""
+    context = [line for line, _ in rows if line not in (None, mention)]
+    limit = min(CONTEXT_LIMIT, CUT_LIMIT // 2 // max(len(context), 1))
+    rows = [
+        (line, text[: limit - 1] + GAP)
+        if line in context and len(text) > limit
+        else (line, text)
+        for line, text in rows
+    ]
+    others = [row for row in rows if row[0] != mention]
+    room = CUT_LIMIT - _length(others) - (1 if others else 0)
+    text = next(text for line, text in rows if line == mention)
+    if len(text) > room:
+        width = room - 2
+        start = max(0, min(column - width // 2, len(text) - width))
+        end = start + width
+        text = (
+            (GAP if start else "") + text[start:end] + (GAP if end < len(text) else "")
+        )
+    return [(line, text) if line == mention else (line, other) for line, other in rows]
+
+
+def _excerpts(
+    rel: str,
+    parsed: ParsedNote,
+    mention_lines: list[int],
+    column: Callable[[int], int],
+) -> list[_Excerpt]:
+    """One excerpt per group of blocks that share a line (R45, R46); a group over
+    CUT_LIMIT keeps only its mention and context lines (R48), in parts when still
+    too long (R90), with long lines shortened around the mention that `column`
+    locates (R91)."""
+    groups: list[tuple[set[int], set[int]]] = []
+    for line in sorted(mention_lines):
+        block, mentions = set(parsed.block(line)), {line}
+        for group in [group for group in groups if group[0] & block]:
+            groups.remove(group)
+            block |= group[0]
+            mentions |= group[1]
+        groups.append((block, mentions))
+    excerpts = []
+    for block, mentions in sorted(groups, key=lambda group: min(group[0])):
+        rows = _render(parsed, sorted(block))
+        if _length(rows) <= CUT_LIMIT:
+            label = _label(rel, parsed, min(mentions), min(block))
+            texts = [text for _, text in rows]
+            excerpts.append(_Excerpt(rel, label, texts, sorted(mentions)))
+            continue
+        parts = _parts(parsed, mentions)
+        span = _span(block)
+        for number, part in enumerate(parts, 1):
+            keep = _trim(parsed, part)
+            rows = _render(parsed, keep)
+            if _length(rows) > CUT_LIMIT:  # one mention with long lines (R91)
+                rows = _shorten(rows, part[0], column(part[0]))
+            where = f"part {number} of {len(parts)}, " if len(parts) > 1 else ""
+            texts = [text for _, text in rows]
+            texts.append(f"[{where}trimmed to its mentions; the block runs {span}]")
+            label = _label(rel, parsed, part[0], keep[0])
+            excerpts.append(_Excerpt(rel, label, texts, part))
+    return excerpts
+
+
+def _total_cost(order: list[str], built: dict[str, list[_Excerpt]]) -> int:
+    """Estimated tokens of all excerpts of the listed notes (R51, R59)."""
+    return sum(excerpt.cost for rel in order for excerpt in built[rel])
+
+
+def _fill(
+    order: list[str], built: dict[str, list[_Excerpt]], budget: int
+) -> list[_Excerpt]:
+    """Excerpts to show, in listing order (R58-R61)."""
+    total = _total_cost(order, built)
+    share = budget // max(len(order), 1)
+    cap = budget if total <= budget else max(budget // 4, share)  # R59
+    picked: list[_Excerpt] = []
+    used = 0
+    for rel in order:
+        take: list[_Excerpt] = []
+        cost = 0
+        for excerpt in built[rel]:
+            if cost + excerpt.cost > cap:
+                break
+            take.append(excerpt)
+            cost += excerpt.cost
+        if used + cost > budget:
+            break  # R60
+        picked += take
+        used += cost
+    if not picked and order:
+        picked = built[order[0]][:1]  # R61
+    return picked
+
+
+def _setting(name: str) -> list[str]:
+    """Comma-separated values of an environment variable; empty when unset (R6)."""
+    return [
+        part.strip() for part in os.environ.get(name, "").split(",") if part.strip()
+    ]
+
+
+def _listed_notes(
+    index: VaultIndex, paths: list[str] | None, skip: list[str]
+) -> tuple[set[str], list[str]]:
+    """Notes vault_mentions may list, and the paths entries that match nothing
+    (spec 6.0 Listed notes; R2, R3, R65, R66)."""
+    skip_keys = [normalize(folder).strip("/") for folder in skip]
+
+    def inside(key: str) -> bool:
+        return any(key.startswith(folder + "/") for folder in skip_keys)
+
+    if not paths:
+        return {rel for rel in index.notes if not inside(normalize(rel))}, []
+    listed: set[str] = set()
+    unmatched: list[str] = []
+    for entry in paths:
+        covered = index.covered_by(entry)
+        if not covered:
+            unmatched.append(entry)
+        listed |= {
+            rel
+            for rel, hit in covered.items()
+            if hit in skip_keys or inside(hit) or not inside(normalize(rel))
+        }
+    return listed, unmatched
+
+
+def _skipped_counts(
+    mentions: dict[str, list[int]], listed: set[str], skip: list[str]
+) -> list[str]:
+    """`Folder n` for each skipped folder whose mentioning notes are not listed (R50)."""
+    counts = []
+    for folder in skip:
+        key = normalize(folder).strip("/")
+        hidden = [
+            rel
+            for rel in mentions
+            if rel not in listed and normalize(rel).startswith(key + "/")
+        ]
+        if hidden:
+            counts.append(f"{folder} {len(hidden)}")
+    return counts
+
+
+def _top_folder(rel: str) -> str:
+    """Top-level folder of a note; notes at the vault root form "(root)" (R67)."""
+    return rel.split("/", 1)[0] if "/" in rel else "(root)"
+
+
+def _folder_counts(rels: list[str]) -> list[tuple[str, int]]:
+    """(folder, notes) pairs, most notes first, ties by folder name (R67)."""
+    counts: dict[str, int] = {}
+    for rel in rels:
+        counts[_top_folder(rel)] = counts.get(_top_folder(rel), 0) + 1
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+
+
+def _natural_key(rel: str) -> list[str | int]:
+    """Path sort key that compares digit runs as numbers (R68)."""
+    parts = re.split(r"(\d+)", rel)
+    return [
+        int(part) if index % 2 else part.lower() for index, part in enumerate(parts)
+    ]
+
+
+def _order(rels: list[str]) -> list[str]:
+    """Listing order: top-level folders take turns, the one with most notes first (R67, R68)."""
+    queues: dict[str, list[str]] = {}
+    for rel in sorted(rels, key=lambda rel: (_natural_key(rel), rel), reverse=True):
+        queues.setdefault(_top_folder(rel), []).append(rel)
+    ordered = [queues[folder] for folder, _ in _folder_counts(rels)]
+    order: list[str] = []
+    for turn in range(max((len(queue) for queue in ordered), default=0)):
+        order += [queue[turn] for queue in ordered if turn < len(queue)]
+    return order
+
+
+def _map(
+    order: list[str], rows: list[tuple[str, list[int]]], unlinked: bool
+) -> list[str]:
+    """The map of mentions not shown, grouped by top-level folder in listing
+    order, then pull hints (R62, R63)."""
+    if not rows:
+        return []
+    out = ["", "Not shown, pull with paths=[...]:"]
+    for folder, _ in _folder_counts(order):
+        group = [
+            f"{rel} L{','.join(map(str, lines))}"
+            for rel, lines in rows
+            if _top_folder(rel) == folder
+        ]
+        if group:
+            out.append(f"{folder} ({len(group)}): {DOT.join(group)}")
+    other = "false" if unlinked else "true"
+    hints = ['paths=["<folder or note>"]', "budget_tokens=<n>", f"unlinked={other}"]
+    out.append("More: " + DOT.join(hints))
+    return out
+
+
+def _overview(
+    order: list[str], other: dict[str, list[int]], listed: set[str], unlinked: bool
+) -> list[str]:
+    """Mentioning notes per top-level folder, and the other kind's count (R49)."""
+    counts = DOT.join(f"{folder} {count}" for folder, count in _folder_counts(order))
+    verb = "name it" if unlinked else "link here"
+    first = f"{len(order)} notes {verb}" + (f": {counts}" if counts else "")
+    other_count = sum(1 for rel in other if rel in listed)
+    if unlinked:
+        return [first, f"Linked: {other_count} notes link here"]
+    return [first, f"Unlinked: {other_count} notes name it without a link"]
+
+
+def _excerpt_summary(
+    order: list[str], built: dict[str, list[_Excerpt]], picked: list[_Excerpt]
+) -> str:
+    """Notes with excerpts, and the excerpt tokens shown against all of them (R51)."""
+    shown = sum(excerpt.cost for excerpt in picked)
+    total = _total_cost(order, built)
+    notes = len({excerpt.rel for excerpt in picked})
+    return (
+        f"Excerpts for {notes} notes (~{_fmt(shown)} of ~{_fmt(total)} tokens for all)"
+    )
+
+
+def _close(index: VaultIndex, name: str) -> str:
+    """Up to five close titles or aliases for an unknown name (R78, R79)."""
+    names = index.close_names(name)
+    return f"Close names: {', '.join(names)}" if names else "No close names."
+
+
+def _unknown(index: VaultIndex, name: str) -> str:
+    """Error for a note argument that matches no note (R78)."""
+    return _respond([f"Error: no note matches '{name}'. {_close(index, name)}"])
+
+
+def _root_error() -> str | None:
+    """Error naming VAULT_PATH when it is missing or not a folder (R80)."""
+    if Path(VAULT_PATH).is_dir():
+        return None
+    return f"Error: vault root is missing or not a folder: {VAULT_PATH}"
+
+
+@mcp.tool()
+async def vault_read_note(note: str) -> str:
+    """Read a vault note: whole when it is under about 2,000 tokens, otherwise
+    an outline of its frontmatter, lead and headings with line ranges and token
+    estimates, to pick sections from with vault_read_section."""
+    if error := _root_error():
+        return error
+    index = _index()
+    found = index.resolve_note(note)
+    if found.path is None:
+        return _unknown(index, note)
+    parsed = index.notes[found.path].parsed
+    text = "\n".join(parsed.lines)
+    size = _tokens(text)
+    if size < WHOLE_LIMIT:
+        title = f"## {found.path} (~{_fmt(size)} tokens, whole)"
+        return _respond([title, *_resolution_lines(found), text])
+    outline = _outline(found.path, parsed, size)
+    return _respond([outline[0], *_resolution_lines(found), *outline[1:]])
+
+
+@mcp.tool()
+async def vault_read_section(note: str, headings: str | list[str]) -> str:
+    """Read whole sections of a note by heading: one heading or a list. Every
+    matching section comes back untruncated, labelled path:start-end and its
+    heading path."""
+    if error := _root_error():
+        return error
+    index = _index()
+    found = index.resolve_note(note)
+    if found.path is None:
+        return _unknown(index, note)
+    parsed = index.notes[found.path].parsed
+    wanted = [headings] if isinstance(headings, str) else list(headings)
+    keys = {_heading_key(want) for want in wanted}
+    out: list[str] = []
+    for heading in parsed.headings:
+        if _heading_key(heading.text) not in keys:
+            continue
+        start, end = parsed.section(heading.line)
+        body = parsed.lines[start - 1 : end]
+        chain = [*parsed.heading_path(heading.line), heading.text]
+        label = SEP.join([f"{found.path}:{start}-{end}", *chain])
+        size = _tokens("\n".join(body))
+        out += [*([""] if out else []), f"## {label} (~{_fmt(size)} tokens)", *body]
+    listing = ", ".join(f"{'#' * h.level} {h.text}" for h in parsed.headings)
+    for want in wanted:
+        if not any(_heading_key(h.text) == _heading_key(want) for h in parsed.headings):
+            message = f'No section matches "{want}". Headings: {listing}'
+            out += [*([""] if out else []), message]
+    return _respond([*out[:1], *_resolution_lines(found), *out[1:]])
+
+
+@mcp.tool()
+async def vault_mentions(
+    note: str,
+    unlinked: bool = False,
+    paths: list[str] | None = None,
+    budget_tokens: int = 4000,
+) -> str:
+    """Obsidian-style mentions of a note: linked by default, or plain-text ones
+    with unlinked=True. Each mention comes with its Markdown block, labelled
+    path:line and heading path. Excerpts fill budget_tokens; a map lists every
+    mention not shown, and paths=[folder or note] pulls more."""
+    if error := _root_error():
+        return error
+    index = _index()
+    found = index.resolve_note(note)
+    skip = _setting("VAULT_SKIP_FOLDERS")
+    listed, unmatched = _listed_notes(index, paths, skip)
+    linked = index.linked_mentions(found)
+    endings = tuple(_setting("VAULT_NAME_ENDINGS"))
+    plain = index.unlinked_mentions(found, endings)
+    all_mentions, other = (plain, linked) if unlinked else (linked, plain)
+    mentions = {rel: lines for rel, lines in all_mentions.items() if rel in listed}
+    order = _order(list(mentions))
+    built = {
+        rel: _excerpts(
+            rel,
+            index.notes[rel].parsed,
+            mentions[rel],
+            partial(
+                index.mention_column, found, rel, unlinked=unlinked, endings=endings
+            ),
+        )
+        for rel in order
+    }
+    picked = _fill(order, built, budget_tokens)
+    kind = "Unlinked" if unlinked else "Linked"
+    out = [f"## {kind} mentions: {note} ({found.path or 'no note yet'})"]
+    out += _resolution_lines(found)
+    if found.path is None:
+        out.append(f"No note matches '{note}'. {_close(index, note)}")  # R79
+    out += [f'No note or folder matches paths entry "{entry}".' for entry in unmatched]
+    out += _overview(order, other, listed, unlinked)
+    skipped = _skipped_counts(all_mentions, listed, skip)
+    if skipped:
+        out.append("Skipped folders: " + DOT.join(skipped))
+    out.append(_excerpt_summary(order, built, picked))
+    for excerpt in picked:
+        out += ["", excerpt.label, *excerpt.lines]
+    shown = {(excerpt.rel, line) for excerpt in picked for line in excerpt.shown}
+    rows = [
+        (rel, [line for line in mentions[rel] if (rel, line) not in shown])
+        for rel in order
+    ]
+    rows = [(rel, lines) for rel, lines in rows if lines]
+    out += _map(order, rows, unlinked)
+    return _respond(out)
 
 
 if __name__ == "__main__":

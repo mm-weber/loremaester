@@ -39,10 +39,10 @@ digraph session_creation {
 Use `/worldbuilding` Step 1 + Step 2 to gather context before brainstorming.
 
 1. **Determine next session number**: List `Sessions/Session *` folders, find highest N, use N+1. Always increment, never fill gaps.
-2. **Read recent sessions**: Last 1-2 session main files, focusing on `## Log` and `## Open Threads` for outstanding plot threads.
-3. **Read PlayerNotes**: `PC/PlayerNotes/` — source of truth for what actually happened to the PCs from the players' perspective. Names may be phonetic or misspelled; cross-reference against canonical vault notes.
+2. **Read recent sessions**: for the last 1-2 session main files, `vault_read_section(note="<session main file>", headings=["Log", "Open Threads"])` for outstanding plot threads, instead of reading the files whole.
+3. **Read PlayerNotes**: `PC/PlayerNotes/` — source of truth for what actually happened to the PCs from the players' perspective. Names may be phonetic or misspelled; cross-reference against canonical vault notes. Read them whole: they are the read ladder's exception for unstructured source material.
 4. **Check in-game date** (if the vault tracks one): some vaults use a calendar plugin and store events at `.obsidian/plugins/<calendar-plugin>/data.json`. If present, search for the next in-game date and any upcoming events.
-5. **Map vault connections**: `vault_graph()`, `vault_backlinks()`, `vault_search_notes()` on active NPCs, locations, factions from recent sessions.
+5. **Map vault connections**: `vault_graph()`, `vault_search_notes()` and `vault_mentions()` on active NPCs, locations, factions from recent sessions; read the notes themselves with `vault_read_note` and `vault_read_section`.
 6. **Research sourcebooks**: `search_lore()` and `get_chapter()` for published material relevant to upcoming content.
 7. **Summarize** findings for the GM: open threads, active NPCs, current date/location, relevant sourcebook material.
 
@@ -141,7 +141,7 @@ Sections: `## Background`, `## Description` (read-aloud in blockquotes), `## NPC
 
 **After all files are written:**
 - Ensure every reference to a known entity uses `[[wikilinks]]`
-- Update related notes with backlinks (ask GM before modifying existing notes)
+- Update related notes with backlinks (ask GM before modifying existing notes); read only the lines you change, since `Edit` works after a partial `Read`
 - Call `vault_rebuild_graph()` so the new files appear in the wikilink index
 
 ### Phase 5: Review

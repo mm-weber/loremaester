@@ -31,7 +31,7 @@ that use it: `worldbuilding`, `session-creation`, `chronik`,
 
 2. **Four opinionated GM skills (`worldbuilding`, `session-creation`, `chronik`, `vault-scout`) that auto-trigger on your prompts**
 
-    Driving 14 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
+    Driving 17 MCP tools (`vault_graph`, `search_lore`, …) to draft Sessions, Locations, and NPCs that stay consistent with your campaign history.
 
 3. **Drop a folder of PDFs (text-native, mixed, or image-only) and walk away.** 
 
@@ -113,7 +113,7 @@ Two views: where things run, and how a request is answered.
 
 Full component rationale in [`docs/design.md`](docs/design.md).
 
-### 3 MCP servers, 14 tools
+### 3 MCP servers, 17 tools
 
 > **Full per-tool reference** (parameters, returns, and internals): [`docs/mcp-tools.md`](docs/mcp-tools.md).
 
@@ -121,7 +121,9 @@ Full component rationale in [`docs/design.md`](docs/design.md).
 |---|---|---|
 | **`r2r`** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | Generic CRUD + search against R2R. |
 | **`sourcebooks`** | `search_lore`, `list_books`, `get_chapter` | Worldbuilding-aware lore queries with `book_title` / `chapter` / `page_range` citations. |
-| **`vault-graph`** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | Obsidian `[[wikilink]]` graph navigation and refresh. |
+| **`vault-graph`** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph`, `vault_mentions`, `vault_read_note`, `vault_read_section` | Obsidian `[[wikilink]]` graph navigation and refresh, plus Linked Mentions-style excerpts and section reads straight from the vault. |
+
+`vault_mentions` takes two optional settings: `VAULT_SKIP_FOLDERS` (folders whose notes are not listed as mention sources) and `VAULT_NAME_ENDINGS` (word endings for unlinked mentions in inflected languages). See [`docs/quickstart.md`](docs/quickstart.md).
 
 ### 4 Claude Code skills
 
