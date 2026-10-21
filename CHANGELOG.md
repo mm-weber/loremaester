@@ -12,6 +12,7 @@ may still change between minor versions.
 - **vault-graph: surgical vault reads (3 new tools, 17 in total):** `vault_mentions` (Obsidian-style linked and unlinked mentions: the Markdown block around each mention, a token budget, and a map of every mention not shown), `vault_read_note` (whole when small, otherwise an outline) and `vault_read_section` (whole sections by heading). They scan the vault live through a stat-checked cache, so they never go stale. New optional settings `VAULT_SKIP_FOLDERS` and `VAULT_NAME_ENDINGS`.
 
 ### Changed
+- **vault-graph needs PyYAML at startup:** the server now reads note frontmatter with PyYAML. `requirements.txt` already lists it, but the server never imported it before, so an MCP venv built without it fails to start and every vault tool disappears. Run `pip install pyyaml` in that venv, or install `requirements.txt`.
 - **Skills:** worldbuilding, chronik, session-creation and vault-scout follow a read ladder (mentions, then a note or its outline, then sections) and keep whole reads for unstructured source material and rewrites. The vault CLAUDE.md example and template point to the new tools.
 
 ## [0.1.0] - 2026-06-17
