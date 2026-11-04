@@ -26,9 +26,9 @@ The Chronicle synthesizes all three, but PlayerNotes always win on what occurred
 
 ### Phase 1: Read and Identify
 
-1. **Read the PlayerNotes** for the target session(s)
-2. **Read all linked Session prep files** — find the session folder under `Sessions/Session N/` and read every sub-file. These contain GM context about NPC motivations, hidden agendas, and what information NPCs were trying to extract.
-3. **Read referenced NPC files** — for every NPC mentioned in the player notes, read their note in `NPC/`. Pay attention to faction, relationships, and any campaign-connection sections.
+1. **Read the PlayerNotes** for the target session(s) whole. They are the source of truth and rarely have sections to pick from, so they are the read ladder's exception.
+2. **Read the session prep through the read ladder**: list the files in `Sessions/Session N/`, call `vault_read_note` on each (a small file comes back whole, a large one as an outline), then `vault_read_section` for the parts the player notes touch. The prep holds GM context about NPC motivations, hidden agendas, and what information NPCs were trying to extract.
+3. **Check every NPC the player notes mention**: `vault_mentions(note="NPC Name", paths=["Sessions/Session N"])` for what that session's prep says about them, and `vault_read_note(note="NPC Name")` for who they are. Pay attention to faction, relationships, and any campaign-connection sections; read those with `vault_read_section` when the note is large.
 4. **Check in-game dates** — if the vault tracks dates (e.g. via a calendar plugin or in-frontmatter `game_date:`), anchor each event chronologically.
 
 ### Phase 2: Extract Information Exchange Events
@@ -89,8 +89,8 @@ Before presenting the draft, verify against the PlayerNotes:
 ## Updating Existing Entries
 
 When fixing an existing Chronicle entry (not writing a new one):
-1. Read the current entry
+1. Read the current entry with `vault_read_section` on the Chronicle (or a `Read` of only its lines), not the whole Chronicle
 2. Read the corresponding PlayerNotes
 3. Build the information exchange matrix
 4. Identify what's missing from the current entry
-5. Rewrite only the affected section, preserving surrounding entries
+5. Rewrite only the affected section, preserving surrounding entries. `Edit` works after a partial `Read`, so read only the lines you change.

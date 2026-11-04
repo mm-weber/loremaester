@@ -34,7 +34,7 @@ Set up R2R semantic search with Ollama embeddings, ingest your PDF sourcebooks (
 
 R2R is used **only for search and ingestion** — embedding, vector storage, and retrieval. All reasoning and generation is handled by Claude Code via MCP servers. No completion/LLM models are needed in R2R or Ollama. You only need an **embedding model** (`mxbai-embed-large`).
 
-> The three MCP servers expose 14 tools in total. For the full per-tool reference (parameters, returns, internals), see [`mcp-tools.md`](mcp-tools.md).
+> The three MCP servers expose 17 tools in total. For the full per-tool reference (parameters, returns, internals), see [`mcp-tools.md`](mcp-tools.md).
 
 ### Components
 
@@ -639,13 +639,15 @@ Add the `mcpServers` block to your Claude Code settings. Replace `/path/to/repo`
 
 `VAULT_PATH` must match the mount target from Step 5a.
 
+Two optional settings tune `vault_mentions`. `VAULT_SKIP_FOLDERS` takes comma-separated vault folders whose notes are not listed as mention sources, such as image prompts or rules text; they are still counted, and `paths` can name them. `VAULT_NAME_ENDINGS` takes comma-separated endings for unlinked mentions in inflected languages, for example `s,es,n,en,e,er,ern` for German. Both default to empty.
+
 ### 6c. MCP Server Reference
 
 | Server | Tools | Env Vars |
 |--------|-------|----------|
 | **r2r** | `search`, `ingest_document`, `list_documents`, `delete_document`, `list_collections` | `R2R_API_BASE`, `R2R_API_KEY` |
 | **sourcebooks** | `search_lore`, `list_books`, `get_chapter` | `R2R_API_BASE` |
-| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph` | `VAULT_PATH` |
+| **vault-graph** | `vault_graph`, `vault_backlinks`, `vault_search_notes`, `vault_central_notes`, `vault_reload_cache`, `vault_rebuild_graph`, `vault_mentions`, `vault_read_note`, `vault_read_section` | `VAULT_PATH`, `VAULT_SKIP_FOLDERS`, `VAULT_NAME_ENDINGS` |
 
 ### 6d. Linux Networking Workaround
 
@@ -669,10 +671,10 @@ Restart Claude Code, then run:
 /mcp
 ```
 
-You should see 3 servers connected with 14 tools total:
+You should see 3 servers connected with 17 tools total:
 - `r2r` — 5 tools
 - `sourcebooks` — 3 tools
-- `vault-graph` — 6 tools
+- `vault-graph` — 9 tools
 
 ---
 

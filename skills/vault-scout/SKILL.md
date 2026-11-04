@@ -30,6 +30,7 @@ These tasks are pattern-match + read + tabulate. No creative judgment, no prose 
 
 - **Creative work** — NPC psychology, location design, scene architecture, prose writing. Main Opus owns these.
 - **Single-file reads** — one file, small, go direct. Dispatch overhead (~200 Opus tokens to write the prompt + ~80 Opus tokens to read the result) exceeds the work.
+- **Mentions or sections of one note**: `vault_mentions`, `vault_read_note` and `vault_read_section` return just those parts in the main context, so there is nothing to offload.
 - **Simple Bash ops** — file renames, `git mv`, `mkdir`. Main agent Bash is faster and cheaper.
 - **Synthesis across sources** — if the answer requires combining vault content with sourcebook content, that's a worldbuilding task. Use `worldbuilding` or related skills.
 - **Tasks needing taste/judgment** — "which NPC would work best for Session N?" is creative. Main Opus.
@@ -50,7 +51,7 @@ Agent(
 **The dispatch prompt MUST:**
 1. State the task in one sentence.
 2. List the paths or glob patterns to consider.
-3. Name the tools the subagent may use: `Glob`, `Grep`, `Read`, `mcp__vault-graph__vault_search_notes`, `mcp__vault-graph__vault_backlinks`, `mcp__vault-graph__vault_graph`, `mcp__vault-graph__vault_central_notes`.
+3. Name the tools the subagent may use: `Glob`, `Grep`, `Read`, `mcp__vault-graph__vault_search_notes`, `mcp__vault-graph__vault_backlinks`, `mcp__vault-graph__vault_graph`, `mcp__vault-graph__vault_central_notes`, `mcp__vault-graph__vault_mentions`, `mcp__vault-graph__vault_read_note`, `mcp__vault-graph__vault_read_section`.
 4. Specify the output format (table columns, bullet structure, or short summary).
 5. Cap verbosity: "Report under 200 words unless the listing itself is longer."
 
@@ -83,10 +84,13 @@ Prefer the MCP graph tools when they fit — they are faster than Glob+Grep for 
 - **`mcp__vault-graph__vault_backlinks(note="Name")`** — what links to this note. Pre-computed.
 - **`mcp__vault-graph__vault_graph(note="Name", depth=2)`** — local neighborhood.
 - **`mcp__vault-graph__vault_central_notes(tag="...")`** — most-connected nodes in a category. Useful for "what are the important X?".
+- **`mcp__vault-graph__vault_mentions(note="Name")`**: the block around each link to the note, labelled `path:line`, plus a map of mentions not shown; `unlinked=true` for plain-text mentions. Reads the vault live.
+- **`mcp__vault-graph__vault_read_note(note="Name")`**: a small note whole, a large one as an outline with line ranges.
+- **`mcp__vault-graph__vault_read_section(note="Name", headings=["..."])`**: chosen sections in full.
 
 Fall back to `Glob` + `Grep` + `Read` when:
 - The search is text-pattern-based (e.g., "find all notes mentioning a keyword in prose").
-- The graph index may be stale (recent moves/adds not yet reloaded).
+- The graph index may be stale (recent moves/adds not yet reloaded). This applies to the graph tools only; the three tools above read the vault live.
 - The task needs file-content inspection beyond the graph.
 
 ## Output contract
@@ -161,20 +165,20 @@ Agent(
 )
 ```
 
-### Example 3 — Backlinks via graph MCP
+### Example 3 — Mentions via graph MCP
 
 **Main agent invocation:**
 ```
 Agent(
   subagent_type="general-purpose",
   model="haiku",
-  description="Backlinks to [[NPC Name]]",
+  description="Mentions of [[NPC Name]]",
   prompt="""
-  Use mcp__vault-graph__vault_backlinks(note="NPC Name") to get all notes that link to NPC Name.md.
+  Use mcp__vault-graph__vault_mentions(note="NPC Name") to get every note that links to NPC Name.md, with the block around each link.
 
-  For each backlink, report: Path, one-line snippet of the surrounding sentence (grep the backlink context).
+  For each mention, report: path:line, and the sentence that mentions NPC Name, quoted from the excerpt. If the response ends with a map of mentions not shown, call the tool again with paths=[...] for those notes.
 
-  Tools: mcp__vault-graph__vault_backlinks, Grep, Read.
+  Tools: mcp__vault-graph__vault_mentions.
   Output as a table.
   """
 )

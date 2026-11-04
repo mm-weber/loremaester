@@ -207,7 +207,7 @@ cd examples/ttrpg
 claude
 ```
 
-The vault's `CLAUDE.md` (at `examples/ttrpg/GM-Vault/CLAUDE.md`) tells Claude the campaign layout, frontmatter schemas, and which skills are available. Run `/mcp` inside Claude to confirm all three servers are connected with 14 tools total (r2r: 5, sourcebooks: 3, vault-graph: 6).
+The vault's `CLAUDE.md` (at `examples/ttrpg/GM-Vault/CLAUDE.md`) tells Claude the campaign layout, frontmatter schemas, and which skills are available. Run `/mcp` inside Claude to confirm all three servers are connected with 17 tools total (r2r: 5, sourcebooks: 3, vault-graph: 9).
 
 ### 9. The demo — A through G
 

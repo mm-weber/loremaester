@@ -168,9 +168,9 @@ Tags go in the frontmatter `tags:` array. Standard tags:
 
 ## How to Search This Vault
 
-- **Find backlinks** to a note: `Grep` for `[[Note Name]]` across `**/*.md`
+- **Find mentions** of a note: `vault_mentions` (vault-graph MCP) returns the block around each link, labelled `path:line`, plus a map of the rest; `unlinked=true` adds notes that name it without a link
 - **List notes in a folder**: `Glob` with pattern like `YOUR_CAMPAIGN/NPC/**/*.md`
-- **Traverse the graph**: `Read` a note, follow its `[[wikilinks]]` to related notes
+- **Read a note**: `vault_read_note` returns a small note whole and a large one as an outline; `vault_read_section` returns the sections you pick. A whole `Read` is fine for unstructured source material and for notes you rewrite; to edit, Read only the lines you change
 - **Find by type**: `Grep` for `type: NPC` (or `place`, `Faction`, etc.) in frontmatter
 - **Find by faction/location**: `Grep` for `faction: Name` or `location: HEX-CODE`
 
